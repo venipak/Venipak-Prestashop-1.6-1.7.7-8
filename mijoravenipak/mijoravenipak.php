@@ -637,10 +637,13 @@ class MijoraVenipak extends CarrierModule
 
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
             Media::addJsDef(array(
-                'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
-        $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front.js');
-        $this->context->controller->addCSS($this->_path . 'views/css/global.css');
+                    'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'))
+            );
+            $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front.js');
+            $this->context->controller->addCSS($this->_path . 'views/css/global.css');
+        }
     }
+
 
     /**
      * Hook to display block in Prestashop order edit
