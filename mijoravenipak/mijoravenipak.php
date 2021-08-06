@@ -6,6 +6,8 @@ if (!defined('_PS_VERSION_')) {
 
 class MijoraVenipak extends CarrierModule
 {
+    const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
+
     /**
      * Debug mode activation, which writes operations to log files
      */
@@ -143,6 +145,8 @@ class MijoraVenipak extends CarrierModule
      */
     public function install()
     {
+        $this->registerTabs();
+
         if (extension_loaded('curl') == false) {
             $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
             return false;
@@ -175,6 +179,87 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
+     * Provides list of Admin controllers info
+     *
+     * @return array BackOffice Admin controllers
+     */
+    private function getModuleTabs()
+    {
+        return array(
+            self::CONTROLLER_SHIPPING => array(
+                'title' => $this->l('Venipak Shipments'),
+                'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
+            ),
+        );
+    }
+
+    /**
+     * Registers module Admin tabs (controllers)
+     */
+    private function registerTabs()
+    {
+        $tabs = $this->getModuleTabs();
+
+        if (empty($tabs)) {
+            return true; // Nothing to register
+        }
+
+        foreach ($tabs as $controller => $tabData) {
+            $tab = new Tab();
+            $tab->active = 1;
+            $tab->class_name = $controller;
+            $tab->name = array();
+            $languages = Language::getLanguages(false);
+
+            foreach ($languages as $language) {
+                $tab->name[$language['id_lang']] = $tabData['title'];
+            }
+
+            $tab->id_parent = $tabData['parent_tab'];
+            $tab->module = $this->name;
+            if (!$tab->save()) {
+                $this->displayError($this->l('Error while creating tab ') . $tabData['title']);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Deletes module Admin controllers
+     * Used for module uninstall
+     *
+     * @return bool Module Admin controllers deleted successfully
+     *
+     * @throws PrestaShopDatabaseException
+     * @throws PrestaShopException
+     */
+    private function deleteTabs()
+    {
+        $tabs = $this->getModuleTabs();
+
+        if (empty($tabs)) {
+            return true; // Nothing to remove
+        }
+
+        foreach (array_keys($tabs) as $controller) {
+            $idTab = (int) Tab::getIdFromClassName($controller);
+            $tab = new Tab((int) $idTab);
+
+            if (!Validate::isLoadedObject($tab)) {
+                continue; // Nothing to remove
+            }
+
+            if (!$tab->delete()) {
+                $this->displayError($this->l('Error while uninstalling tab') . ' ' . $tab->name);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Module uninstall function
      */
     public function uninstall()
@@ -183,6 +268,7 @@ class MijoraVenipak extends CarrierModule
         $cDb = new MjvpDb();
 
         $cDb->deleteTables();
+        $this->deleteTabs();
 
         foreach (self::$_carriers as $carrier) {
             if (!$this->deleteCarrier($carrier['id_name'])) {
