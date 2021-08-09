@@ -7,9 +7,9 @@
       <div class="col-lg-12">
         {if $label_error && $label_status eq 'error'}
           <div class="alert alert-danger">{$label_error}</div>
-        {else if $label_status eq 'new'}
+        {elseif $label_status eq 'new'}
           <div class="alert alert-warning">{l s='Order not registered.' mod='mijoravenipak'}</div>
-        {else if $label_status eq 'registered'}
+        {elseif $label_status eq 'registered'}
           <div class="alert alert-success">{l s='Order registered.' mod='mijoravenipak'}</div>
         {else}
           <div class="alert alert-danger">{l s='An unspecified error occurred.' mod='mijoravenipak'}</div>
