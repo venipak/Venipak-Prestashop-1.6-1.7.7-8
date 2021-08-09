@@ -45,15 +45,15 @@ class MjvpDb
         PRIMARY KEY (`id_cart`)
       ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
             'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
-        `id_warehouse` int(10) unsigned NOT NULL COMMENT "Warehouse ID",
+        `id_warehouse` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT "Warehouse ID",
         `warehouse_name` varchar(255) NOT NULL COMMENT "Warehouse name",
-        `company_code` varchar(255) NOT NULL COMMENT "Company code",
+        `company_code` varchar(30) NOT NULL COMMENT "Company code",
         `contact` varchar(255) NOT NULL COMMENT "Full name of contact person",
-        `country_code` int(10) COMMENT "Country code",
-        `city` varchar(255) NOT NULL COMMENT "City",
+        `country_code` varchar(3) COMMENT "Country code",
+        `city` varchar(50) NOT NULL COMMENT "City",
         `address` varchar(255) NOT NULL COMMENT "Warehouse address",
         `zip_code` int(10) NOT NULL COMMENT "Zip code of warehouse",
-        `phone` varchar(255) NOT NULL COMMENT "Contact phone number",
+        `phone` varchar(15) NOT NULL COMMENT "Contact phone number",
         `default` tinyint NOT NULL COMMENT "Default warehouse",
         PRIMARY KEY (`id_warehouse`)
       ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
