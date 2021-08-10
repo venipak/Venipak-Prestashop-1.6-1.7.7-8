@@ -10,7 +10,7 @@
                 {l s='Door code (optional)' mod='mijoravenipak'}
             </label>
             <div class="col-xs-8">
-                <input class="form-control" name="venipak_door_code" type="text" maxlength="10">
+                <input class="form-control" name="venipak_door_code" type="text" {if isset($door_code) && $door_code}value="{$door_code}"{/if} maxlength="10">
             </div>
         </div>
     {/if}
@@ -25,7 +25,7 @@
                 {l s='Cabinet number (optional)' mod='mijoravenipak'}
             </label>
             <div class="col-xs-8">
-                <input class="form-control" name="venipak_cabinet_number" type="text" maxlength="10">
+                <input class="form-control" name="venipak_cabinet_number" type="text" {if isset($cabinet_number) && $cabinet_number}value="{$cabinet_number}"{/if} maxlength="10">
             </div>
         </div>
     {/if}
@@ -40,7 +40,7 @@
                 {l s='Warehouse number (optional)' mod='mijoravenipak'}
             </label>
             <div class="col-xs-8">
-                <input class="form-control" name="venipak_warehouse_number" type="text" maxlength="10">
+                <input class="form-control" name="venipak_warehouse_number" type="text" {if isset($warehouse_number) && $warehouse_number}value="{$warehouse_number}"{/if}  maxlength="10">
             </div>
         </div>
     {/if}
@@ -56,8 +56,8 @@
             </label>
             <div class="col-xs-8">
                 <select name="venipak_delivery_time" class="form-control form-control-select">
-                    {foreach from=$delivery_times key=id item=delivery_time}
-                        <option value="{$id}">{$delivery_time}</option>
+                    {foreach from=$delivery_times key=id item=time}
+                        <option value="{$id}" {if isset($delivery_time) && $id == $delivery_time}selected{/if}>{$time}</option>
                     {/foreach}
                 </select>
             </div>

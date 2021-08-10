@@ -22,11 +22,6 @@ class VenipakWarehouse extends ObjectModel
 
     public $default_on;
 
-    public $date_add;
-
-    public $date_upd;
-
-
     /**
      * @see ObjectModel::$definition
      */
@@ -43,8 +38,6 @@ class VenipakWarehouse extends ObjectModel
             'zip_code' =>            array('type' => self::TYPE_STRING, 'required' => true, 'size' => 6, 'validate' => 'isZipCodeFormat'),
             'phone' =>               array('type' => self::TYPE_BOOL, 'required' => true, 'size' => 15, 'validate' => 'isPhoneNumber'),
             'default_on' =>             array('type' => self::TYPE_BOOL, 'required' => true, 'validate' => 'isBool'),
-            'date_add' =>            array('type' => self::TYPE_DATE, 'validate' => 'isDateFormat'),
-            'date_upd' =>            array('type' => self::TYPE_DATE, 'validate' => 'isDateFormat'),
         ),
     );
 

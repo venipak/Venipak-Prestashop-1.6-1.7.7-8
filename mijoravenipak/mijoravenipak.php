@@ -68,6 +68,8 @@ class MijoraVenipak extends CarrierModule
         'MjvpModuleConfig' => 'classes/MjvpModuleConfig.php',
         'MjvpFiles' => 'classes/MjvpFiles.php',
         'MjvpDb' => 'classes/MjvpDb.php',
+        'VenipakCart' => 'classes/VenipakCart.php',
+        'VenipakWarehouse' => 'classes/VenipakWarehouse.php',
         'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
     );
 
@@ -1008,10 +1010,10 @@ class MijoraVenipak extends CarrierModule
             return;
 
         // Validate extra fields
-        $venipak_door_code = Tools::getValue('venipak_door_code');
-        $venipak_cabinet_number = Tools::getValue('venipak_cabinet_number');
-        $venipak_warehouse_number = Tools::getValue('venipak_warehouse_number');
-        $venipak_delivery_time = (int) Tools::getValue('venipak_delivery_time');
+        $venipak_door_code = Tools::getValue('venipak_door_code', 0);
+        $venipak_cabinet_number = Tools::getValue('venipak_cabinet_number', 0);
+        $venipak_warehouse_number = Tools::getValue('venipak_warehouse_number', 0);
+        $venipak_delivery_time = (int) Tools::getValue('venipak_delivery_time', 0);
         if(strlen($venipak_door_code) > self::EXTRA_FIELDS_SIZE)
             $this->context->controller->errors['venipak_door_code'] = $this->l('The door code is too long.');
         if(strlen($venipak_cabinet_number) > self::EXTRA_FIELDS_SIZE)
@@ -1022,7 +1024,28 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->errors['venipak_delivery_time'] = $this->l('Selected delivery time does not exist.');
 
         if(!empty($this->context->controller->errors))
+        {
             $params['completed'] = false;
+            return;
+        }
+        self::checkForClass('VenipakCart');
+
+        $id_mjvp_cart = Db::getInstance()->getValue('SELECT `id_mjvp_cart` FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+        if((int) $id_mjvp_cart > 0)
+        {
+            $venipakCart = new VenipakCart($id_mjvp_cart);
+        }
+        else
+        {
+            $venipakCart = new VenipakCart();
+            $venipakCart->id_cart = $cart->id;
+        }
+
+        $venipakCart->door_code = $venipak_door_code;
+        $venipakCart->cabinet_number = $venipak_cabinet_number;
+        $venipakCart->warehouse_number = $venipak_warehouse_number;
+        $venipakCart->delivery_time = $venipak_delivery_time;
+        $venipakCart->save();
 
     }
 
@@ -1040,14 +1063,22 @@ class MijoraVenipak extends CarrierModule
 
         global $smarty;
         if ($carrier_type !== 'pickup') {
+
+            $configuration = [
+                'show_door_code' => Configuration::get('VENIPAK_DOOR_CODE'),
+                'show_cabinet_number' => Configuration::get('VENIPAK_CABINET_NUMBER'),
+                'show_warehouse_number' => Configuration::get('VENIPAK_WAREHOUSE_NUMBER'),
+                'show_delivery_time' => Configuration::get('VENIPAK_DELIVERY_TIME'),
+                'delivery_times' => $this->deliveryTimes
+            ];
+
+            $cart = $params['cart'];
+            $cart_mjvp_data = Db::getInstance()->getRow('SELECT `door_code`, `cabinet_number`, `warehouse_number`, `delivery_time`
+                FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+            if(!$cart_mjvp_data)
+                $cart_mjvp_data = [];
             $smarty->assign(
-                array(
-                    'show_door_code' => Configuration::get('VENIPAK_DOOR_CODE'),
-                    'show_cabinet_number' => Configuration::get('VENIPAK_CABINET_NUMBER'),
-                    'show_warehouse_number' => Configuration::get('VENIPAK_WAREHOUSE_NUMBER'),
-                    'show_delivery_time' => Configuration::get('VENIPAK_DELIVERY_TIME'),
-                    'delivery_times' => $this->deliveryTimes
-                )
+                array_merge($configuration, $cart_mjvp_data)
             );
             return $this->fetch('module:' . $this->name . '/views/templates/hook/displayCarrierExtraContent.tpl');
         }
