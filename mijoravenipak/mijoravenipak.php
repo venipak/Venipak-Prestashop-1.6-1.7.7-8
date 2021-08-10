@@ -91,14 +91,33 @@ class MijoraVenipak extends CarrierModule
             'password' => 'MJVP_API_PASS',
             'id' => 'MJVP_API_ID',
         ),
+        'SHOP' => array(
+            'shop_name' => 'VENIPAK_SHOP_NAME',
+            'shop_contact' => 'VENIPAK_SHOP_CONTACT',
+            'company_code' => 'VENIPAK_COMPANY_CODE',
+            'shop_country_code' => 'VENIPAK_SHOP_COUNTRY_CODE',
+            'shop_city' => 'VENIPAK_SHOP_CITY',
+            'shop_address' => 'VENIPAK_SHOP_ADDRESS',
+            'shop_postcode' => 'VENIPAK_SHOP_POSTCODE',
+            'shop_phone' => 'VENIPAK_SHOP_PHONE',
+            'shop_email' => 'VENIPAK_SHOP_EMAIL',
+        ),
+        'ADVANCED' => array(
+            'label_size' => 'VENIPAK_LABEL_SIZE',
+            'door_code' => 'VENIPAK_DOOR_CODE',
+            'warehouse_number' => 'VENIPAK_WAREHOUSE_NUMBER',
+            'cabinet_number' => 'VENIPAK_CABINET_NUMBER',
+            'delivery_time' => 'VENIPAK_DELIVERY_TIME',
+        )
     );
 
     /**
      * Fields names and required
      */
-    private function getConfigField($config_key)
+    private function getConfigField($section_id, $config_key)
     {
-        return array('name' => 'ERROR_' . $config_key, 'required' => false);
+        if ($section_id == 'SHOP')
+            return array('name' => str_replace('_', ' ', $config_key), 'required' => true);
     }
 
     public static $_order_states = array(
@@ -127,7 +146,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.0.1';
+        $this->version = '0.0.3';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.6');
@@ -137,7 +156,8 @@ class MijoraVenipak extends CarrierModule
 
         $this->displayName = $this->l('Venipak Shipping');
         $this->description = $this->l('Shipping module for Venipak delivery method');
-
+        $this->available_countries = array('LT', 'LV', 'EE');
+        $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
     }
 
@@ -496,13 +516,17 @@ class MijoraVenipak extends CarrierModule
         if (Tools::isSubmit('submit' . $this->name . 'shop')) {
             $output .= $this->saveConfig('SHOP', $this->l('Shop settings updated'));
         }
+        if (Tools::isSubmit('submit' . $this->name . 'advanced')) {
+            $output .= $this->saveConfig('ADVANCED', $this->l('Advanced settings updated'));
+        }
         if (Tools::isSubmit('submit' . $this->name . 'pickuppoints')) {
             $output .= $this->saveConfig('PICKUPPOINTS', $this->l('Pickup points settings updated'));
         }
 
         return $output
             . $this->displayConfigApi()
-            . $this->displayConfigShop();
+            . $this->displayConfigShop()
+            . $this->displayConfigAdvanced();
     }
 
     /**
@@ -565,13 +589,183 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigShop()
     {
-        $country_options = array(
-        );
+        $country_options = [];
+
+        foreach ($this->available_countries as $country) {
+            if (isset($this->countries_names[$country])) {
+                array_push($country_options, array(
+                    'id_option' => $country,
+                    'name' => $country . ' - ' . $this->countries_names[$country]
+                ));
+            }
+        }
 
         $form_fields = array(
+            array(
+                'type' => 'text',
+                'label' => $this->l('Shop Name'),
+                'name' => $this->_configKeys['SHOP']['shop_name'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Company code'),
+                'name' => $this->_configKeys['SHOP']['company_code'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Shop contact'),
+                'name' => $this->_configKeys['SHOP']['shop_contact'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'select',
+                'label' => $this->l('Country Code'),
+                'name' => $this->_configKeys['SHOP']['shop_country_code'],
+                'options' => array(
+                    'query' => $country_options,
+                    'id' => 'id_option',
+                    'name' => 'name'
+                )
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('City'),
+                'name' => $this->_configKeys['SHOP']['shop_city'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Address'),
+                'name' => $this->_configKeys['SHOP']['shop_address'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Postcode'),
+                'name' => $this->_configKeys['SHOP']['shop_postcode'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Mob. Phone'),
+                'name' => $this->_configKeys['SHOP']['shop_phone'],
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Shop email'),
+                'name' => $this->_configKeys['SHOP']['shop_email'],
+                'size' => 20,
+                'required' => true
+            ),
         );
 
         return $this->displayConfig('SHOP', $this->l('Shop Settings'), $form_fields, $this->l('Save shop settings'));
+    }
+
+    /**
+     * Display Advanced section in module configuration
+     */
+    public function displayConfigAdvanced()
+    {
+        $form_fields = array(
+            array(
+                'type' => 'radio',
+                'label' => $this->l('Label size'),
+                'name' => 'VENIPAK_LABEL_SIZE',
+                'values' => array(
+                    array(
+                        'id' => 'A4',
+                        'value' => 'a4',
+                        'label' => 'A4',
+                    ),
+                    array(
+                        'id' => 'A6',
+                        'value' => 'a6',
+                        'label' => 'A6',
+                    ),
+                ),
+            ),
+            array(
+            'type' => 'switch',
+            'label' => $this->l('Door code'),
+            'name' => 'VENIPAK_DOOR_CODE',
+            'desc' => $this->l('Add input for customers to enter their door code, if they select Venipak carrier.'),
+            'values' => array(
+                array(
+                    'id' => 'active_on',
+                    'value' => 1,
+                    'label' => $this->trans('Yes', array(), 'Admin.Global')
+                ),
+                array(
+                    'id' => 'active_off',
+                    'value' => 0,
+                    'label' => $this->trans('No', array(), 'Admin.Global')
+                )
+            )),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Cabinet number'),
+                'name' => 'VENIPAK_CABINET_NUMBER',
+                'desc' => $this->l('Allow customers to input cabinet number.'),
+                'values' => array(
+                    array(
+                        'id' => 'active_on',
+                        'value' => 1,
+                        'label' => $this->trans('Yes', array(), 'Admin.Global')
+                    ),
+                    array(
+                        'id' => 'active_off',
+                        'value' => 0,
+                        'label' => $this->trans('No', array(), 'Admin.Global')
+                    )
+            )),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Warehouse number'),
+                'name' => 'VENIPAK_WAREHOUSE_NUMBER',
+                'desc' => $this->l('Allow customers to select warehouse.'),
+                'values' => array(
+                    array(
+                        'id' => 'active_on',
+                        'value' => 1,
+                        'label' => $this->trans('Yes', array(), 'Admin.Global')
+                    ),
+                    array(
+                        'id' => 'active_off',
+                        'value' => 0,
+                        'label' => $this->trans('No', array(), 'Admin.Global')
+                    )
+            )),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable delivery time selection'),
+                'name' => 'VENIPAK_DELIVERY_TIME',
+                'desc' => $this->l('Allow customers to select delivery time.'),
+                'values' => array(
+                    array(
+                        'id' => 'active_on',
+                        'value' => 1,
+                        'label' => $this->trans('Yes', array(), 'Admin.Global')
+                    ),
+                    array(
+                        'id' => 'active_off',
+                        'value' => 0,
+                        'label' => $this->trans('No', array(), 'Admin.Global')
+                    )
+            )),
+        );
+
+        return $this->displayConfig('ADVANCED', $this->l('Advanced Settings'), $form_fields, $this->l('Save advanced settings'));
     }
 
     /**
@@ -696,8 +890,9 @@ class MijoraVenipak extends CarrierModule
         }
         if (strtoupper($section_id) == 'SHOP') {
             foreach ($this->_configKeys['SHOP'] as $key => $key_value) {
-                if (empty(Tools::getValue($cModuleConfig->getConfigKey($key, 'SHOP'))) && $this->getConfigField($key)['required']) {
-                    $errors[] = $this->getConfigField($key)['name'] . ' ' . $txt_required;
+                $configField = $this->getConfigField($section_id, $key);
+                if (empty(Tools::getValue($cModuleConfig->getConfigKey($key, 'SHOP'))) && $configField['required']) {
+                    $errors[] = $configField['name'] . ' ' . $txt_required;
                 }
             }
         }
