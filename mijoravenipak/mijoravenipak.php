@@ -7,6 +7,7 @@ if (!defined('_PS_VERSION_')) {
 class MijoraVenipak extends CarrierModule
 {
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
+    const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -188,6 +189,10 @@ class MijoraVenipak extends CarrierModule
         return array(
             self::CONTROLLER_SHIPPING => array(
                 'title' => $this->l('Venipak Shipments'),
+                'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
+            ),
+            self::CONTROLLER_WAREHOUSE => array(
+                'title' => $this->l('Venipak Warehouses'),
                 'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
             ),
         );
