@@ -11,6 +11,7 @@ class MjvpDb
      */
     private $_table_orders = 'mjvp_orders';
     private $_table_warehouses = 'mjvp_warehouse';
+    private $_table_cart = 'mjvp_cart';
 
     /**
      * Status values for rows in 'orders' table
@@ -33,32 +34,43 @@ class MjvpDb
     {
         $sql = array(
            $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
-        `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
-        `id_order` int(10) COMMENT "Order ID",
-        `country_code` varchar(255) NOT NULL COMMENT "Country code used for terminals list",
-        `terminal_id` int(10) COMMENT "Terminal ID",
-        `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
-        `status` varchar(255) COMMENT "Status for module of current order",
-        `labels_numbers` text COLLATE utf8_unicode_ci NULL COMMENT "Json of labels numbers array",
-        `labels_date` datetime DEFAULT NULL COMMENT "Date when created labels",
-        `error` text COLLATE utf8_unicode_ci DEFAULT NULL COMMENT "Order error messages",
-        PRIMARY KEY (`id_cart`)
-      ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+            `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
+            `id_order` int(10) COMMENT "Order ID",
+            `country_code` varchar(255) NOT NULL COMMENT "Country code used for terminals list",
+            `terminal_id` int(10) COMMENT "Terminal ID",
+            `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
+            `status` varchar(255) COMMENT "Status for module of current order",
+            `labels_numbers` text COLLATE utf8_unicode_ci NULL COMMENT "Json of labels numbers array",
+            `labels_date` datetime DEFAULT NULL COMMENT "Date when created labels",
+            `error` text COLLATE utf8_unicode_ci DEFAULT NULL COMMENT "Order error messages",
+            PRIMARY KEY (`id_cart`)
+          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+
             'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
-        `id_warehouse` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT "Warehouse ID",
-        `warehouse_name` varchar(255) NOT NULL COMMENT "Warehouse name",
-        `company_code` varchar(32) NOT NULL COMMENT "Company code",
-        `contact` varchar(255) NOT NULL COMMENT "Full name of contact person",
-        `country_code` varchar(3) COMMENT "Country code",
-        `city` varchar(50) NOT NULL COMMENT "City",
-        `address` varchar(255) NOT NULL COMMENT "Warehouse address",
-        `zip_code` int(10) NOT NULL COMMENT "Zip code of warehouse",
-        `phone` varchar(15) NOT NULL COMMENT "Contact phone number",
-        `default_on` tinyint NOT NULL COMMENT "Default warehouse",
-        `date_add` datetime NOT NULL,
-        `date_upd` datetime DEFAULT NULL,
-        PRIMARY KEY (`id_warehouse`)
-      ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+            `id_warehouse` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `warehouse_name` varchar(255) NOT NULL,
+            `company_code` varchar(32) NOT NULL,
+            `contact` varchar(255) NOT NULL,
+            `country_code` varchar(3),
+            `city` varchar(50) NOT NULL,
+            `address` varchar(255) NOT NULL,
+            `zip_code` int(10) NOT NULL,
+            `phone` varchar(15) NOT NULL,
+            `default_on` tinyint NOT NULL,
+            PRIMARY KEY (`id_warehouse`)
+          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+
+            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_cart . '` (
+            `id_mjvp_cart` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `id_cart` int(10) unsigned NOT NULL,
+            `door_code` varchar(10),
+            `cabinet_number` varchar(10),
+            `warehouse_number` varchar(10),
+            `delivery_time` varchar(10),
+            `date_add` datetime NOT NULL,
+            `date_upd` datetime DEFAULT NULL,
+            PRIMARY KEY (`id_mjvp_cart`)
+          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
         );
 
         foreach ($sql as $query) {

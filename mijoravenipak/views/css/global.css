@@ -118,3 +118,11 @@
     box-shadow: 9991px -16px 0 0 var(--mjvp-dot-bricks-color), 9991px 0 0 0 var(--mjvp-dot-bricks-color), 10007px 0 0 0 var(--mjvp-dot-bricks-color);
   }
 }
+
+#venipak-extra-fields label {
+  text-align: left;
+}
+
+#venipak-extra-fields .alert {
+  margin-bottom: 0px;
+}

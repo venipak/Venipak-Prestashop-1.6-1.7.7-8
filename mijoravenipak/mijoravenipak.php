@@ -8,6 +8,7 @@ class MijoraVenipak extends CarrierModule
 {
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
+    const EXTRA_FIELDS_SIZE = 10;
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -67,6 +68,8 @@ class MijoraVenipak extends CarrierModule
         'MjvpModuleConfig' => 'classes/MjvpModuleConfig.php',
         'MjvpFiles' => 'classes/MjvpFiles.php',
         'MjvpDb' => 'classes/MjvpDb.php',
+        'VenipakCart' => 'classes/VenipakCart.php',
+        'VenipakWarehouse' => 'classes/VenipakWarehouse.php',
         'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
     );
 
@@ -80,6 +83,7 @@ class MijoraVenipak extends CarrierModule
         'displayCarrierExtraContent',
         'updateCarrier',
         'displayAdminOrder',
+        'actionValidateStepComplete'
     );
 
     /**
@@ -110,6 +114,8 @@ class MijoraVenipak extends CarrierModule
             'delivery_time' => 'VENIPAK_DELIVERY_TIME',
         )
     );
+
+    public $deliveryTimes = [];
 
     /**
      * Fields names and required
@@ -159,6 +165,13 @@ class MijoraVenipak extends CarrierModule
         $this->available_countries = array('LT', 'LV', 'EE');
         $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
+        $this->deliveryTimes = [
+            $this->l('Anytime'),
+            $this->l('8:00-14:00'),
+            $this->l('14:00-17:00'),
+            $this->l('18:00-22:00'),
+            $this->l('After 18:00'),
+        ];
     }
 
     /**
@@ -986,6 +999,56 @@ class MijoraVenipak extends CarrierModule
         return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
     }
 
+    public function hookActionValidateStepComplete($params)
+    {
+        if($params['step_name'] != 'delivery')
+            return;
+        $cart = $params['cart'];
+        $carrier = new Carrier($cart->id_carrier);
+        $carrier_reference = $carrier->id_reference;
+        if(Configuration::get('MJVP_COURIER_ID_REFERENCE') != $carrier_reference)
+            return;
+
+        // Validate extra fields
+        $venipak_door_code = Tools::getValue('venipak_door_code', 0);
+        $venipak_cabinet_number = Tools::getValue('venipak_cabinet_number', 0);
+        $venipak_warehouse_number = Tools::getValue('venipak_warehouse_number', 0);
+        $venipak_delivery_time = (int) Tools::getValue('venipak_delivery_time', 0);
+        if(strlen($venipak_door_code) > self::EXTRA_FIELDS_SIZE)
+            $this->context->controller->errors['venipak_door_code'] = $this->l('The door code is too long.');
+        if(strlen($venipak_cabinet_number) > self::EXTRA_FIELDS_SIZE)
+            $this->context->controller->errors['venipak_cabinet_number'] = $this->l('The cabinet number is too long.');
+        if(strlen($venipak_warehouse_number) > self::EXTRA_FIELDS_SIZE)
+            $this->context->controller->errors['venipak_warehouse_number'] = $this->l('The warehouse number is too long.');
+        if(!isset($this->deliveryTimes[$venipak_delivery_time]))
+            $this->context->controller->errors['venipak_delivery_time'] = $this->l('Selected delivery time does not exist.');
+
+        if(!empty($this->context->controller->errors))
+        {
+            $params['completed'] = false;
+            return;
+        }
+        self::checkForClass('VenipakCart');
+
+        $id_mjvp_cart = Db::getInstance()->getValue('SELECT `id_mjvp_cart` FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+        if((int) $id_mjvp_cart > 0)
+        {
+            $venipakCart = new VenipakCart($id_mjvp_cart);
+        }
+        else
+        {
+            $venipakCart = new VenipakCart();
+            $venipakCart->id_cart = $cart->id;
+        }
+
+        $venipakCart->door_code = $venipak_door_code;
+        $venipakCart->cabinet_number = $venipak_cabinet_number;
+        $venipakCart->warehouse_number = $venipak_warehouse_number;
+        $venipakCart->delivery_time = $venipak_delivery_time;
+        $venipakCart->save();
+
+    }
+
     /**
      * Hook to display content on carrier in checkout page
      */
@@ -998,8 +1061,26 @@ class MijoraVenipak extends CarrierModule
 
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
 
+        global $smarty;
         if ($carrier_type !== 'pickup') {
-            return '';
+
+            $configuration = [
+                'show_door_code' => Configuration::get('VENIPAK_DOOR_CODE'),
+                'show_cabinet_number' => Configuration::get('VENIPAK_CABINET_NUMBER'),
+                'show_warehouse_number' => Configuration::get('VENIPAK_WAREHOUSE_NUMBER'),
+                'show_delivery_time' => Configuration::get('VENIPAK_DELIVERY_TIME'),
+                'delivery_times' => $this->deliveryTimes
+            ];
+
+            $cart = $params['cart'];
+            $cart_mjvp_data = Db::getInstance()->getRow('SELECT `door_code`, `cabinet_number`, `warehouse_number`, `delivery_time`
+                FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+            if(!$cart_mjvp_data)
+                $cart_mjvp_data = [];
+            $smarty->assign(
+                array_merge($configuration, $cart_mjvp_data)
+            );
+            return $this->fetch('module:' . $this->name . '/views/templates/hook/displayCarrierExtraContent.tpl');
         }
 
         self::checkForClass('MjvpApi');
@@ -1036,7 +1117,6 @@ class MijoraVenipak extends CarrierModule
             $quantity = $quantity + $product['cart_quantity'];
         }
 
-        global $smarty;
         $smarty->assign(
             array(
                 'terminals' => $all_terminals_info,
