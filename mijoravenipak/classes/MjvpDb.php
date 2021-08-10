@@ -10,7 +10,7 @@ class MjvpDb
      * Database tables list
      */
     private $_table_orders = 'mjvp_orders';
-    private $_table_warehouses = 'mjvp_warehouses';
+    private $_table_warehouses = 'mjvp_warehouse';
 
     /**
      * Status values for rows in 'orders' table
@@ -47,14 +47,16 @@ class MjvpDb
             'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
         `id_warehouse` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT "Warehouse ID",
         `warehouse_name` varchar(255) NOT NULL COMMENT "Warehouse name",
-        `company_code` varchar(30) NOT NULL COMMENT "Company code",
+        `company_code` varchar(32) NOT NULL COMMENT "Company code",
         `contact` varchar(255) NOT NULL COMMENT "Full name of contact person",
         `country_code` varchar(3) COMMENT "Country code",
         `city` varchar(50) NOT NULL COMMENT "City",
         `address` varchar(255) NOT NULL COMMENT "Warehouse address",
         `zip_code` int(10) NOT NULL COMMENT "Zip code of warehouse",
         `phone` varchar(15) NOT NULL COMMENT "Contact phone number",
-        `default` tinyint NOT NULL COMMENT "Default warehouse",
+        `default_on` tinyint NOT NULL COMMENT "Default warehouse",
+        `date_add` datetime NOT NULL,
+        `date_upd` datetime DEFAULT NULL,
         PRIMARY KEY (`id_warehouse`)
       ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
         );

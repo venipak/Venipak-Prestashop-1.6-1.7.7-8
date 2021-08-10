@@ -1,5 +1,7 @@
 <?php
 
+include __DIR__ . "/../../classes/VenipakWarehouse.php";
+
 class AdminVenipakWarehouseController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -15,17 +17,16 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         $this->list_no_link = true;
         $this->_orderBy = 'id_warehouse';
-        $this->table = 'mjvp_warehouses';
-        $this->list_id = 'mjvp_warehouses';
+        $this->className = 'VenipakWarehouse';
+        $this->table = 'mjvp_warehouse';
+        $this->list_id = 'mjvp_warehouse';
         $this->identifier = 'id_warehouse';
-        $this->_defaultOrderBy = 'position';
         parent::__construct();
         $this->toolbar_title = $this->l('Venipak Warehouses');
-
-        $this->readyWarehouseList();
+        $this->prepareWarehouseList();
     }
 
-    protected function readyWarehouseList()
+    protected function prepareWarehouseList()
     {
         $this->fields_list = array(
             'id_warehouse' => array(
@@ -67,7 +68,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                 'type' => 'text',
                 'title' => $this->l('Contact phone number'),
             ),
-            'default' => array(
+            'default_on' => array(
                 'type' => 'bool',
                 'title' => $this->l('Default'),
                 'active' => 'status',
@@ -85,50 +86,9 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         $this->actions = array('edit', 'delete');
     }
 
-    /**
-     * AdminController::init() override.
-     *
-     * @see AdminController::init()
-     */
-    public function init()
-    {
-        if (Tools::isSubmit('updateattribute')) {
-            $this->display = 'editAttributes';
-        } elseif (Tools::isSubmit('submitAddattribute')) {
-            $this->display = 'editAttributes';
-        } elseif (Tools::isSubmit('addmjvp_warehouses')) {
-            $this->display = 'add';
-        }
-        parent::init();
-    }
-
-    public function initContent()
-    {
-        if ($this->display == 'edit' || $this->display == 'add') {
-            $this->content .= $this->renderForm();
-        } elseif ($this->display == 'editAttributes') {
-            if (!$this->object = new Attribute((int)Tools::getValue('id_attribute'))) {
-                return;
-            }
-            $this->content .= $this->renderFormAttributes();
-        } elseif ($this->display != 'view' && !$this->ajax) {
-            $this->content .= $this->renderList();
-            $this->content .= $this->renderOptions();
-        } elseif ($this->display == 'view' && !$this->ajax) {
-            $this->content = $this->renderView();
-        }
-
-        $this->context->smarty->assign(array(
-            'table' => $this->table,
-            'current' => self::$currentIndex,
-            'token' => $this->token,
-            'content' => $this->content,
-        ));
-    }
-
     public function renderForm()
     {
-        $this->table = 'mjvp_warehouses';
+        $this->table = 'mjvp_warehouse';
         $this->identifier = 'id_warehouse';
 
         $countries = array(
@@ -239,21 +199,6 @@ class AdminVenipakWarehouseController extends ModuleAdminController
             ),
         );
 
-        if (Tools::isSubmit('updatemjvp_warehouses')) {
-            $this->fields_form['input'][] =
-                [
-                    'type' => 'hidden',
-                    'name' => 'update',
-                    'value' => 1
-                ];
-            $this->fields_form['input'][] =
-                [
-                    'type' => 'hidden',
-                    'name' => 'id_warehouse',
-                    'value' => (int)Tools::getValue('id_warehouse')
-                ];
-        }
-
         if (Shop::isFeatureActive()) {
             $this->fields_form['input'][] = array(
                 'type' => 'shop',
@@ -269,136 +214,6 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         return parent::renderForm();
     }
 
-    public function postProcess()
-    {
-        if (Tools::getValue('submitAddmjvp_warehouses') || Tools::isSubmit('deletemjvp_warehouses') || Tools::isSubmit('updatemjvp_warehouses')
-            || Tools::isSubmit('submitBulkdeletemjvp_warehouses')) {
-            if (true !== $this->access('edit')) {
-                $this->errors[] = $this->trans('You do not have permission to edit this.', array(), 'Admin.Notifications.Error');
-                return;
-            }
-
-            if (Tools::isSubmit('submitBulkdeletemjvp_warehouses')) {
-                $this->processBulkDelete();
-            }
-        }
-        parent::postProcess();
-    }
-
-    /**
-     * Override processSave to change SaveAndStay button action.
-     *
-     * @see classes/AdminControllerCore::processUpdate()
-     */
-    public function processSave()
-    {
-        $data = [
-            'warehouse_name' => pSQL(Tools::getValue('warehouse_name')),
-            'company_code' => pSQL(Tools::getValue('company_code')),
-            'contact' => pSQL(Tools::getValue('contact')),
-            'country_code' => pSQL(Tools::getValue('country_code')),
-            'city' => pSQL(Tools::getValue('city')),
-            'address' => pSQL(Tools::getValue('address')),
-            'zip_code' => pSQL(Tools::getValue('zip_code')),
-            'phone' => pSQL(Tools::getValue('phone')),
-            'default' => (int)pSQL(Tools::getValue('default_on'))
-        ];
-        $update = false;
-        if ($this->validateData($data)) {
-            if (Tools::getValue('update')) {
-                $warehouse_id = (int)Tools::getValue('id_warehouse');
-                $update = true;
-                $result = Db::getInstance()->update('mjvp_warehouses', $data, 'id_warehouse = ' . pSQL($warehouse_id));
-            } else {
-                $warehouse_id = Db::getInstance()->Insert_ID();
-                $result = Db::getInstance()->insert('mjvp_warehouses', $data);
-            }
-
-            if ($result) {
-                // Reset default
-                if (Tools::getValue('default_on')) {
-                    Db::getInstance()->update('mjvp_warehouses', ['default' => 0], 'id_warehouse != ' . $warehouse_id);
-                }
-                if ($update)
-                    $this->confirmations[] = $this->trans('Warehouse updated successfully.', [], 'Admin.Notifications.Success');
-                else
-                    $this->confirmations[] = $this->trans('Warehouse created successfully.', [], 'Admin.Notifications.Success');
-            }
-        }
-    }
-
-    public function processBulkDelete()
-    {
-        if (!$this->boxes || empty($this->boxes)) {
-            $this->errors[] = $this->trans('You must select at least one element to delete.', array(), 'Admin.Notifications.Error');
-            return false;
-        }
-        $result = Db::getInstance()->delete('mjvp_warehouses', 'id_warehouse IN (' . implode(',', $this->boxes) . ")");
-        if ($result) {
-            $this->confirmations[] = $this->trans('Selected warehouses deleted successfully.', [], 'Admin.Notifications.Success');
-        } else {
-            $this->errors[] = $this->trans('You must select at least one element to delete.', array(), 'Admin.Notifications.Error');
-        }
-    }
-
-    public function processDelete()
-    {
-        $id_warehouse = (int)Tools::getValue('id_warehouse');
-        $result = Db::getInstance()->delete('mjvp_warehouses', 'id_warehouse = ' . $id_warehouse);
-        if ($result) {
-            $this->confirmations[] = $this->trans('Warehouse deleted successfully.', [], 'Admin.Notifications.Success');
-        } else {
-            $this->errors[] = $this->trans('Could not delete a warehouse.', [], 'Admin.Notifications.Success');
-        }
-    }
-
-    public function getFieldsValue($obj)
-    {
-        if (Tools::isSubmit('updatemjvp_warehouses')) {
-            $values = Db::getInstance()->getRow("SELECT * FROM " . _DB_PREFIX_ . "mjvp_warehouses WHERE id_warehouse = " . pSQL(Tools::getValue('id_warehouse')));
-            $values['update'] = 1;
-            if ($values['default']) {
-                $values['default_on'] = 1;
-            }
-            return $values;
-        } elseif (Tools::isSubmit('addmjvp_warehouses'))
-            return parent::getFieldsValue($obj);
-    }
-
-    public function validateData($data)
-    {
-        if (!Validate::isName($data['warehouse_name']) || !$data['warehouse_name']) {
-            $this->errors[] = $this->trans('Warehouse name is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isInt($data['company_code']) || !$data['company_code']) {
-            $this->errors[] = $this->trans('Company code is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isName($data['contact']) || !$data['contact']) {
-            $this->errors[] = $this->trans('Contact is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isLangIsoCode($data['country_code'])) {
-            $this->errors[] = $this->trans('Country code is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isCityName($data['city']) || !$data['city']) {
-            $this->errors[] = $this->trans('City is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isAddress($data['address']) || !$data['address']) {
-            $this->errors[] = $this->trans('Address is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isZipCodeFormat($data['zip_code']) || !$data['zip_code']) {
-            $this->errors[] = $this->trans('Zip code is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isPhoneNumber($data['phone']) || !$data['phone']) {
-            $this->errors[] = $this->trans('Phone number is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!Validate::isInt($data['default'])) {
-            $this->errors[] = $this->trans('Default value is invalid.', [], 'Admin.Notifications.Error');
-        }
-        if (!empty($this->errors))
-            return false;
-        return true;
-    }
-
     /**
      * Change object status (active, inactive).
      *
@@ -409,15 +224,54 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     public function processStatus()
     {
         $id_warehouse = (int) Tools::getValue('id_warehouse');
-        $current_status = (int) Db::getInstance()->getValue('SELECT `default` FROM ' . _DB_PREFIX_ . 'mjvp_warehouses WHERE `id_warehouse` = ' . $id_warehouse);
+        $current_status = (int) Db::getInstance()->getValue('SELECT `default_on` FROM ' . _DB_PREFIX_ . 'mjvp_warehouse WHERE `id_warehouse` = ' . $id_warehouse);
 
-        $result = Db::getInstance()->update('mjvp_warehouses', ['default' => 0]);
+        $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0]);
         if($current_status)
-            $result = Db::getInstance()->update('mjvp_warehouses', ['default' => 0], 'id_warehouse = ' . $id_warehouse);
+            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id_warehouse = ' . $id_warehouse);
         else
-            $result = Db::getInstance()->update('mjvp_warehouses', ['default' => 1], 'id_warehouse = ' . $id_warehouse);
+            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 1], 'id_warehouse = ' . $id_warehouse);
 
         return $result;
+    }
+
+    public function beforeAdd($object)
+    {
+        // If new warehouse will be default, reset the current default.
+        if($object->default_on)
+            Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'default_on = 1');
+    }
+
+    // If warehouse is updated to default, reset previous default.
+    public function afterUpdate($object)
+    {
+        if($object->default_on)
+        {
+            Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id_warehouse != ' . $object->id);
+        }
+    }
+
+    // Add default_on value, if checkbox is not selected.
+    public function copyFromPost(&$object, $table)
+    {
+        parent::copyFromPost($object, $table);
+        if(!Tools::isSubmit('default_on'))
+        {
+            $object->default_on = 0;
+        }
+    }
+
+    // Fix issue with checkbox not being checked, when editing default warehouse.
+    public function getFieldsValue($object)
+    {
+        $fields_value = parent::getFieldsValue($object);
+
+        if($object->id)
+        {
+            $fields_value['default_on'] = $object->default_on;
+        }
+
+        return $fields_value;
     }
 
 }
