@@ -1,6 +1,6 @@
 <?php
 
-class VenipakCart extends ObjectModel
+class MjvpCart extends ObjectModel
 {
     public $id;
 
@@ -24,7 +24,7 @@ class VenipakCart extends ObjectModel
      */
     public static $definition = array(
         'table' => 'mjvp_cart',
-        'primary' => 'id_mjvp_cart',
+        'primary' => 'id',
         'fields' => array(
             'id_cart' =>             array('type' => self::TYPE_INT, 'required' => true, 'size' => 10),
             'door_code' =>           array('type' => self::TYPE_STRING, 'required' => false, 'size' => 10),

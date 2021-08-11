@@ -47,21 +47,21 @@ class MjvpDb
           ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
 
             'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
-            `id_warehouse` int(10) unsigned NOT NULL AUTO_INCREMENT,
-            `warehouse_name` varchar(255) NOT NULL,
-            `company_code` varchar(32) NOT NULL,
-            `contact` varchar(255) NOT NULL,
+            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `warehouse_name` varchar(60) NOT NULL,
+            `company_code` varchar(16) NOT NULL,
+            `contact` varchar(40) NOT NULL,
             `country_code` varchar(3),
-            `city` varchar(50) NOT NULL,
-            `address` varchar(255) NOT NULL,
-            `zip_code` int(10) NOT NULL,
-            `phone` varchar(15) NOT NULL,
+            `city` varchar(40) NOT NULL,
+            `address` varchar(50) NOT NULL,
+            `zip_code` int(6) NOT NULL,
+            `phone` varchar(30) NOT NULL,
             `default_on` tinyint NOT NULL,
-            PRIMARY KEY (`id_warehouse`)
+            PRIMARY KEY (`id`)
           ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
 
             'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_cart . '` (
-            `id_mjvp_cart` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
             `id_cart` int(10) unsigned NOT NULL,
             `door_code` varchar(10),
             `cabinet_number` varchar(10),
@@ -69,7 +69,7 @@ class MjvpDb
             `delivery_time` varchar(10),
             `date_add` datetime NOT NULL,
             `date_upd` datetime DEFAULT NULL,
-            PRIMARY KEY (`id_mjvp_cart`)
+            PRIMARY KEY (`id`)
           ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
         );
 

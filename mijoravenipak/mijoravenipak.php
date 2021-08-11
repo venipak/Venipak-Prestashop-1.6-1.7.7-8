@@ -9,6 +9,7 @@ class MijoraVenipak extends CarrierModule
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
     const EXTRA_FIELDS_SIZE = 10;
+    const DEFAULT_LABEL_SIZE = 'a6';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -68,8 +69,8 @@ class MijoraVenipak extends CarrierModule
         'MjvpModuleConfig' => 'classes/MjvpModuleConfig.php',
         'MjvpFiles' => 'classes/MjvpFiles.php',
         'MjvpDb' => 'classes/MjvpDb.php',
-        'VenipakCart' => 'classes/VenipakCart.php',
-        'VenipakWarehouse' => 'classes/VenipakWarehouse.php',
+        'MjvpCart' => 'classes/MjvpCart.php',
+        'MjvpWarehouse' => 'classes/MjvpWarehouse.php',
         'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
     );
 
@@ -209,6 +210,8 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
+        Configuration::updateValue('VENIPAK_LABEL_SIZE', self::DEFAULT_LABEL_SIZE);
+
         return true;
     }
 
@@ -221,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         return array(
             self::CONTROLLER_SHIPPING => array(
-                'title' => $this->l('Venipak Shipments'),
+                'title' => $this->l('Venipak Orders'),
                 'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
             ),
             self::CONTROLLER_WAREHOUSE => array(
@@ -1028,16 +1031,16 @@ class MijoraVenipak extends CarrierModule
             $params['completed'] = false;
             return;
         }
-        self::checkForClass('VenipakCart');
+        self::checkForClass('MjvpCart');
 
-        $id_mjvp_cart = Db::getInstance()->getValue('SELECT `id_mjvp_cart` FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+        $id_mjvp_cart = Db::getInstance()->getValue('SELECT `id` FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
         if((int) $id_mjvp_cart > 0)
         {
-            $venipakCart = new VenipakCart($id_mjvp_cart);
+            $venipakCart = new MjvpCart($id_mjvp_cart);
         }
         else
         {
-            $venipakCart = new VenipakCart();
+            $venipakCart = new MjvpCart();
             $venipakCart->id_cart = $cart->id;
         }
 
