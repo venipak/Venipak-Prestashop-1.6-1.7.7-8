@@ -1,6 +1,6 @@
 <?php
 
-include __DIR__ . "/../../classes/VenipakWarehouse.php";
+include __DIR__ . "/../../classes/MjvpWarehouse.php";
 
 class AdminVenipakWarehouseController extends ModuleAdminController
 {
@@ -16,11 +16,11 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     public function __construct()
     {
         $this->list_no_link = true;
-        $this->_orderBy = 'id_warehouse';
-        $this->className = 'VenipakWarehouse';
+        $this->_orderBy = 'id';
+        $this->className = 'MjvpWarehouse';
         $this->table = 'mjvp_warehouse';
         $this->list_id = 'mjvp_warehouse';
-        $this->identifier = 'id_warehouse';
+        $this->identifier = 'id';
         parent::__construct();
         $this->toolbar_title = $this->l('Venipak Warehouses');
         $this->prepareWarehouseList();
@@ -29,7 +29,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     protected function prepareWarehouseList()
     {
         $this->fields_list = array(
-            'id_warehouse' => array(
+            'id' => array(
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
@@ -89,7 +89,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     public function renderForm()
     {
         $this->table = 'mjvp_warehouse';
-        $this->identifier = 'id_warehouse';
+        $this->identifier = 'id';
 
         $countries = array(
             array(
@@ -223,14 +223,14 @@ class AdminVenipakWarehouseController extends ModuleAdminController
      */
     public function processStatus()
     {
-        $id_warehouse = (int) Tools::getValue('id_warehouse');
-        $current_status = (int) Db::getInstance()->getValue('SELECT `default_on` FROM ' . _DB_PREFIX_ . 'mjvp_warehouse WHERE `id_warehouse` = ' . $id_warehouse);
+        $id_warehouse = (int) Tools::getValue('id');
+        $current_status = (int) Db::getInstance()->getValue('SELECT `default_on` FROM ' . _DB_PREFIX_ . 'mjvp_warehouse WHERE `id` = ' . $id_warehouse);
 
         $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0]);
         if($current_status)
-            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id_warehouse = ' . $id_warehouse);
+            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id = ' . $id_warehouse);
         else
-            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 1], 'id_warehouse = ' . $id_warehouse);
+            $result = Db::getInstance()->update('mjvp_warehouse', ['default_on' => 1], 'id = ' . $id_warehouse);
 
         return $result;
     }
@@ -247,7 +247,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         if($object->default_on)
         {
-            Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id_warehouse != ' . $object->id);
+            Db::getInstance()->update('mjvp_warehouse', ['default_on' => 0], 'id != ' . $object->id);
         }
     }
 
