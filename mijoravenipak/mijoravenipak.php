@@ -1292,12 +1292,10 @@ class MijoraVenipak extends CarrierModule
                     );
                     $success_orders[] = $error_order_no;
                     Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
-                    //$errors[] = '<pre>'.print_r($manifest, true).'</pre>';
                 } else {
                     $notfound_ids[] = $error_order_no;
                 }
             }
-            //$errors[] = '<pre>'.print_r($manifest, true).'</pre>';
             $manifest_xml = $cApi->buildManifestXml($manifest);
             if ($cHelper->isXMLContentValid($manifest_xml)) {
                 $status = $cApi->sendXml($manifest_xml);
@@ -1310,19 +1308,10 @@ class MijoraVenipak extends CarrierModule
                 } else {
                     Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_id, 'date' => $current_date)));
                 }
-                //$errors[] = '<pre>'.print_r($status, true).'</pre>';
             }
-            //$errors[] = '<pre>'.htmlentities( $manifest_xml ).'</pre>';
         } catch (Exception $e) {
             $errors[] = $this->l('Order') . $error_order_no. '. ' . $e->getMessage();
         }
-        //$errors[] = '<pre>'.print_r($manifest, true).'</pre>';
-
-        /*try {
-            $this->context->controller->confirmations[] = '<pre>'.htmlentities( $cApi->buildManifestXml(array('shipments' => array(array(1)))) ).'</pre>';
-        } catch (Exception $e) {
-            $errors[] = $e->getMessage();
-        }*/
 
         if (!$found) {
             $errors[] = $this->l('None of the selected orders have a Venipak shipping method');
