@@ -19,41 +19,6 @@ class MjvpApi
     }
 
     /**
-     * Get token for API
-     */
-    public function getToken()
-    {
-        /*MijoraVenipak::checkForClass('MjvpModuleConfig');
-        $cModuleConfig = new MjvpModuleConfig();
-
-        $token = Configuration::get($cModuleConfig->getConfigKey('MJVP_API_TOKEN', 'API'));
-        if (empty($token)) {
-            throw new Exception('Failed to get token.');
-            return false;
-        }
-        return $token;*/
-        return '';
-    }
-
-    /**
-     * Get list of countries
-     */
-    public function getAllCountries($return_objects = true)
-    {
-
-        return false;
-    }
-
-    /**
-     * Get list of services
-     */
-    public function getAllServices()
-    {
-
-        return false;
-    }
-
-    /**
      * Get terminals for country
      */
     public function getTerminals($country_code, $postcode = '', $city = '', $show_for_sender = false)
@@ -81,92 +46,8 @@ class MjvpApi
     }
 
     /**
-     * Get list of departments
+     * Create main XML structure
      */
-    public function getDepartmentsList()
-    {
-
-        return false;
-    }
-
-    /**
-     * Set values for sender
-     */
-    public function setSender($custom_values = array())
-    {
-        if (!is_array($custom_values)) {
-            $custom_values = array();
-        }
-
-        return false;
-    }
-
-    /**
-     * Set values for receiver
-     */
-    public function setReceiver($values)
-    {
-        if (!is_array($values)) {
-            throw new Exception('Failed to set receiver. An array of values not received.');
-            return false;
-        }
-
-        return false;
-    }
-
-    /**
-     * Set values for parcel
-     */
-    public function setParcel($values)
-    {
-        if (!is_array($values)) {
-            throw new Exception('Failed to set parcel. An array of values not received.');
-            return false;
-        }
-
-        return false;
-    }
-
-    /**
-     * Set values for item
-     */
-    public function setItem($values)
-    {
-        if (!is_array($values)) {
-            throw new Exception('Failed to set item. An array of values not received.');
-            return false;
-        }
-
-        return false;
-    }
-
-    /**
-     * Set all objects for order
-     */
-    public function setOrder($order_objects)
-    {
-
-        return false;
-    }
-
-    /**
-     * Generate order
-     */
-    public function generateOrder($order)
-    {
-
-        return false;
-    }
-
-    /**
-     * Get all orders
-     */
-    public function getOrdersList()
-    {
-
-        return false;
-    }
-
     public function buildXml($xml_content, $desc_type = 1)
     {
         $xml_code = '<?xml version="1.0" encoding="UTF-8"?>';
@@ -177,6 +58,9 @@ class MjvpApi
         return $xml_code;
     }
 
+    /**
+     * Create XML structure for Manifest
+     */
     public function buildManifestXml($params)
     {
         MijoraVenipak::checkForClass('MjvpModuleConfig');
@@ -193,43 +77,88 @@ class MjvpApi
         }
 
         $params['desc_type'] = (isset($params['desc_type'])) ? $params['desc_type'] : 1;
-        $params['order_code'] = (isset($params['order_code'])) ? $params['order_code'] : '???';
-        $params['order_id'] = (isset($params['order_id'])) ? $params['order_id'] : 1;
-        $params['manifest_id'] = (isset($params['manifest_id'])) ? $params['manifest_id'] : $params['order_id'];
-        $manifest_title = $api_id . date('ymd') . str_pad($params['manifest_id'], 3, '0', STR_PAD_LEFT);
+        $params['manifest_id'] = (isset($params['manifest_id'])) ? $params['manifest_id'] : '';
+        $params['manifest_name'] = (isset($params['manifest_name'])) ? $params['manifest_name'] : '';
+        $manifest_title = $this->cVenipak->buildManifestNumber($api_id, $params['manifest_id']);
 
-        $xml_code = '<manifest title="' . $manifest_title . '" name="PS-' . $params['order_code'] . '">';
+        $xml_code = '<manifest title="' . $manifest_title . '" name="' . $params['manifest_name'] . '">';
         foreach ($params['shipments'] as $shipment) {
-            $xml_code .= $this->buildShipmentXml($params['shipments']);
+            $shipment['api_id'] = $api_id;
+            $xml_code .= $this->buildShipmentXml($shipment);
         }
         $xml_code .= '</manifest>';
 
         return $this->buildXml($xml_code, $params['desc_type']);
     }
 
+    /**
+     * Build shipment XML structure
+     */
     public function buildShipmentXml($params)
     {
-        $params['name'] = (isset($params['name'])) ? $params['name'] : '';
-        $params['lastname'] = (isset($params['lastname'])) ? $params['lastname'] : '';
-        $params['country_code'] = (isset($params['country_code'])) ? $params['country_code'] : '';
-        $params['city'] = (isset($params['city'])) ? $params['city'] : '';
-        $params['address'] = (isset($params['address'])) ? $params['address'] : '';
-        $params['postcode'] = (isset($params['postcode'])) ? $params['postcode'] : '';
-        $params['phone'] = (isset($params['phone'])) ? $params['phone'] : '';
+        $params['api_id'] = (isset($params['api_id'])) ? $params['api_id'] : '';
+        $params['consignee']['name'] = (isset($params['consignee']['name'])) ? $params['consignee']['name'] : '';
+        $params['consignee']['code'] = (isset($params['consignee']['code'])) ? $params['consignee']['code'] : '';
+        $params['consignee']['country_code'] = (isset($params['consignee']['country_code'])) ? $params['consignee']['country_code'] : '';
+        $params['consignee']['city'] = (isset($params['consignee']['city'])) ? $params['consignee']['city'] : '';
+        $params['consignee']['address'] = (isset($params['consignee']['address'])) ? $params['consignee']['address'] : '';
+        $params['consignee']['postcode'] = (isset($params['consignee']['postcode'])) ? $params['consignee']['postcode'] : '';
+        $params['consignee']['phone'] = (isset($params['consignee']['phone'])) ? $params['consignee']['phone'] : '';
+        $params['packs'] = (isset($params['packs'])) ? $params['packs'] : array();
 
         $xml_code = '<shipment>';
         $xml_code .= '<consignee>';
-        $xml_code .= '<name>' . $params['name'] . ' ' . $params['lastname'] . '</name>';
-        $xml_code .= '<country>' . $params['country_code'] . '</country>';
-        $xml_code .= '<city>' . $params['city'] . '</city>';
+        $xml_code .= '<name>' . $params['consignee']['name'] . '</name>';
+        if (!empty($params['consignee']['code'])) {
+            $xml_code .= '<company_code>' . $params['consignee']['code'] . '</company_code>';
+        }
+        $xml_code .= '<country>' . $params['consignee']['country_code'] . '</country>';
+        $xml_code .= '<city>' . $params['consignee']['city'] . '</city>';
+        $xml_code .= '<address>' . $params['consignee']['address'] . '</address>';
+        $xml_code .= '<post_code>' . $params['consignee']['postcode'] . '</post_code>';
+        $xml_code .= '<contact_tel>' . $params['consignee']['phone'] . '</contact_tel>';
         $xml_code .= '</consignee>';
+        foreach ($params['packs'] as $pack) {
+            $xml_code .= '<pack>';
+            $xml_code .= '<pack_no>' . $this->cVenipak->buildTrackingNumber($params['api_id'], $pack['serial_number']) . '</pack_no>';
+            if (!empty($pack['document_number'])) {
+                $xml_code .= '<doc_no>' . $pack['document_number'] . '</doc_no>';
+            }
+            $xml_code .= '<weight>' . $pack['weight'] . '</weight>';
+            $xml_code .= '<volume>' . $pack['volume'] . '</volume>';
+            $xml_code .= '</pack>';
+        }
         $xml_code .= '</shipment>';
 
         return $xml_code;
     }
 
-    public function buildShipmentRegisterXml($params)
+    /**
+     * Send XML to API
+     */
+    public function sendXml($xml)
     {
+        MijoraVenipak::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
 
+        $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
+        $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+
+        $response = $this->cVenipak->sendXml($username, $password, $xml);
+
+        return $this->convertXmlToArray($response);
     }
+
+    /**
+     * Convert XML text to PHP array
+     */
+    private function convertXmlToArray($xml_text)
+    {
+        $xml = simplexml_load_string($xml_text, "SimpleXMLElement", LIBXML_NOCDATA);
+        $json = json_encode($xml);
+        $array = json_decode($json,TRUE);
+
+        return $array;
+    }
+
 }

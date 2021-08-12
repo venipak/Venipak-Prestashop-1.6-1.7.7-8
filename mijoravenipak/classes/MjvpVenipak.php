@@ -6,7 +6,8 @@ if (!defined('_PS_VERSION_')) {
 
 class MjvpVenipak
 {
-    private $_curlUrl = 'https://go.venipak.lt/ws/';
+    //private $_curlUrl = 'https://go.venipak.lt/';
+    private $_curlUrl = 'https://venipak.uat.megodata.com/'; //DEMO
 
     /**
      * Class constructor
@@ -35,7 +36,7 @@ class MjvpVenipak
             ),
         );
         
-        return $this->executeRequest('tracking', 'GET', $params);
+        return $this->executeRequest('ws/tracking', 'GET', $params);
     }
 
     public function setTrackingShipment($username, $password, $package_code, $package_type)
@@ -56,7 +57,7 @@ class MjvpVenipak
             'type' => $types[$package_type],
         );
         
-        return $this->executeRequest('tracking', 'POST', $params);
+        return $this->executeRequest('ws/tracking', 'POST', $params);
     }
 
     public function printLabel($username, $password, $data = array())
@@ -80,7 +81,7 @@ class MjvpVenipak
             $params['code'] = $data['codes'];
         }
 
-        return $this->executeRequest('print_label', 'POST', $params);
+        return $this->executeRequest('ws/print_label', 'POST', $params);
     }
 
     public function printList($username, $password, $package_code)
@@ -91,7 +92,7 @@ class MjvpVenipak
             'code' => $package_code,
         );
 
-        return $this->executeRequest('print_list', 'POST', $params);
+        return $this->executeRequest('ws/print_list', 'POST', $params);
     }
 
     public function getLabelLink($username, $password, $packages)
@@ -102,7 +103,7 @@ class MjvpVenipak
             'pack_no[]' => $packages,
         );
 
-        return $this->executeRequest('print_link', 'POST', $params);
+        return $this->executeRequest('ws/print_link', 'POST', $params);
     }
 
     public function getServices($country, $postcode, $params = array())
@@ -118,7 +119,7 @@ class MjvpVenipak
             'view' => $this->getParamValue($params, 'view', array('csv', 'json'), 'json'),
         );
 
-        return $this->executeRequest('get_route', 'GET', array('queryParams' => $queryParams));
+        return $this->executeRequest('ws/get_route', 'GET', array('queryParams' => $queryParams));
     }
 
     public function getPickupPoints($params = array())
@@ -138,7 +139,7 @@ class MjvpVenipak
             $queryParams['pick_up_enabled'] = 1;
         }
 
-        return $this->executeRequest('get_pickup_points', 'GET', array('queryParams' => $queryParams));
+        return $this->executeRequest('ws/get_pickup_points', 'GET', array('queryParams' => $queryParams));
     }
 
     public function sendXml($username, $password, $xml_text)
@@ -155,6 +156,16 @@ class MjvpVenipak
         );
 
         return $this->executeRequest('import/send.php', 'POST', $params);
+    }
+
+    public function buildTrackingNumber($login_id, $serial_number)
+    {
+        return 'V' . $login_id . 'E' . sprintf('%07d', (int)$serial_number);
+    }
+
+    public function buildManifestNumber($login_id, $serial_number)
+    {
+        return $login_id . date('ymd') . sprintf('%03d', (int)$serial_number);
     }
 
     private function getParamValue($params, $param_name, $allowed_values, $default_value)
@@ -222,6 +233,7 @@ class MjvpVenipak
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => $request_type,
+            CURLOPT_POSTFIELDS => $params,
         );
 
         curl_setopt_array($curl, $curl_options);

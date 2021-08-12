@@ -113,6 +113,26 @@ class MjvpHelper
     }
 
     /**
+     * Check if XML content is valid
+     */
+    public function isXMLContentValid($xmlContent, $version = '1.0', $encoding = 'utf-8')
+    {
+        if (trim($xmlContent) == '') {
+            return false;
+        }
+
+        libxml_use_internal_errors(true);
+
+        $doc = new DOMDocument($version, $encoding);
+        $doc->loadXML($xmlContent);
+
+        $errors = libxml_get_errors();
+        libxml_clear_errors();
+
+        return empty($errors);
+    }
+
+    /**
      * Write log files
      */
     public function writeToLog($message, $file_name = 'errors')

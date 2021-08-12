@@ -9,7 +9,6 @@ class MijoraVenipak extends CarrierModule
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
     const EXTRA_FIELDS_SIZE = 10;
-    const DEFAULT_LABEL_SIZE = 'a6';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -116,6 +115,21 @@ class MijoraVenipak extends CarrierModule
         )
     );
 
+    public $_configKeysOther = array(
+        'counter_manifest' => array(
+            'key' => 'MJVP_COUNTER_MANIFEST',
+            'default_value' => array('counter' => 0, 'date' => ''),
+        ),
+        'counter_packs' => array(
+            'key' => 'MJVP_COUNTER_PACKS',
+            'default_value' => 0,
+        ),
+        'label_size' => array(
+            'key' => 'MJVP_LABEL_SIZE',
+            'default_value' => 'a6',
+        ),
+    );
+
     public $deliveryTimes = [];
 
     /**
@@ -153,7 +167,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.0.3';
+        $this->version = '0.0.4';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.6');
@@ -163,8 +177,8 @@ class MijoraVenipak extends CarrierModule
 
         $this->displayName = $this->l('Venipak Shipping');
         $this->description = $this->l('Shipping module for Venipak delivery method');
-        $this->available_countries = array('LT', 'LV', 'EE');
-        $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia');
+        $this->available_countries = array('LT', 'LV', 'EE', 'PL');
+        $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia', 'PL' => 'Poland');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
         $this->deliveryTimes = [
             $this->l('Anytime'),
@@ -210,7 +224,10 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
-        Configuration::updateValue('VENIPAK_LABEL_SIZE', self::DEFAULT_LABEL_SIZE);
+        if (!$this->createOtherDbRecords()) {
+            $this->_errors[] = $this->l('Failed to create other database records.');
+            return false;
+        }
 
         return true;
     }
@@ -454,6 +471,19 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
+     * Create other configuration values in database
+     */
+    private function createOtherDbRecords()
+    {
+        foreach ($this->_configKeysOther as $item => $data ) {
+            $data_value = (is_array($data['default_value'])) ? json_encode($data['default_value']) : $data['default_value'];
+            Configuration::updateValue($data['key'], $data_value);
+        }
+
+        return true;
+    }
+
+    /**
      * Function for hooks control
      */
     public function setHooks($action = 'register')
@@ -605,6 +635,9 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigShop()
     {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
         $country_options = [];
 
         foreach ($this->available_countries as $country) {
@@ -620,28 +653,28 @@ class MijoraVenipak extends CarrierModule
             array(
                 'type' => 'text',
                 'label' => $this->l('Shop Name'),
-                'name' => $this->_configKeys['SHOP']['shop_name'],
+                'name' => $cModuleConfig->getConfigKey('shop_name', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Company code'),
-                'name' => $this->_configKeys['SHOP']['company_code'],
+                'name' => $cModuleConfig->getConfigKey('company_code', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Shop contact'),
-                'name' => $this->_configKeys['SHOP']['shop_contact'],
+                'name' => $cModuleConfig->getConfigKey('shop_contact', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'select',
                 'label' => $this->l('Country Code'),
-                'name' => $this->_configKeys['SHOP']['shop_country_code'],
+                'name' => $cModuleConfig->getConfigKey('shop_country_code', 'SHOP'),
                 'options' => array(
                     'query' => $country_options,
                     'id' => 'id_option',
@@ -651,35 +684,35 @@ class MijoraVenipak extends CarrierModule
             array(
                 'type' => 'text',
                 'label' => $this->l('City'),
-                'name' => $this->_configKeys['SHOP']['shop_city'],
+                'name' => $cModuleConfig->getConfigKey('shop_city', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Address'),
-                'name' => $this->_configKeys['SHOP']['shop_address'],
+                'name' => $cModuleConfig->getConfigKey('shop_address', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Postcode'),
-                'name' => $this->_configKeys['SHOP']['shop_postcode'],
+                'name' => $cModuleConfig->getConfigKey('shop_postcode', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Mob. Phone'),
-                'name' => $this->_configKeys['SHOP']['shop_phone'],
+                'name' => $cModuleConfig->getConfigKey('shop_phone', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Shop email'),
-                'name' => $this->_configKeys['SHOP']['shop_email'],
+                'name' => $cModuleConfig->getConfigKey('shop_email', 'SHOP'),
                 'size' => 20,
                 'required' => true
             ),
@@ -693,11 +726,14 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigAdvanced()
     {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
         $form_fields = array(
             array(
                 'type' => 'radio',
                 'label' => $this->l('Label size'),
-                'name' => 'VENIPAK_LABEL_SIZE',
+                'name' => $cModuleConfig->getConfigKey('label_size', 'ADVANCED'),
                 'values' => array(
                     array(
                         'id' => 'A4',
@@ -712,26 +748,26 @@ class MijoraVenipak extends CarrierModule
                 ),
             ),
             array(
-            'type' => 'switch',
-            'label' => $this->l('Door code'),
-            'name' => 'VENIPAK_DOOR_CODE',
-            'desc' => $this->l('Add input for customers to enter their door code, if they select Venipak carrier.'),
-            'values' => array(
-                array(
-                    'id' => 'active_on',
-                    'value' => 1,
-                    'label' => $this->trans('Yes', array(), 'Admin.Global')
-                ),
-                array(
-                    'id' => 'active_off',
-                    'value' => 0,
-                    'label' => $this->trans('No', array(), 'Admin.Global')
-                )
-            )),
+                'type' => 'switch',
+                'label' => $this->l('Door code'),
+                'name' => $cModuleConfig->getConfigKey('door_code', 'ADVANCED'),
+                'desc' => $this->l('Add input for customers to enter their door code, if they select Venipak carrier.'),
+                'values' => array(
+                    array(
+                        'id' => 'active_on',
+                        'value' => 1,
+                        'label' => $this->trans('Yes', array(), 'Admin.Global')
+                    ),
+                    array(
+                        'id' => 'active_off',
+                        'value' => 0,
+                        'label' => $this->trans('No', array(), 'Admin.Global')
+                    )
+                )),
             array(
                 'type' => 'switch',
                 'label' => $this->l('Cabinet number'),
-                'name' => 'VENIPAK_CABINET_NUMBER',
+                'name' => $cModuleConfig->getConfigKey('cabinet_number', 'ADVANCED'),
                 'desc' => $this->l('Allow customers to input cabinet number.'),
                 'values' => array(
                     array(
@@ -748,7 +784,7 @@ class MijoraVenipak extends CarrierModule
             array(
                 'type' => 'switch',
                 'label' => $this->l('Warehouse number'),
-                'name' => 'VENIPAK_WAREHOUSE_NUMBER',
+                'name' => $cModuleConfig->getConfigKey('warehouse_number', 'ADVANCED'),
                 'desc' => $this->l('Allow customers to select warehouse.'),
                 'values' => array(
                     array(
@@ -765,7 +801,7 @@ class MijoraVenipak extends CarrierModule
             array(
                 'type' => 'switch',
                 'label' => $this->l('Enable delivery time selection'),
-                'name' => 'VENIPAK_DELIVERY_TIME',
+                'name' => $cModuleConfig->getConfigKey('delivery_time', 'ADVANCED'),
                 'desc' => $this->l('Allow customers to select delivery time.'),
                 'values' => array(
                     array(
@@ -1004,6 +1040,11 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionValidateStepComplete($params)
     {
+        self::checkForClass('MjvpCart');
+
+        self::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+
         if($params['step_name'] != 'delivery')
             return;
         $cart = $params['cart'];
@@ -1031,24 +1072,23 @@ class MijoraVenipak extends CarrierModule
             $params['completed'] = false;
             return;
         }
-        self::checkForClass('MjvpCart');
 
-        $id_mjvp_cart = Db::getInstance()->getValue('SELECT `id` FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+        $id_mjvp_cart = $cDb->getCartValue('id', array('id_cart' => $cart->id));
         if((int) $id_mjvp_cart > 0)
         {
-            $venipakCart = new MjvpCart($id_mjvp_cart);
+            $cCart = new MjvpCart($id_mjvp_cart);
         }
         else
         {
-            $venipakCart = new MjvpCart();
-            $venipakCart->id_cart = $cart->id;
+            $cCart = new MjvpCart();
+            $cCart->id_cart = $cart->id;
         }
 
-        $venipakCart->door_code = $venipak_door_code;
-        $venipakCart->cabinet_number = $venipak_cabinet_number;
-        $venipakCart->warehouse_number = $venipak_warehouse_number;
-        $venipakCart->delivery_time = $venipak_delivery_time;
-        $venipakCart->save();
+        $cCart->door_code = $venipak_door_code;
+        $cCart->cabinet_number = $venipak_cabinet_number;
+        $cCart->warehouse_number = $venipak_warehouse_number;
+        $cCart->delivery_time = $venipak_delivery_time;
+        $cCart->save();
 
     }
 
@@ -1057,14 +1097,19 @@ class MijoraVenipak extends CarrierModule
      */
     public function hookDisplayCarrierExtraContent($params)
     {
-        $carrier_id_reference = $params['carrier']['id_reference'];
-
         self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
+        self::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        
+        self::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+
+        $carrier_id_reference = $params['carrier']['id_reference'];
+
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
 
-        global $smarty;
         if ($carrier_type !== 'pickup') {
 
             $configuration = [
@@ -1076,21 +1121,16 @@ class MijoraVenipak extends CarrierModule
             ];
 
             $cart = $params['cart'];
-            $cart_mjvp_data = Db::getInstance()->getRow('SELECT `door_code`, `cabinet_number`, `warehouse_number`, `delivery_time`
-                FROM ' . _DB_PREFIX_ . 'mjvp_cart ' . 'WHERE `id_cart` = ' . $cart->id);
+            $cart_mjvp_data = $cDb->getCartValue('door_code, cabinet_number, warehouse_number, delivery_time', array('id_cart' => $cart->id));
             if(!$cart_mjvp_data)
                 $cart_mjvp_data = [];
-            $smarty->assign(
+            
+            $this->context->smarty->assign(
                 array_merge($configuration, $cart_mjvp_data)
             );
-            return $this->fetch('module:' . $this->name . '/views/templates/hook/displayCarrierExtraContent.tpl');
+            
+            return $this->context->smarty->fetch(self::$_moduleDir . '/views/templates/hook/displayCarrierExtraContent.tpl');
         }
-
-        self::checkForClass('MjvpApi');
-        $cApi = new MjvpApi();
-        
-        self::checkForClass('MjvpDb');
-        $cDb = new MjvpDb();
 
         $address = new Address($params['cart']->id_address_delivery);
         $country = new Country();
@@ -1176,10 +1216,107 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
 
+        self::checkForClass('MjvpHelper');
+        $cHelper = new MjvpHelper();
+
+        $errors = array();
+        $success_orders = array();
+        $found = false;
+        $notfound_ids = array();
+        $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
+
+        $current_date = date('ymd');
+        $manifest_id = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
+        $manifest = array(
+            'manifest_id' => $manifest_id,
+            'manifest_name' => Configuration::get('PS_SHOP_NAME'),
+            'shipments' => array(),
+        );
+
         try {
-            $this->context->controller->confirmations[] = '<pre>'.htmlentities( $cApi->buildManifestXml(array('shipments' => array())) ).'</pre>';
+            $error_order_no = '-';
+            foreach ($orders_ids as $order_id) {
+                $error_order_no = ' #' . $order_id;
+                $order = new Order((int)$order_id);
+                $address = new Address($order->id_address_delivery);
+                $carrier = new Carrier($order->id_carrier);
+                if (!empty($order->id_carrier) && $cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
+                    $found = true;
+                    $order_products = $order->getProducts();
+                    $country_iso = Country::getIsoById($address->id_country);
+                    $consignee_name = $address->firstname . ' ' . $address->lastname;
+                    $consignee_code = '';
+                    if (!empty($address->company)) {
+                        $consignee_name = $address->company;
+                        if (empty($address->dni)) {
+                            $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Company code is missing');
+                            continue;
+                        } else {
+                            $consignee_code = $address->dni;
+                        }
+                    }
+                    $consignee_address = $address->address1;
+                    if (!empty($address->address2)) {
+                        $consignee_address .= ', ' . $address->address2;
+                    }
+                    $consignee_phone = (!empty($address->phone_mobile)) ? $address->phone_mobile : $address->phone;
+                    if (!in_array($country_iso, $this->available_countries)) {
+                        $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Consignee country is not allowed');
+                        continue;
+                    }
+                    $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
+                    $shipment_pack = array(
+                        'serial_number' => $pack_no,
+                        'document_number' => '',
+                        'weight' => 0,
+                        'volume' => 0,
+                    );
+                    foreach ($order_products as $key => $product) {
+                        $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                        $shipment_pack['weight'] += (float)$product['weight'];
+                        $shipment_pack['volume'] += (float)$product_volume;
+                    }
+                    $manifest['shipments'][] = array(
+                        'order_id' => $order_id,
+                        'order_code' => $order->reference,
+                        'consignee' => array(
+                            'name' => $consignee_name,
+                            'code' => $consignee_code,
+                            'country_code' => $country_iso,
+                            'city' => $address->city,
+                            'address' => $consignee_address,
+                            'postcode' => $address->postcode,
+                            'phone' => $consignee_phone,
+                        ),
+                        'packs' => array($shipment_pack),
+                    );
+                    $success_orders[] = $error_order_no;
+                    Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
+                } else {
+                    $notfound_ids[] = $error_order_no;
+                }
+            }
+            $manifest_xml = $cApi->buildManifestXml($manifest);
+            if ($cHelper->isXMLContentValid($manifest_xml)) {
+                $status = $cApi->sendXml($manifest_xml);
+                if (isset($status['error'])) {
+                    if (isset($status['error']['text'])) {
+                        $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];
+                    } else {
+                       $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
+                    }
+                } else {
+                    Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_id, 'date' => $current_date)));
+                }
+            }
         } catch (Exception $e) {
-            $errors[] = $e->getMessage();
+            $errors[] = $this->l('Order') . $error_order_no. '. ' . $e->getMessage();
+        }
+
+        if (!$found) {
+            $errors[] = $this->l('None of the selected orders have a Venipak shipping method');
+        } else if (!empty($notfound_ids)) {
+            $errors[] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
         }
 
         if (empty($errors)) {
@@ -1189,7 +1326,7 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->errors[] = $error;
             }
             if (!empty($success_orders)) {
-                $this->context->controller->confirmations[] = $this->l('Labels sent for orders') . ': ' . implode(', ', $success_orders) . '.';
+                $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
             }
         }
     }
