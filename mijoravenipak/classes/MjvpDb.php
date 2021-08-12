@@ -33,44 +33,44 @@ class MjvpDb
     public function createTables()
     {
         $sql = array(
-           $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
-            `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
-            `id_order` int(10) COMMENT "Order ID",
-            `country_code` varchar(255) NOT NULL COMMENT "Country code used for terminals list",
-            `terminal_id` int(10) COMMENT "Terminal ID",
-            `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
-            `status` varchar(255) COMMENT "Status for module of current order",
-            `labels_numbers` text COLLATE utf8_unicode_ci NULL COMMENT "Json of labels numbers array",
-            `labels_date` datetime DEFAULT NULL COMMENT "Date when created labels",
-            `error` text COLLATE utf8_unicode_ci DEFAULT NULL COMMENT "Order error messages",
-            PRIMARY KEY (`id_cart`)
-          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+            $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
+                `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
+                `id_order` int(10) COMMENT "Order ID",
+                `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
+                `terminal_id` int(10) COMMENT "Terminal ID",
+                `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
+                `status` varchar(255) COMMENT "Status for module of current order",
+                `labels_numbers` text COLLATE utf8_unicode_ci NULL COMMENT "Json of labels numbers array",
+                `labels_date` datetime DEFAULT NULL COMMENT "Date when created labels",
+                `error` text COLLATE utf8_unicode_ci DEFAULT NULL COMMENT "Order error messages",
+                PRIMARY KEY (`id_cart`)
+            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
 
-            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
-            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-            `warehouse_name` varchar(60) NOT NULL,
-            `company_code` varchar(16) NOT NULL,
-            `contact` varchar(40) NOT NULL,
-            `country_code` varchar(3),
-            `city` varchar(40) NOT NULL,
-            `address` varchar(50) NOT NULL,
-            `zip_code` int(6) NOT NULL,
-            `phone` varchar(30) NOT NULL,
-            `default_on` tinyint NOT NULL,
-            PRIMARY KEY (`id`)
-          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+            $this->_table_warehouses => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
+                `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                `warehouse_name` varchar(60) NOT NULL,
+                `company_code` varchar(16) NOT NULL,
+                `contact` varchar(40) NOT NULL,
+                `country_code` varchar(5),
+                `city` varchar(50) NOT NULL,
+                `address` varchar(255) NOT NULL,
+                `zip_code` varchar(10) NOT NULL,
+                `phone` varchar(15) NOT NULL,
+                `default_on` tinyint NOT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
 
-            'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_cart . '` (
-            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-            `id_cart` int(10) unsigned NOT NULL,
-            `door_code` varchar(10),
-            `cabinet_number` varchar(10),
-            `warehouse_number` varchar(10),
-            `delivery_time` varchar(10),
-            `date_add` datetime NOT NULL,
-            `date_upd` datetime DEFAULT NULL,
-            PRIMARY KEY (`id`)
-          ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+            $this->_table_cart => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_cart . '` (
+                `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                `id_cart` int(10) unsigned NOT NULL,
+                `door_code` varchar(10),
+                `cabinet_number` varchar(10),
+                `warehouse_number` varchar(10),
+                `delivery_time` varchar(10),
+                `date_add` datetime NOT NULL,
+                `date_upd` datetime DEFAULT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
         );
 
         foreach ($sql as $query) {
@@ -123,6 +123,30 @@ class MjvpDb
     }
 
     /**
+     * Get value from table
+     */
+    public function getValue($table_name, $get_column, $where, $where_condition = 'AND')
+    {
+        if (
+            !is_array($where)
+            || !$this->checkTable(_DB_PREFIX_ . $table_name)
+        ) {
+            return false;
+        }
+        $sql_where = '';
+        foreach ($where as $key => $value) {
+            if (!empty($sql_where)) {
+                $sql_where .= ' ' . pSQL($where_condition) . ' ';
+            }
+            $sql_where .= pSQL($key) . ' = ' . pSQL($value);
+        }
+
+        $result = Db::getInstance()->getValue("SELECT " . pSQL($get_column) . " FROM " . _DB_PREFIX_ . $table_name . " WHERE " . $sql_where);
+
+        return $result;
+    }
+
+    /**
      * Get order id from module table
      */
     public function getOrderIdByCartId($cart_id)
@@ -141,23 +165,7 @@ class MjvpDb
      */
     public function getOrderValue($get_column, $where, $where_condition = 'AND')
     {
-        if (
-            !is_array($where)
-            || !$this->checkTable(_DB_PREFIX_ . $this->_table_orders)
-        ) {
-            return false;
-        }
-        $sql_where = '';
-        foreach ($where as $key => $value) {
-            if (!empty($sql_where)) {
-                $sql_where .= ' ' . pSQL($where_condition) . ' ';
-            }
-            $sql_where .= pSQL($key) . ' = ' . pSQL($value);
-        }
-
-        $result = Db::getInstance()->getValue("SELECT " . pSQL($get_column) . " FROM " . _DB_PREFIX_ . $this->_table_orders . " WHERE " . $sql_where);
-
-        return $result;
+        return $this->getValue($this->_table_orders, $get_column, $where, $where_condition);
     }
 
     /**
@@ -197,5 +205,21 @@ class MjvpDb
         $result = Db::getInstance()->update($this->_table_orders, $sql_values, 'id_cart = ' . pSQL($cart_id));
 
         return $result;
+    }
+
+    /**
+     * Get table value from module 'warehouses' table
+     */
+    public function getWarehouseValue($get_column, $where, $where_condition = 'AND')
+    {
+        return $this->getValue($this->_table_warehouses, $get_column, $where, $where_condition);
+    }
+
+    /**
+     * Get table value from module 'orders' table
+     */
+    public function getCartValue($get_column, $where, $where_condition = 'AND')
+    {
+        return $this->getValue($this->_table_cart, $get_column, $where, $where_condition);
     }
 }
