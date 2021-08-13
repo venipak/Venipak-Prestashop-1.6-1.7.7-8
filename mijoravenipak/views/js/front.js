@@ -2,7 +2,7 @@ $( document ).ready(function() {
   if (typeof(mjvp_country_code) != 'undefined' && mjvp_country_code != null) {
     mjvp_registerSelection('mjvp-selected-terminal');
   }
-  if($('#venipak-extra-fields .alert-danger').length != 0)
+  if($('#mjvp-courier-extra-fields .alert-danger').length != 0)
     $('#notifications .alert-danger').hide();
 });
 
