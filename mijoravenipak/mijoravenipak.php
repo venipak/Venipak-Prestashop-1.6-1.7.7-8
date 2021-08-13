@@ -51,6 +51,15 @@ class MijoraVenipak extends CarrierModule
      */
     public static $_defaultPickupCountries = array('lt', 'lv', 'ee', 'pl');
 
+    public $deliveryTimes = [];
+
+    public static $_order_additional_info = array(
+       'door_code' => '',
+       'cabinet_number' => '',
+       'warehouse_number' => '',
+       'delivery_time' => 0,
+    );
+
     /**
      * Global constants list
      */
@@ -96,23 +105,26 @@ class MijoraVenipak extends CarrierModule
             'id' => 'MJVP_API_ID',
         ),
         'SHOP' => array(
-            'shop_name' => 'VENIPAK_SHOP_NAME',
-            'shop_contact' => 'VENIPAK_SHOP_CONTACT',
-            'company_code' => 'VENIPAK_COMPANY_CODE',
-            'shop_country_code' => 'VENIPAK_SHOP_COUNTRY_CODE',
-            'shop_city' => 'VENIPAK_SHOP_CITY',
-            'shop_address' => 'VENIPAK_SHOP_ADDRESS',
-            'shop_postcode' => 'VENIPAK_SHOP_POSTCODE',
-            'shop_phone' => 'VENIPAK_SHOP_PHONE',
-            'shop_email' => 'VENIPAK_SHOP_EMAIL',
+            'shop_name' => 'MJVP_SHOP_NAME',
+            'shop_contact' => 'MJVP_SHOP_CONTACT',
+            'company_code' => 'MJVP_SHOP_COMPANY_CODE',
+            'shop_country_code' => 'MJVP_SHOP_COUNTRY_CODE',
+            'shop_city' => 'MJVP_SHOP_CITY',
+            'shop_address' => 'MJVP_SHOP_ADDRESS',
+            'shop_postcode' => 'MJVP_SHOP_POSTCODE',
+            'shop_phone' => 'MJVP_SHOP_PHONE',
+            'shop_email' => 'MJVP_SHOP_EMAIL',
         ),
-        'ADVANCED' => array(
-            'label_size' => 'VENIPAK_LABEL_SIZE',
-            'door_code' => 'VENIPAK_DOOR_CODE',
-            'warehouse_number' => 'VENIPAK_WAREHOUSE_NUMBER',
-            'cabinet_number' => 'VENIPAK_CABINET_NUMBER',
-            'delivery_time' => 'VENIPAK_DELIVERY_TIME',
-        )
+        'COURIER' => array(
+            'door_code' => 'MJVP_COURIER_DOOR_CODE',
+            'warehouse_number' => 'MJVP_COURIER_WAREHOUSE_NUMBER',
+            'cabinet_number' => 'MJVP_COURIER_CABINET_NUMBER',
+            'delivery_time' => 'MJVP_COURIER_DELIVERY_TIME',
+        ),
+        'LABEL' => array(
+            'label_size' => 'MJVP_LABEL_SIZE',
+            'label_counter' => 'MJVP_COUNTER_PACKS',
+        ),
     );
 
     public $_configKeysOther = array(
@@ -130,15 +142,31 @@ class MijoraVenipak extends CarrierModule
         ),
     );
 
-    public $deliveryTimes = [];
-
     /**
      * Fields names and required
      */
     private function getConfigField($section_id, $config_key)
     {
-        if ($section_id == 'SHOP')
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        if ($section_id == 'SHOP') {
             return array('name' => str_replace('_', ' ', $config_key), 'required' => true);
+        }
+
+        if ($section_id == 'LABEL') {
+            if ($config_key == $cModuleConfig->getConfigKey('label_counter', $section_id)) {
+                return array(
+                    'name' => $this->l('Last pack number'),
+                    'required' => false,
+                    'type' => 'number',
+                    'min' => Configuration::get($config_key),
+                    'max' => 9999999,
+                );
+            }
+        }
+
+        return array('name' => 'ERROR_' . $config_key, 'required' => false);
     }
 
     public static $_order_states = array(
@@ -167,7 +195,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.0.4';
+        $this->version = '0.1.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.6');
@@ -477,7 +505,9 @@ class MijoraVenipak extends CarrierModule
     {
         foreach ($this->_configKeysOther as $item => $data ) {
             $data_value = (is_array($data['default_value'])) ? json_encode($data['default_value']) : $data['default_value'];
-            Configuration::updateValue($data['key'], $data_value);
+            if (!Configuration::hasKey($data['key'])) {
+                Configuration::updateValue($data['key'], $data_value);
+            }
         }
 
         return true;
@@ -551,28 +581,27 @@ class MijoraVenipak extends CarrierModule
     {
         $output = null;
 
-        /*self::checkForClass('MjvpFiles');
-        $cFiles = new MjvpFiles();
-
-        $cFiles->updateCountriesList();*/
-
         if (Tools::isSubmit('submit' . $this->name . 'api')) {
             $output .= $this->saveConfig('API', $this->l('API settings updated'));
         }
         if (Tools::isSubmit('submit' . $this->name . 'shop')) {
             $output .= $this->saveConfig('SHOP', $this->l('Shop settings updated'));
         }
-        if (Tools::isSubmit('submit' . $this->name . 'advanced')) {
-            $output .= $this->saveConfig('ADVANCED', $this->l('Advanced settings updated'));
-        }
         if (Tools::isSubmit('submit' . $this->name . 'pickuppoints')) {
             $output .= $this->saveConfig('PICKUPPOINTS', $this->l('Pickup points settings updated'));
+        }
+        if (Tools::isSubmit('submit' . $this->name . 'courier')) {
+            $output .= $this->saveConfig('COURIER', $this->l('Courier settings updated'));
+        }
+        if (Tools::isSubmit('submit' . $this->name . 'label')) {
+            $output .= $this->saveConfig('LABEL', $this->l('Labels settings updated'));
         }
 
         return $output
             . $this->displayConfigApi()
             . $this->displayConfigShop()
-            . $this->displayConfigAdvanced();
+            . $this->displayConfigCourier()
+            . $this->displayConfigLabel();
     }
 
     /**
@@ -603,31 +632,33 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
+        $section_id = 'API';
+
         $form_fields = array(
             array(
                 'type' => 'text',
                 'label' => $this->l('API username'),
-                'name' => $cModuleConfig->getConfigKey('username', 'API'),
+                'name' => $cModuleConfig->getConfigKey('username', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('API password'),
-                'name' => $cModuleConfig->getConfigKey('password', 'API'),
+                'name' => $cModuleConfig->getConfigKey('password', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('API ID'),
-                'name' => $cModuleConfig->getConfigKey('id', 'API'),
+                'name' => $cModuleConfig->getConfigKey('id', $section_id),
                 'size' => 20,
                 'required' => true
             ),
         );
 
-        return $this->displayConfig('API', $this->l('API Settings'), $form_fields, $this->l('Save API settings'));
+        return $this->displayConfig($section_id, $this->l('API Settings'), $form_fields, $this->l('Save API settings'));
     }
 
     /**
@@ -638,6 +669,7 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
+        $section_id = 'SHOP';
         $country_options = [];
 
         foreach ($this->available_countries as $country) {
@@ -653,87 +685,147 @@ class MijoraVenipak extends CarrierModule
             array(
                 'type' => 'text',
                 'label' => $this->l('Shop Name'),
-                'name' => $cModuleConfig->getConfigKey('shop_name', 'SHOP'),
+                'name' => $cModuleConfig->getConfigKey('shop_name', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Company code'),
-                'name' => $cModuleConfig->getConfigKey('company_code', 'SHOP'),
-                'size' => 20,
-                'required' => true
-            ),
-            array(
-                'type' => 'text',
-                'label' => $this->l('Shop contact'),
-                'name' => $cModuleConfig->getConfigKey('shop_contact', 'SHOP'),
-                'size' => 20,
-                'required' => true
-            ),
-            array(
-                'type' => 'select',
-                'label' => $this->l('Country Code'),
-                'name' => $cModuleConfig->getConfigKey('shop_country_code', 'SHOP'),
-                'options' => array(
-                    'query' => $country_options,
-                    'id' => 'id_option',
-                    'name' => 'name'
-                )
-            ),
-            array(
-                'type' => 'text',
-                'label' => $this->l('City'),
-                'name' => $cModuleConfig->getConfigKey('shop_city', 'SHOP'),
+                'name' => $cModuleConfig->getConfigKey('company_code', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Address'),
-                'name' => $cModuleConfig->getConfigKey('shop_address', 'SHOP'),
+                'name' => $cModuleConfig->getConfigKey('shop_address', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
+                'label' => $this->l('City'),
+                'name' => $cModuleConfig->getConfigKey('shop_city', $section_id),
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'select',
+                'label' => $this->l('Country Code'),
+                'name' => $cModuleConfig->getConfigKey('shop_country_code', $section_id),
+                'options' => array(
+                    'query' => $country_options,
+                    'id' => 'id_option',
+                    'name' => 'name'
+                ),
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
                 'label' => $this->l('Postcode'),
-                'name' => $cModuleConfig->getConfigKey('shop_postcode', 'SHOP'),
+                'name' => $cModuleConfig->getConfigKey('shop_postcode', $section_id),
+                'size' => 20,
+                'required' => true
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Contact person'),
+                'name' => $cModuleConfig->getConfigKey('shop_contact', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
                 'label' => $this->l('Mob. Phone'),
-                'name' => $cModuleConfig->getConfigKey('shop_phone', 'SHOP'),
+                'name' => $cModuleConfig->getConfigKey('shop_phone', $section_id),
                 'size' => 20,
                 'required' => true
             ),
             array(
                 'type' => 'text',
-                'label' => $this->l('Shop email'),
-                'name' => $cModuleConfig->getConfigKey('shop_email', 'SHOP'),
+                'label' => $this->l('Email'),
+                'name' => $cModuleConfig->getConfigKey('shop_email', $section_id),
                 'size' => 20,
                 'required' => true
             ),
         );
 
-        return $this->displayConfig('SHOP', $this->l('Shop Settings'), $form_fields, $this->l('Save shop settings'));
+        return $this->displayConfig($section_id, $this->l('Shop Settings'), $form_fields, $this->l('Save shop settings'));
     }
 
     /**
-     * Display Advanced section in module configuration
+     * Display Courier section in module configuration
      */
-    public function displayConfigAdvanced()
+    public function displayConfigCourier()
     {
         self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
+
+        $section_id = 'COURIER';
+
+        $swither_values = array(
+            array(
+                'id' => 'active_on',
+                'value' => 1,
+                'label' => $this->trans('Yes', array(), 'Admin.Global')
+            ),
+            array(
+                'id' => 'active_off',
+                'value' => 0,
+                'label' => $this->trans('No', array(), 'Admin.Global')
+            )
+        );
+
+        $form_fields = array(
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Door code'),
+                'name' => $cModuleConfig->getConfigKey('door_code', $section_id),
+                'desc' => $this->l('Add input for customers to enter their door code, when selected courier.'),
+                'values' => $swither_values
+            ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Cabinet number'),
+                'name' => $cModuleConfig->getConfigKey('cabinet_number', $section_id),
+                'desc' => $this->l('Allow customers to input cabinet number.'),
+                'values' => $swither_values
+            ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Warehouse number'),
+                'name' => $cModuleConfig->getConfigKey('warehouse_number', $section_id),
+                'desc' => $this->l('Allow customers to select warehouse.'),
+                'values' => $swither_values
+            ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable delivery time selection'),
+                'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
+                'desc' => $this->l('Allow customers to select delivery time.'),
+                'values' => $swither_values
+            ),
+        );
+
+        return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
+    }
+
+    /**
+     * Display Labels section in module configuration
+     */
+    public function displayConfigLabel()
+    {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $section_id = 'LABEL';
 
         $form_fields = array(
             array(
                 'type' => 'radio',
                 'label' => $this->l('Label size'),
-                'name' => $cModuleConfig->getConfigKey('label_size', 'ADVANCED'),
+                'name' => $cModuleConfig->getConfigKey('label_size', $section_id),
                 'values' => array(
                     array(
                         'id' => 'A4',
@@ -746,78 +838,20 @@ class MijoraVenipak extends CarrierModule
                         'label' => 'A6',
                     ),
                 ),
+                'desc' => $this->l('Paper size of printing labels'),
             ),
             array(
-                'type' => 'switch',
-                'label' => $this->l('Door code'),
-                'name' => $cModuleConfig->getConfigKey('door_code', 'ADVANCED'),
-                'desc' => $this->l('Add input for customers to enter their door code, if they select Venipak carrier.'),
-                'values' => array(
-                    array(
-                        'id' => 'active_on',
-                        'value' => 1,
-                        'label' => $this->trans('Yes', array(), 'Admin.Global')
-                    ),
-                    array(
-                        'id' => 'active_off',
-                        'value' => 0,
-                        'label' => $this->trans('No', array(), 'Admin.Global')
-                    )
-                )),
-            array(
-                'type' => 'switch',
-                'label' => $this->l('Cabinet number'),
-                'name' => $cModuleConfig->getConfigKey('cabinet_number', 'ADVANCED'),
-                'desc' => $this->l('Allow customers to input cabinet number.'),
-                'values' => array(
-                    array(
-                        'id' => 'active_on',
-                        'value' => 1,
-                        'label' => $this->trans('Yes', array(), 'Admin.Global')
-                    ),
-                    array(
-                        'id' => 'active_off',
-                        'value' => 0,
-                        'label' => $this->trans('No', array(), 'Admin.Global')
-                    )
-            )),
-            array(
-                'type' => 'switch',
-                'label' => $this->l('Warehouse number'),
-                'name' => $cModuleConfig->getConfigKey('warehouse_number', 'ADVANCED'),
-                'desc' => $this->l('Allow customers to select warehouse.'),
-                'values' => array(
-                    array(
-                        'id' => 'active_on',
-                        'value' => 1,
-                        'label' => $this->trans('Yes', array(), 'Admin.Global')
-                    ),
-                    array(
-                        'id' => 'active_off',
-                        'value' => 0,
-                        'label' => $this->trans('No', array(), 'Admin.Global')
-                    )
-            )),
-            array(
-                'type' => 'switch',
-                'label' => $this->l('Enable delivery time selection'),
-                'name' => $cModuleConfig->getConfigKey('delivery_time', 'ADVANCED'),
-                'desc' => $this->l('Allow customers to select delivery time.'),
-                'values' => array(
-                    array(
-                        'id' => 'active_on',
-                        'value' => 1,
-                        'label' => $this->trans('Yes', array(), 'Admin.Global')
-                    ),
-                    array(
-                        'id' => 'active_off',
-                        'value' => 0,
-                        'label' => $this->trans('No', array(), 'Admin.Global')
-                    )
-            )),
+                'type' => 'text',
+                'label' => $this->l('Last pack number'),
+                'name' => $cModuleConfig->getConfigKey('label_counter', $section_id),
+                'size' => 20,
+                'required' => false,
+                'desc' => $this->l('This field allows to change the last package number that is included in the label code (label code always must be unique)') . '. ' . sprintf($this->l('This value must be a number and not longer than %u characters'), 7) . '.',
+                //'disabled' => true,
+            ),
         );
 
-        return $this->displayConfig('ADVANCED', $this->l('Advanced Settings'), $form_fields, $this->l('Save advanced settings'));
+        return $this->displayConfig($section_id, $this->l('Labels Settings'), $form_fields, $this->l('Save labels settings'));
     }
 
     /**
@@ -825,13 +859,15 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigPickupPoints()
     {
+        $section_id = 'PICKUPPOINTS';
+
         $country_options = array(
         );
 
         $form_fields = array(
         );
 
-        return $this->displayConfig('PICKUPPOINTS', $this->l('Pickup points'), $form_fields, $this->l('Save pickup points settings'));
+        return $this->displayConfig($section_id, $this->l('Pickup points'), $form_fields, $this->l('Save pickup points settings'));
     }
 
     /**
@@ -926,10 +962,12 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
+        $section_id = strtoupper($section_id);
+
         $errors = array();
         $txt_required = $this->l('is required');
 
-        if (strtoupper($section_id) == 'API') {
+        if ($section_id == 'API') {
             if (empty(Tools::getValue($cModuleConfig->getConfigKey('username', 'API')))) {
                 $errors[] = $this->l('API username') . ' ' . $txt_required;
             }
@@ -940,11 +978,26 @@ class MijoraVenipak extends CarrierModule
                 $errors[] = $this->l('API ID') . ' ' . $txt_required;
             }
         }
-        if (strtoupper($section_id) == 'SHOP') {
-            foreach ($this->_configKeys['SHOP'] as $key => $key_value) {
+        if ($section_id == 'SHOP') {
+            foreach ($this->_configKeys[$section_id] as $key => $key_value) {
                 $configField = $this->getConfigField($section_id, $key);
                 if (empty(Tools::getValue($cModuleConfig->getConfigKey($key, 'SHOP'))) && $configField['required']) {
                     $errors[] = $configField['name'] . ' ' . $txt_required;
+                }
+            }
+        }
+        if ($section_id == 'LABEL') {
+            foreach ($this->_configKeys[$section_id] as $key => $key_value) {
+                $configField = $this->getConfigField($section_id, $key_value);
+                $field_value = Tools::getValue($cModuleConfig->getConfigKey($key, $section_id));
+                if (isset($configField['type']) && $configField['type'] === 'number') {
+                    $field_value = (float) $field_value;
+                    if (isset($configField['min']) && $field_value < $configField['min']) {
+                        $errors[] = sprintf($this->l('%s must be more then %d'), $configField['name'], $configField['min']);
+                    }
+                    if (isset($configField['max']) && $field_value > $configField['max']) {
+                        $errors[] = sprintf($this->l('%s must be less then %d'), $configField['name'], $configField['max']);
+                    }
                 }
             }
         }
@@ -1045,51 +1098,52 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
+        $errors = array();
+
         if($params['step_name'] != 'delivery')
             return;
         $cart = $params['cart'];
         $carrier = new Carrier($cart->id_carrier);
         $carrier_reference = $carrier->id_reference;
-        if(Configuration::get('MJVP_COURIER_ID_REFERENCE') != $carrier_reference)
+
+        if(Configuration::get(self::$_carriers['courier']['reference_name']) != $carrier_reference)
             return;
 
         // Validate extra fields
-        $venipak_door_code = Tools::getValue('venipak_door_code', 0);
-        $venipak_cabinet_number = Tools::getValue('venipak_cabinet_number', 0);
-        $venipak_warehouse_number = Tools::getValue('venipak_warehouse_number', 0);
-        $venipak_delivery_time = (int) Tools::getValue('venipak_delivery_time', 0);
-        if(strlen($venipak_door_code) > self::EXTRA_FIELDS_SIZE)
-            $this->context->controller->errors['venipak_door_code'] = $this->l('The door code is too long.');
-        if(strlen($venipak_cabinet_number) > self::EXTRA_FIELDS_SIZE)
-            $this->context->controller->errors['venipak_cabinet_number'] = $this->l('The cabinet number is too long.');
-        if(strlen($venipak_warehouse_number) > self::EXTRA_FIELDS_SIZE)
-            $this->context->controller->errors['venipak_warehouse_number'] = $this->l('The warehouse number is too long.');
-        if(!isset($this->deliveryTimes[$venipak_delivery_time]))
-            $this->context->controller->errors['venipak_delivery_time'] = $this->l('Selected delivery time does not exist.');
+        $field_door_code = Tools::getValue('mjvp_door_code', 0);
+        $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
+        $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
+        $field_delivery_time = (int) Tools::getValue('mjvp_delivery_time', 0);
+        if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
+            $errors['mjvp_door_code'] = $this->l('The door code is too long.');
+        if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
+            $errors['mjvp_cabinet_number'] = $this->l('The cabinet number is too long.');
+        if(strlen($field_warehouse_number) > self::EXTRA_FIELDS_SIZE)
+            $errors['mjvp_warehouse_number'] = $this->l('The warehouse number is too long.');
+        if(!isset($this->deliveryTimes[$field_delivery_time]))
+            $errors['mjvp_delivery_time'] = $this->l('Selected delivery time does not exist.');
 
-        if(!empty($this->context->controller->errors))
+        if(!empty($errors))
         {
+            $this->showErrors($errors);
             $params['completed'] = false;
             return;
         }
 
-        $id_mjvp_cart = $cDb->getCartValue('id', array('id_cart' => $cart->id));
-        if((int) $id_mjvp_cart > 0)
-        {
-            $cCart = new MjvpCart($id_mjvp_cart);
-        }
-        else
-        {
-            $cCart = new MjvpCart();
-            $cCart->id_cart = $cart->id;
+        $order_extra_info = self::$_order_additional_info;
+
+        $sql_extra_info = $cDb->getOrderValue('other_info', array('id_cart' => $cart->id));
+        $sql_extra_info = (array) json_decode($sql_extra_info);
+        foreach($sql_extra_info as $key => $value) {
+            $order_extra_info[$key] = $value;
         }
 
-        $cCart->door_code = $venipak_door_code;
-        $cCart->cabinet_number = $venipak_cabinet_number;
-        $cCart->warehouse_number = $venipak_warehouse_number;
-        $cCart->delivery_time = $venipak_delivery_time;
-        $cCart->save();
+        $order_extra_info['door_code'] = $field_door_code;
+        $order_extra_info['cabinet_number'] = $field_cabinet_number;
+        $order_extra_info['warehouse_number'] = $field_warehouse_number;
+        $order_extra_info['delivery_time'] = $field_delivery_time;
 
+        $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
     }
 
     /**
@@ -1106,6 +1160,9 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
         $carrier_id_reference = $params['carrier']['id_reference'];
 
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
@@ -1113,23 +1170,30 @@ class MijoraVenipak extends CarrierModule
         if ($carrier_type !== 'pickup') {
 
             $configuration = [
-                'show_door_code' => Configuration::get('VENIPAK_DOOR_CODE'),
-                'show_cabinet_number' => Configuration::get('VENIPAK_CABINET_NUMBER'),
-                'show_warehouse_number' => Configuration::get('VENIPAK_WAREHOUSE_NUMBER'),
-                'show_delivery_time' => Configuration::get('VENIPAK_DELIVERY_TIME'),
+                'show_door_code' => Configuration::get($cModuleConfig->getConfigKey('door_code', 'COURIER')),
+                'show_cabinet_number' => Configuration::get($cModuleConfig->getConfigKey('cabinet_number', 'COURIER')),
+                'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
+                'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
                 'delivery_times' => $this->deliveryTimes
             ];
 
             $cart = $params['cart'];
-            $cart_mjvp_data = $cDb->getCartValue('door_code, cabinet_number, warehouse_number, delivery_time', array('id_cart' => $cart->id));
-            if(!$cart_mjvp_data)
-                $cart_mjvp_data = [];
-            
+            $order_extra_info = self::$_order_additional_info;
+
+            $sql_extra_info = $cDb->getOrderValue('other_info', array('id_cart' => $cart->id));
+            $sql_extra_info = (array) json_decode($sql_extra_info);
+
+            foreach ($order_extra_info as $key => $value) {
+                if (isset($sql_extra_info[$key])) {
+                    $order_extra_info[$key] = $sql_extra_info[$key];
+                }
+            }
+
             $this->context->smarty->assign(
-                array_merge($configuration, $cart_mjvp_data)
+                array_merge($configuration, $order_extra_info)
             );
             
-            return $this->context->smarty->fetch(self::$_moduleDir . '/views/templates/hook/displayCarrierExtraContent.tpl');
+            return $this->context->smarty->fetch(self::$_moduleDir . '/views/templates/front/courier_extra_content.tpl');
         }
 
         $address = new Address($params['cart']->id_address_delivery);
@@ -1160,7 +1224,7 @@ class MijoraVenipak extends CarrierModule
             $quantity = $quantity + $product['cart_quantity'];
         }
 
-        $smarty->assign(
+        $this->context->smarty->assign(
             array(
                 'terminals' => $all_terminals_info,
                 'postcode' => $address->postcode,
@@ -1172,7 +1236,7 @@ class MijoraVenipak extends CarrierModule
             )
         );
 
-        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickup_points.tpl');
+        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
     }
 
     /**
@@ -1322,12 +1386,17 @@ class MijoraVenipak extends CarrierModule
         if (empty($errors)) {
             $this->context->controller->confirmations[] = $this->l('Labels sent');
         } else {
-            foreach ($errors as $error) {
-                $this->context->controller->errors[] = $error;
-            }
+            $this->showErrors($errors);
             if (!empty($success_orders)) {
                 $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
             }
         }
+    }
+
+    private function showErrors($errors)
+    {
+       foreach ($errors as $error) {
+            $this->context->controller->errors[] = $error;
+        } 
     }
 }

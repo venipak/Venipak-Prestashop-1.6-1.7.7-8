@@ -11,7 +11,7 @@ class MjvpDb
      */
     private $_table_orders = 'mjvp_orders';
     private $_table_warehouses = 'mjvp_warehouse';
-    private $_table_cart = 'mjvp_cart';
+    //private $_table_cart = 'mjvp_cart';
 
     /**
      * Status values for rows in 'orders' table
@@ -36,10 +36,12 @@ class MjvpDb
             $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
                 `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
                 `id_order` int(10) COMMENT "Order ID",
+                `id_carrier_ref` int(10) COMMENT "Carrier reference ID",
                 `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
                 `terminal_id` int(10) COMMENT "Terminal ID",
                 `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
-                `status` varchar(255) COMMENT "Status for module of current order",
+                `status` varchar(30) COMMENT "Status for module of current order",
+                `other_info` text COLLATE utf8_unicode_ci NULL COMMENT "Json of other order settings array",
                 `labels_numbers` text COLLATE utf8_unicode_ci NULL COMMENT "Json of labels numbers array",
                 `labels_date` datetime DEFAULT NULL COMMENT "Date when created labels",
                 `error` text COLLATE utf8_unicode_ci DEFAULT NULL COMMENT "Order error messages",
@@ -57,18 +59,6 @@ class MjvpDb
                 `zip_code` varchar(10) NOT NULL,
                 `phone` varchar(15) NOT NULL,
                 `default_on` tinyint NOT NULL,
-                PRIMARY KEY (`id`)
-            ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
-
-            $this->_table_cart => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_cart . '` (
-                `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                `id_cart` int(10) unsigned NOT NULL,
-                `door_code` varchar(10),
-                `cabinet_number` varchar(10),
-                `warehouse_number` varchar(10),
-                `delivery_time` varchar(10),
-                `date_add` datetime NOT NULL,
-                `date_upd` datetime DEFAULT NULL,
                 PRIMARY KEY (`id`)
             ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
         );
@@ -147,6 +137,77 @@ class MjvpDb
     }
 
     /**
+     * Get row from table
+     */
+    public function getRow($table_name, $get_column, $where, $where_condition = 'AND')
+    {
+        if (
+            !is_array($where)
+            || !$this->checkTable(_DB_PREFIX_ . $table_name)
+        ) {
+            return false;
+        }
+        $sql_where = '';
+        foreach ($where as $key => $value) {
+            if (!empty($sql_where)) {
+                $sql_where .= ' ' . pSQL($where_condition) . ' ';
+            }
+            $sql_where .= pSQL($key) . ' = ' . pSQL($value);
+        }
+
+        $result = Db::getInstance()->getRow("SELECT " . pSQL($get_column) . " FROM " . _DB_PREFIX_ . $table_name . " WHERE " . $sql_where);
+
+        return $result;
+    }
+
+    /**
+     * Insert row to table
+     */
+    public function insertRow($table_name, $sql_values)
+    {
+        if (!$this->checkTable(_DB_PREFIX_ . $table_name)) {
+            return false;
+        }
+
+        foreach ($sql_values as $key => $value) {
+            $sql_values[$key] = pSQL(trim($value));
+        }
+
+        $result = Db::getInstance()->insert($table_name, $sql_values);
+
+        return $result;
+    }
+
+    /**
+     * Update row in table
+     */
+    public function updateRow($table_name, $sql_values, $where_values, $where_condition = 'AND')
+    {
+        if (
+            !$this->checkTable(_DB_PREFIX_ . $table_name)
+            || !$this->getOrderValue(1, $where_values)
+        ) {
+            return false;
+        }
+
+        foreach ($sql_values as $key => $value) {
+            $sql_values[$key] = pSQL(trim($sql_values[$key]));
+        }
+
+        $sql_where = '';
+        foreach ($where_values as $key => $value) {
+            if (!empty($sql_where)) {
+                $sql_where .= ' ' . pSQL($where_condition) . ' ';
+            }
+            $sql_where .= pSQL($key) . ' = ' . pSQL($value);
+        }
+
+        $result = Db::getInstance()->update($table_name, $sql_values, $sql_where);
+
+        return $result;
+    }
+
+    /**
      * Get order id from module table
      */
     public function getOrderIdByCartId($cart_id)
@@ -173,17 +234,7 @@ class MjvpDb
      */
     public function saveOrderInfo($sql_values)
     {
-        if (!$this->checkTable(_DB_PREFIX_ . $this->_table_orders)) {
-            return false;
-        }
-
-        foreach ($sql_values as $key => $value) {
-            $sql_values[$key] = pSQL(trim($value));
-        }
-
-        $result = Db::getInstance()->insert($this->_table_orders, $sql_values);
-
-        return $result;
+        return $this->insertRow($this->_table_orders, $sql_values);
     }
 
     /**
@@ -191,20 +242,7 @@ class MjvpDb
      */
     public function updateOrderInfo($cart_id, $sql_values)
     {
-        if (
-            !$this->checkTable(_DB_PREFIX_ . $this->_table_orders)
-            || !$this->getOrderValue(1, array('id_cart' => $cart_id))
-        ) {
-            return false;
-        }
-
-        foreach ($sql_values as $key => $value) {
-            $sql_values[$key] = pSQL(trim($sql_values[$key]));
-        }
-
-        $result = Db::getInstance()->update($this->_table_orders, $sql_values, 'id_cart = ' . pSQL($cart_id));
-
-        return $result;
+        return $this->updateRow($this->_table_orders, $sql_values, array('id_cart' => $cart_id));
     }
 
     /**
@@ -216,10 +254,10 @@ class MjvpDb
     }
 
     /**
-     * Get table value from module 'orders' table
+     * Get table row from module 'warehouses' table
      */
-    public function getCartValue($get_column, $where, $where_condition = 'AND')
+    public function getWarehouseRow($get_column, $where, $where_condition = 'AND')
     {
-        return $this->getValue($this->_table_cart, $get_column, $where, $where_condition);
+        return $this->getRow($this->_table_warehouses, $get_column, $where, $where_condition);
     }
 }

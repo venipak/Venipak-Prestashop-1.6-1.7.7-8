@@ -119,10 +119,10 @@
   }
 }
 
-#venipak-extra-fields label {
+.mjvp-courier-extra-fields label {
   text-align: left;
 }
 
-#venipak-extra-fields .alert {
+.mjvp-courier-extra-fields .alert {
   margin-bottom: 0px;
 }

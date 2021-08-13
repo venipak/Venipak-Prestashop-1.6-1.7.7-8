@@ -37,6 +37,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             'country_code' => $country_code,
             'last_select' => date('Y-m-d H:i:s'),
             'status' => $cDb->order_status_new,
+            'id_carrier_ref' => $ps_carrier->id_reference,
         );
 
         if (in_array($ps_carrier->id_reference, $pickups_references)) {
