@@ -52,7 +52,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
             $this->errors[] = $this->l('Select shop');
         } else {
-            $this->content .= $this->displayMenu();
             $this->readyOrdersList();
         }
     }
@@ -106,17 +105,9 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->actions = array('none');
 
         $this->bulk_actions = array(
-            'registerItella' => array(
+            'generateVenipak' => array(
                 'text' => $this->l('Generate Labels'),
                 'icon' => 'icon-save'
-            ),
-            'generateItellaLabel' => array(
-                'text' => $this->l('Print Labels'),
-                'icon' => 'icon-tag'
-            ),
-            'printItellaManifest' => array(
-                'text' => $this->l('Print Manifest'),
-                'icon' => 'icon-file-pdf-o'
             ),
         );
     }
@@ -142,37 +133,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         return parent::renderList();
     }
 
-    /**
-     * @throws SmartyException
-     */
-    private function displayMenu()
-    {
-        $menu = array(
-            array(
-                'label' => $this->l('Ready Orders'),
-                'url' => $this->context->link->getAdminLink($this->controller_name, true),
-                'active' => Tools::getValue('controller') == $this->controller_name
-            ),
-//            array(
-//                'label' => $this->l('Generated Manifests'),
-//                'url' => $this->context->link->getAdminLink('AdminItellashippingItellaManifestDone', true),
-//                'active' => false
-//            )
-        );
-
-        ItellaShipping::checkForClass('ItellaStore');
-        $storeObj = new ItellaStore();
-        $stores = ItellaStore::getStores();
-
-        $this->context->smarty->assign(array(
-            'moduleMenu' => $menu,
-            'stores' => json_encode($stores),
-            'call_url' => false // dont need js handling call courier functionality
-        ));
-
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_ . 'itellashipping/views/templates/admin/manifest_menu.tpl');
-    }
-
     public function getShopNameById($id)
     {
         $shop = new Shop($id);
@@ -185,20 +145,29 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (!$order->getWsShippingNumber()) {
             return '<span class="btn-group-action">
                 <span class="btn-group">
-                  <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkregisterItellaorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
+                  <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
                   </a>
                 </span>
             </span>';
         }
         return '<span class="btn-group-action">
                 <span class="btn-group">
-                    <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateItellaLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
+                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
                     </a>
                 
-                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkprintItellaManifestorder' . '&orderBox[]=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Manifest') . '
+                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitPrintVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Manifest') . '
                     </a>
                 </span>
             </span>';
     }
 
+
+    public function postProcess()
+    {
+        if(Tools::isSubmit('submitBulkgenerateVenipakLabelorder') || Tools::isSubmit('submitBulkgenerateVenipakorder'))
+        {
+            $orders = Tools::getValue('orderBox');
+            $this->module->bulkActionSendLabels($orders);
+        }
+    }
 }

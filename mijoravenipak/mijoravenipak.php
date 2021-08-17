@@ -209,11 +209,12 @@ class MijoraVenipak extends CarrierModule
         $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia', 'PL' => 'Poland');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
         $this->deliveryTimes = [
-            $this->l('Anytime'),
-            $this->l('8:00-14:00'),
-            $this->l('14:00-17:00'),
-            $this->l('18:00-22:00'),
-            $this->l('After 18:00'),
+            'nwd' => $this->l('Anytime'),
+            'nwd10' => $this->l('Until 10:00'),
+            'nwd12' => $this->l('Until 12:00'),
+            'nwd8_14' => $this->l('8:00-14:00'),
+            'nwd14_17' => $this->l('14:00-17:00'),
+            'nwd18_22' => $this->l('18:00-22:00'),
         ];
     }
 
@@ -1163,7 +1164,7 @@ class MijoraVenipak extends CarrierModule
         $field_door_code = Tools::getValue('mjvp_door_code', 0);
         $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
         $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
-        $field_delivery_time = (int) Tools::getValue('mjvp_delivery_time', 0);
+        $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
         if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
             $errors['mjvp_door_code'] = $this->l('The door code is too long.');
         if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
@@ -1333,6 +1334,9 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
+        self::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+
         $errors = array();
         $success_orders = array();
         $found = false;
@@ -1390,6 +1394,21 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack['weight'] += (float)$product['weight'];
                         $shipment_pack['volume'] += (float)$product_volume;
                     }
+                    // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
+                    $door_code = '';
+                    $cabinet_number = '';
+                    $warehouse_number = '';
+                    $delivery_time = '';
+                    $carrier_reference = $carrier->id_reference;
+                    if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
+                    {
+                        $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
+                        $door_code = $other_info->door_code;
+                        $cabinet_number = $other_info->cabinet_number;
+                        $warehouse_number = $other_info->warehouse_number;
+                        $delivery_time = $other_info->delivery_time;
+                    }
+
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
@@ -1401,6 +1420,10 @@ class MijoraVenipak extends CarrierModule
                             'address' => $consignee_address,
                             'postcode' => $address->postcode,
                             'phone' => $consignee_phone,
+                            'door_code' => $door_code,
+                            'cabinet_number' => $cabinet_number,
+                            'warehouse_number' => $warehouse_number,
+                            'delivery_time' => $delivery_time,
                         ),
                         'packs' => array($shipment_pack),
                     );
