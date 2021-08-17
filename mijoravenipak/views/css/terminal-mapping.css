@@ -46,7 +46,7 @@
 /*
   Animated overlay
 */
-div.tmjs-loading-overlay {
+div.tmvp-loading-overlay {
   position: fixed;
   top: 0;
   bottom: 0;

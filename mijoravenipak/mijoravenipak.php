@@ -1040,11 +1040,48 @@ class MijoraVenipak extends CarrierModule
         if (!$this->active) return;
 
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
+
+            $address = new Address($params['cart']->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
+            self::checkForClass('MjvpApi');
+            $cApi = new MjvpApi();
+            $all_terminals_info = $cApi->getTerminals($country_code);
+
             Media::addJsDef(array(
-                    'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'))
+                    'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
+                    'mjvp_translates' => array(
+                        'loading' => $this->l('Loading'),
+                    ),
+                    'mjvp_terminal_select_translates' => array(
+                    'modal_header' => $this->l('Pickup points map'),
+                    'terminal_list_header' => $this->l('Pickup points list'),
+                    'seach_header' => $this->l('Search around'),
+                    'search_btn' => $this->l('Find'),
+                    'modal_open_btn' => $this->l('Select pickup point'),
+                    'geolocation_btn' => $this->l('Use my location'),
+                    'your_position' => $this->l('Distance calculated from this point'),
+                    'nothing_found' => $this->l('Nothing found'),
+                    'no_cities_found' => $this->l('There were no cities found for your search term'),
+                    'geolocation_not_supported' => $this->l('Geolocation is not supported'),
+                    'select_pickup_point' => $this->l('Select a pickup point'),
+                    'search_placeholder' => $this->l('Enter postcode/address'),
+                    'workhours_header' => $this->l('Workhours'),
+                    'contacts_header' => $this->l('Contacts'),
+                    'no_pickup_points' => $this->l('No points to select'),
+                    'select_btn' => $this->l('select'),
+                    'back_to_list_btn' => $this->l('reset search'),
+                    'no_information' => $this->l('No information'),
+                    ),
+                    'mjvp_terminals' => $all_terminals_info
+                )
             );
+            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
             $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front.js');
+            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
             $this->context->controller->addCSS($this->_path . 'views/css/global.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
         }
     }
 

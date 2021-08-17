@@ -90,7 +90,7 @@
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TerminalMapping", function() { return TerminalMapping; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TerminalMappingMjvp", function() { return TerminalMappingMjvp; });
 /* harmony import */ var _styles_main_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var _styles_main_css__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(_styles_main_css__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _modules_DependencyCheck_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
@@ -108,11 +108,11 @@ function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _d
 
 
 
-var TerminalMapping = /*#__PURE__*/function () {
-  function TerminalMapping(api_server_url) {
+var TerminalMappingMjvp = /*#__PURE__*/function () {
+  function TerminalMappingMjvp(api_server_url) {
     var _this = this;
 
-    _classCallCheck(this, TerminalMapping);
+    _classCallCheck(this, TerminalMappingMjvp);
 
     /* Terminal Mapping version */
     this.version = '1.1.1';
@@ -168,7 +168,7 @@ var TerminalMapping = /*#__PURE__*/function () {
     this.map = null;
   }
 
-  _createClass(TerminalMapping, [{
+  _createClass(TerminalMappingMjvp, [{
     key: "init",
     value: function init() {
       var _this2 = this;
@@ -215,17 +215,14 @@ var TerminalMapping = /*#__PURE__*/function () {
           'city': city
         }); // Get terminal list
 
-        fetch(_this2.api_server_url + 'parcel_machines' + (params ? '?' + params : '')).then(function (response) {
-          return response.json();
-        }).then(function (json) {
-          console.log(json);
-          var terminals = json.result.parcel_machines.map(function (terminal) {
+          var terminals = mjvp_terminals.map(function (terminal) {
             terminal['coords'] = {
-              lat: terminal.y_cord,
-              lng: terminal.x_cord
+              lat: terminal.lat,
+              lng: terminal.lng
             };
+            terminal['identifier'] = 'venipak';
             return terminal;
-          }); //.filter(terminal => terminal.identifier == 'lp_express');
+          });
 
           _this2.setTerminals(terminals);
 
@@ -236,7 +233,7 @@ var TerminalMapping = /*#__PURE__*/function () {
           _this2.dom.removeOverlay();
 
           _this2.publish('tmjs-ready', _this2);
-        });
+        // });
       });
     }
   }, {
@@ -292,9 +289,9 @@ var TerminalMapping = /*#__PURE__*/function () {
     }
   }]);
 
-  return TerminalMapping;
+  return TerminalMappingMjvp;
 }();
-window.TerminalMapping = TerminalMapping;
+window.TerminalMappingMjvp = TerminalMappingMjvp;
 
 /***/ }),
 /* 1 */
@@ -591,7 +588,7 @@ var DOMManipulator = /*#__PURE__*/function () {
       }
 
       var overlayNode = document.createElement('div');
-      overlayNode.className = 'tmjs-loading-overlay';
+      overlayNode.className = 'tmvp-loading-overlay';
       overlayNode.innerHTML = '<div class="lds-ellipsis"><div></div><div></div><div></div><div></div></div>';
       this.UI.overlay = parentNode.appendChild(overlayNode);
       this.bodyOverflow(false);
@@ -1093,7 +1090,7 @@ var Map = /*#__PURE__*/function () {
     this._referenceMarker = null;
     /* zoom levels for map */
 
-    this.ZOOM_DEFAULT = 8;
+    this.ZOOM_DEFAULT = 6;
     this.ZOOM_SELECTED = 13;
     this.ZOOM_MAX = 18;
     this.ZOOM_MIN = 4; // create map
@@ -1108,7 +1105,7 @@ var Map = /*#__PURE__*/function () {
 
       var Icon = L.Icon.extend({
         options: {
-          iconSize: [30, 40],
+          iconSize: [40, 60],
           iconAnchor: [15, 40],
           popupAnchor: [0, -40]
         }
@@ -1119,21 +1116,18 @@ var Map = /*#__PURE__*/function () {
       this._icons.reference = new Icon({
         iconUrl: this.TMJS.imagePath + 'reference_icon.svg'
       });
-      fetch(this.TMJS.api_server_url + 'parcel_machines_images').then(function (response) {
-        return response.json();
-      }).then(function (json) {
-        json.result.parcel_machines_images.forEach(function (item) {
-          return _this._icons[item.identifier] = new Icon({
-            iconUrl: item.svg
-          });
-        });
-
-        if (_this._markerLayer.getLayers().length > 0) {
-          _this.refreshMarkerIcons();
+      var Icon = L.Icon.extend({
+        options: {
+          iconSize: [80, 144]
         }
-      })["catch"](function (err) {
-        return console.error(_this.prefix + 'Failed to load icons.', err);
       });
+      _this._icons['venipak'] = new Icon({
+            iconUrl: mjvp_imgs_url + "/venipak.svg"
+      });
+
+      if (_this._markerLayer.getLayers().length > 0) {
+        _this.refreshMarkerIcons();
+      }
     }
   }, {
     key: "getIcon",
@@ -1177,14 +1171,14 @@ var Map = /*#__PURE__*/function () {
       new L.Control.Zoom({
         position: 'bottomright'
       }).addTo(this._map);
-      this.loadIcons();
-      L.tileLayer(this._tileServerUrl, {
-        attribution: this._attribution
-      }).addTo(this._map);
       this._markerLayer = L.markerClusterGroup({//zoomToBoundsOnClick: false
       });
       this._activeMarkerLayer = L.markerClusterGroup({//zoomToBoundsOnClick: false
       });
+      this.loadIcons();
+      L.tileLayer(this._tileServerUrl, {
+        attribution: this._attribution
+      }).addTo(this._map);
 
       this._map.addLayer(this._markerLayer);
 
