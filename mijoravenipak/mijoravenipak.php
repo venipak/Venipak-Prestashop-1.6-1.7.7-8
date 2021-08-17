@@ -257,6 +257,8 @@ class MijoraVenipak extends CarrierModule
             return false;
         }
 
+        $this->getVenipakTerminals();
+
         return true;
     }
 
@@ -511,6 +513,17 @@ class MijoraVenipak extends CarrierModule
         }
 
         return true;
+    }
+
+    /**
+     * Get terminals for all countries
+     */
+    private function getVenipakTerminals()
+    {
+        self::checkForClass('MjvpFiles');
+        $cFiles = new MjvpFiles();
+        $cFiles->updateCountriesList();
+        $cFiles->updateTerminalsList();
     }
 
     /**

@@ -34,7 +34,7 @@ class MjvpHelper
     public function getAllCountries()
     {
 
-        return false;
+        return MijoraVenipak::$_defaultPickupCountries;
     }
 
     /**
