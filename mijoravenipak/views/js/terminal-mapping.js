@@ -215,14 +215,18 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
           'city': city
         }); // Get terminal list
 
-          var terminals = mjvp_terminals.map(function (terminal) {
-            terminal['coords'] = {
-              lat: terminal.lat,
-              lng: terminal.lng
-            };
-            terminal['identifier'] = 'venipak';
-            return terminal;
-          });
+        var terminals = [];
+        mjvp_terminals.forEach((terminal) => {
+           if(terminal.lat != 0 && terminal.lng != 0 && terminal.terminal)
+           {
+             terminal['coords'] = {
+               lat: terminal.lat,
+               lng: terminal.lng
+             };
+             terminal['identifier'] = 'venipak';
+             terminals.push(terminal);
+           }
+        });
 
           _this2.setTerminals(terminals);
 
@@ -608,12 +612,12 @@ var DOMManipulator = /*#__PURE__*/function () {
     }
     /**
      * Add or remove `overflow: hidden` style to body tag
-     * 
+     *
      * true - removes style (default)
-     * 
+     *
      * false - adds style
-     * 
-     * @param {boolean} show 
+     *
+     * @param {boolean} show
      */
 
   }, {
@@ -794,9 +798,9 @@ var DOMManipulator = /*#__PURE__*/function () {
       console.log('wasnt able to retrieve position');
     }
     /**
-     * 
-     * @param {MouseEvent} event 
-     * @param {HTMLElement} data 
+     *
+     * @param {MouseEvent} event
+     * @param {HTMLElement} data
      */
 
   }, {
@@ -1090,7 +1094,7 @@ var Map = /*#__PURE__*/function () {
     this._referenceMarker = null;
     /* zoom levels for map */
 
-    this.ZOOM_DEFAULT = 6;
+    this.ZOOM_DEFAULT = 8;
     this.ZOOM_SELECTED = 13;
     this.ZOOM_MAX = 18;
     this.ZOOM_MIN = 4; // create map
