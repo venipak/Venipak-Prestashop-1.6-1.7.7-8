@@ -1436,6 +1436,15 @@ class MijoraVenipak extends CarrierModule
             $manifest_xml = $cApi->buildManifestXml($manifest);
             if ($cHelper->isXMLContentValid($manifest_xml)) {
                 $status = $cApi->sendXml($manifest_xml);
+                if(!isset($status['error']) && $status['text'])
+                {
+                    foreach ($success_orders as $key => $order)
+                    {
+                        $order_id = trim($order, ' #');
+                        if(isset($status['text'][$key]))
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'][$key], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                    }
+                }
                 if (isset($status['error'])) {
                     if (isset($status['error']['text'])) {
                         $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];

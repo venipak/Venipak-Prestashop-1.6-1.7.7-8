@@ -21,7 +21,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         parent::__construct();
         $this->toolbar_title = $this->l('Venipak Manifest - Ready Orders');
         $this->_select = '
-            oc.tracking_number as label_number,
+            mo.labels_numbers as label_number,
             CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
             osl.`name` AS `osname`,
             os.`color`,
@@ -29,7 +29,7 @@ class AdminVenipakShippingController extends ModuleAdminController
             a.id_order AS id_label_print
 		';
         $this->_join = '
-            LEFT JOIN `' . _DB_PREFIX_ . 'order_carrier` oc ON (oc.`id_order` = a.`id_order`)
+            LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (mo.`id_order` = a.`id_order`)
             LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
             LEFT JOIN `' . _DB_PREFIX_ . 'carrier` carrier ON (carrier.`id_carrier` = a.`id_carrier`)
             LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
@@ -141,8 +141,11 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id)
     {
-        $order = new Order((int) $id);
-        if (!$order->getWsShippingNumber()) {
+
+        MijoraVenipak::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
+        if (!$tracking_number) {
             return '<span class="btn-group-action">
                 <span class="btn-group">
                   <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
