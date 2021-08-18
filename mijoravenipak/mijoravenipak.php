@@ -1145,44 +1145,59 @@ class MijoraVenipak extends CarrierModule
         $carrier = new Carrier($cart->id_carrier);
         $carrier_reference = $carrier->id_reference;
 
-        if(Configuration::get(self::$_carriers['courier']['reference_name']) != $carrier_reference)
-            return;
-
-        // Validate extra fields
-        $field_door_code = Tools::getValue('mjvp_door_code', 0);
-        $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
-        $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
-        $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
-        if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
-            $errors['mjvp_door_code'] = $this->l('The door code is too long.');
-        if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
-            $errors['mjvp_cabinet_number'] = $this->l('The cabinet number is too long.');
-        if(strlen($field_warehouse_number) > self::EXTRA_FIELDS_SIZE)
-            $errors['mjvp_warehouse_number'] = $this->l('The warehouse number is too long.');
-        if(!isset($this->deliveryTimes[$field_delivery_time]))
-            $errors['mjvp_delivery_time'] = $this->l('Selected delivery time does not exist.');
-
-        if(!empty($errors))
+        if(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference)
         {
-            $this->showErrors($errors);
-            $params['completed'] = false;
-            return;
+            // Check if terminal was selected
+            $terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $cart->id));
+            if(!$terminal_id)
+            {
+                $errors['mjvp_terminal'] = $this->l('Please select a terminal.');
+                if(!empty($errors))
+                {
+                    $this->showErrors($errors);
+                    $params['completed'] = false;
+                    return;
+                }
+            }
         }
+        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
+        {
+            // Validate extra fields
+            $field_door_code = Tools::getValue('mjvp_door_code', 0);
+            $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
+            $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
+            $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
+            if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
+                $errors['mjvp_door_code'] = $this->l('The door code is too long.');
+            if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
+                $errors['mjvp_cabinet_number'] = $this->l('The cabinet number is too long.');
+            if(strlen($field_warehouse_number) > self::EXTRA_FIELDS_SIZE)
+                $errors['mjvp_warehouse_number'] = $this->l('The warehouse number is too long.');
+            if(!isset($this->deliveryTimes[$field_delivery_time]))
+                $errors['mjvp_delivery_time'] = $this->l('Selected delivery time does not exist.');
 
-        $order_extra_info = self::$_order_additional_info;
+            if(!empty($errors))
+            {
+                $this->showErrors($errors);
+                $params['completed'] = false;
+                return;
+            }
 
-        $sql_extra_info = $cDb->getOrderValue('other_info', array('id_cart' => $cart->id));
-        $sql_extra_info = (array) json_decode($sql_extra_info);
-        foreach($sql_extra_info as $key => $value) {
-            $order_extra_info[$key] = $value;
+            $order_extra_info = self::$_order_additional_info;
+
+            $sql_extra_info = $cDb->getOrderValue('other_info', array('id_cart' => $cart->id));
+            $sql_extra_info = (array) json_decode($sql_extra_info);
+            foreach($sql_extra_info as $key => $value) {
+                $order_extra_info[$key] = $value;
+            }
+
+            $order_extra_info['door_code'] = $field_door_code;
+            $order_extra_info['cabinet_number'] = $field_cabinet_number;
+            $order_extra_info['warehouse_number'] = $field_warehouse_number;
+            $order_extra_info['delivery_time'] = $field_delivery_time;
+
+            $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
         }
-
-        $order_extra_info['door_code'] = $field_door_code;
-        $order_extra_info['cabinet_number'] = $field_cabinet_number;
-        $order_extra_info['warehouse_number'] = $field_warehouse_number;
-        $order_extra_info['delivery_time'] = $field_delivery_time;
-
-        $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
     }
 
     /**
@@ -1472,8 +1487,8 @@ class MijoraVenipak extends CarrierModule
 
     private function showErrors($errors)
     {
-       foreach ($errors as $error) {
-            $this->context->controller->errors[] = $error;
+       foreach ($errors as $key => $error) {
+            $this->context->controller->errors[$key] = $error;
         } 
     }
 
