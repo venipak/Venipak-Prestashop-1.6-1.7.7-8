@@ -38,6 +38,7 @@ class MjvpDb
                 `id_order` int(10) COMMENT "Order ID",
                 `order_weight` float(10) COMMENT "Order weight" DEFAULT 0,
                 `cod_amount` float(10) COMMENT "COD amount (default is order total)" DEFAULT 0,
+                `packages` int(10) COMMENT "Number of packages used for the order" DEFAULT 1,
                 `id_carrier_ref` int(10) COMMENT "Carrier reference ID",
                 `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
                 `terminal_id` int(10) COMMENT "Terminal ID",

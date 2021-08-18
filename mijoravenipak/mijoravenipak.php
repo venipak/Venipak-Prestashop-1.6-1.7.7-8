@@ -94,7 +94,8 @@ class MijoraVenipak extends CarrierModule
         'updateCarrier',
         'displayAdminOrder',
         'actionValidateStepComplete',
-        'actionValidateOrder'
+        'actionValidateOrder',
+        'actionAdminControllerSetMedia'
     );
 
     /**
@@ -1558,6 +1559,16 @@ class MijoraVenipak extends CarrierModule
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
         if (empty($check_order_id)) {
              $cDb->updateOrderInfo($id_cart, array('id_order' => $id_order));
+        }
+    }
+
+    public function hookActionAdminControllerSetMedia()
+    {
+        if (get_class($this->context->controller) == 'AdminOrdersController') {
+            {
+                $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
+                $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
+            }
         }
     }
 }
