@@ -36,6 +36,8 @@ class MjvpDb
             $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
                 `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
                 `id_order` int(10) COMMENT "Order ID",
+                `order_weight` float(10) COMMENT "Order weight" DEFAULT 0,
+                `cod_amount` float(10) COMMENT "COD amount (default is order total)" DEFAULT 0,
                 `id_carrier_ref` int(10) COMMENT "Carrier reference ID",
                 `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
                 `terminal_id` int(10) COMMENT "Terminal ID",
@@ -240,9 +242,17 @@ class MjvpDb
     /**
      * Update row in module 'orders' table
      */
-    public function updateOrderInfo($cart_id, $sql_values)
+    public function updateOrderInfo($identifier, $sql_values, $where = 'id_cart')
     {
-        return $this->updateRow($this->_table_orders, $sql_values, array('id_cart' => $cart_id));
+        return $this->updateRow($this->_table_orders, $sql_values, array($where => $identifier));
+    }
+
+    /**
+     * Update row in module 'orders' table
+     */
+    public function getOrderInfo($order_id, $sql_values = '*')
+    {
+        return $this->getRow($this->_table_orders, $sql_values, array('id_order' => $order_id));
     }
 
     /**

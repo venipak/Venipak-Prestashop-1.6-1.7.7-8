@@ -8,6 +8,7 @@ class MijoraVenipak extends CarrierModule
 {
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
+    const CONTROLLER_ADMIN_AJAX = 'AdminVenipakshippingAjax';
     const EXTRA_FIELDS_SIZE = 10;
 
     /**
@@ -280,6 +281,10 @@ class MijoraVenipak extends CarrierModule
                 'title' => $this->l('Venipak Warehouses'),
                 'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
             ),
+            self::CONTROLLER_ADMIN_AJAX => array(
+                'title' => $this->l('VenipakAdminAjax'),
+                'parent_tab' => -1
+            )
         );
     }
 
@@ -1120,11 +1125,57 @@ class MijoraVenipak extends CarrierModule
             return '';
         }
 
+        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+
+        self::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+
+        $order_country_code = $venipak_cart_info['country_code'];
+        $pickup_points = $cApi->getTerminals($order_country_code);
+        $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
+        $venipak_carriers = [];
+        foreach (self::$_carriers as $carrier)
+        {
+            $reference = Configuration::get($carrier['reference_name']);
+            $carrier = Carrier::getCarrierByReference($reference);
+            $venipak_carriers[$reference] = $carrier->name;
+        }
+
+        $order_carrier_reference = $venipak_cart_info['id_carrier_ref'];
+        if($order_carrier_reference == Configuration::get(self::$_carriers['pickup']['reference_name']))
+            $venipak_cart_info['is_pickup'] = true;
+
+        $other_info = json_decode($venipak_cart_info['other_info'], true);
+        $venipak_other_info = [];
+        if($other_info)
+        {
+            $venipak_other_info = [
+                'door_code' => $other_info['door_code'],
+                'cabinet_number' => $other_info['cabinet_number'],
+                'warehouse_number' => $other_info['warehouse_number'],
+                'delivery_time' => $other_info['delivery_time']
+            ];
+        }
+
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
+            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
             'label_status' => $status,
             'label_error' => $error,
+            'order_id' => $order->id,
+            'cod_amount' => $order->total_paid_tax_incl,
+            'order_terminal_id' => $order_terminal_id,
+            'venipak_pickup_points' => $pickup_points,
+            'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
             'label_tracking_numbers' => json_decode($tracking_numbers),
+            'orderVenipakCartInfo' => $venipak_cart_info,
+            'venipak_carriers' => $venipak_carriers,
+            'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
+            'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&submitSaveVenipakOrder&action=saveOrder',
+            'venipak_other_info' => $venipak_other_info,
+            'delivery_times' => $this->deliveryTimes,
+            'carrier_reference' => $order_carrier_reference,
+            'pcikup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name'])
         ));
 
         return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
@@ -1447,11 +1498,11 @@ class MijoraVenipak extends CarrierModule
                         // Multiple labels - $status['text'] is array
                         if(isset($status['text']) && is_array($status['text']))
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'][$key], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($status['text'][$key]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
                         }
                         elseif(isset($status['text']))
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($status['text']), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
                         }
                     }
                 }

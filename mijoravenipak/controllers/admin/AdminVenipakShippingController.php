@@ -161,13 +161,26 @@ class AdminVenipakShippingController extends ModuleAdminController
                 </span>';
     }
 
+    public function saveOrderInfo()
+    {
+
+    }
+
 
     public function postProcess()
     {
         if(Tools::isSubmit('submitBulkgenerateVenipakLabelorder') || Tools::isSubmit('submitBulkgenerateVenipakorder'))
         {
             $orders = Tools::getValue('orderBox');
-            $this->module->bulkActionSendLabels($orders);
+            $order = Tools::getValue('id_order');
+            if($orders)
+                $this->module->bulkActionSendLabels($orders);
+            elseif ($order)
+                $this->module->bulkActionSendLabels((array)$order);
+        }
+        if(Tools::isSubmit('submitSaveVenipakOrder'))
+        {
+            $this->saveOrderInfo();
         }
         if(Tools::isSubmit('submitLabelorder'))
         {
