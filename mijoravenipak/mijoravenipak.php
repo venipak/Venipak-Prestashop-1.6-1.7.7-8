@@ -1171,12 +1171,10 @@ class MijoraVenipak extends CarrierModule
             'label_tracking_numbers' => json_decode($tracking_numbers),
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
-            'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
-            'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&submitSaveVenipakOrder&action=saveOrder',
             'venipak_other_info' => $venipak_other_info,
             'delivery_times' => $this->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
-            'pcikup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name'])
+            'pickup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name'])
         ));
 
         return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
@@ -1566,6 +1564,10 @@ class MijoraVenipak extends CarrierModule
     {
         if (get_class($this->context->controller) == 'AdminOrdersController') {
             {
+                Media::addJsDef([
+                    'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
+                    'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=saveOrder',
+                ]);
                 $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }

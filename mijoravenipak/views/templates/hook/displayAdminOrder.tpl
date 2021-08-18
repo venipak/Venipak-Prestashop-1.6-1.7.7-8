@@ -1,6 +1,7 @@
 <script type="text/javascript">
     var venipak_label = '{$orderVenipakCartInfo["label_number"]}';
-    var pickup_reference = '{$pcikup_reference}';
+    var pickup_reference = '{$pickup_reference}';
+    var order_id = '{$order_id}';
 </script>
 <div class="row venipak">
     <div class="col-lg-6 col-md-6 col-xs-12 panel">
@@ -14,7 +15,7 @@
             {$venipak_error}
         {/if}
 
-        <form action="{$venipak_module_url}" method="post" id="venipak_order_form">
+        <form method="post" id="venipak_order_form">
 
             <div class="row">
                 <div class="col-md-6 col-xs-12">
@@ -23,7 +24,7 @@
                         <span>
                           <select name="packs" id="venipak-packs" class="">
                             {for $amount=1 to 10}
-                                <option value="{$amount}" {if isset($orderVenipakCartInfo.packs) && $orderVenipakCartInfo.packs==$amount} selected="selected" {/if}>{$amount}</option>
+                                <option value="{$amount}" {if isset($orderVenipakCartInfo.packages) && $orderVenipakCartInfo.packages==$amount} selected="selected" {/if}>{$amount}</option>
                             {/for}
                           </select>
                         </span>
@@ -105,9 +106,9 @@
                         <div class="field-row">
                             <span>{l s='Select a delivery time' mod='mijoravenipak'}:</span>
                             <span>
-                                <select name="venipak_extra['delivery_time']" class="form-control form-control-select">
+                                <select name="venipak_extra[delivery_time]" class="form-control form-control-select">
                                     {foreach from=$delivery_times key=id item=time}
-                                        <option value="{$id}" {if isset($delivery_time) && $id == $delivery_time}selected{/if}>{$time}</option>
+                                        <option value="{$id}" {if isset($venipak_other_info.delivery_time) && $id == $venipak_other_info.delivery_time}selected{/if}>{$time}</option>
                                     {/foreach}
                                 </select>
                             </span>
@@ -117,7 +118,7 @@
                         <div class="field-row">
                             <span>{l s="Door code" mod='venipakshipping'}:</span>
                             <span>
-                            <input type="text" value="{if isset($venipak_other_info.door_code)}{$venipak_other_info.door_code}{/if}" name="venipak_extra['door_codes']" >
+                            <input type="text" value="{if isset($venipak_other_info.door_code)}{$venipak_other_info.door_code}{/if}" name="venipak_extra[door_code]" >
                         </span>
                         </div>
                     </div>
@@ -128,7 +129,7 @@
                         <div class="field-row">
                             <span>{l s="Cabinet number" mod='venipakshipping'}:</span>
                             <span>
-                                <input type="text" value="{if isset($venipak_other_info.cabinet_number)}{$venipak_other_info.cabinet_number}{/if}" name="venipak_extra['cabinet_number']" >
+                                <input type="text" value="{if isset($venipak_other_info.cabinet_number)}{$venipak_other_info.cabinet_number}{/if}" name="venipak_extra[cabinet_number]" >
                             </span>
                         </div>
                     </div>
@@ -136,7 +137,7 @@
                         <div class="field-row">
                             <span>{l s="Warehouse number" mod='venipakshipping'}:</span>
                             <span>
-                                <input type="text" value="{if isset($venipak_other_info.warehouse_number)}{$venipak_other_info.warehouse_number}{/if}" name="venipak_extra['warehouse_number']" >
+                                <input type="text" value="{if isset($venipak_other_info.warehouse_number)}{$venipak_other_info.warehouse_number}{/if}" name="venipak_extra[warehouse_number]" >
                             </span>
                         </div>
                     </div>

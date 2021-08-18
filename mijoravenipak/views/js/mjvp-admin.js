@@ -71,14 +71,14 @@ $(document).ready(function () {
 
     function disableExtraInfo() {
         // reset packs to 1
-        packs.value = 1;
-        $(packs).trigger('change');
-        // disable COD
-        is_cod.value = 0;
-        $(is_cod).trigger('change');
+        // packs.value = 1;
+        // $(packs).trigger('change');
+        // // disable COD
+        // // is_cod.value = 0;
+        // $(is_cod).trigger('change');
 
-        packs.disabled = true;
-        is_cod.disabled = true;
+        // packs.disabled = true;
+        // is_cod.disabled = true;
         // is_multi.disabled = true;
 
         $extra_services.hide();
@@ -105,12 +105,12 @@ $(document).ready(function () {
 
     function saveVenipakCart(form_data) {
         form_data.set('ajax', 1);
-        form_data.set('id_order', '{$order_id}');
+        form_data.set('id_order', order_id);
 
         disableButtons();
         $.ajax({
             type: "POST",
-            url: "{$venipak_save_order_url}",
+            url: venipak_save_order_url,
             async: false,
             processData: false,
             contentType: false,
@@ -134,12 +134,12 @@ $(document).ready(function () {
 
     function generateVenipakLabel(form_data) {
         form_data.set('ajax', 1);
-        form_data.set('id_order', '{$order_id}');
+        form_data.set('id_order', order_id);
 
         disableButtons();
         $.ajax({
             type: "POST",
-            url: "{$venipak_generate_label_url}",
+            url: venipak_generate_label_url,
             async: false,
             processData: false,
             contentType: false,
