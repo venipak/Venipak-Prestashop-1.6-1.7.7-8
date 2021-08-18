@@ -92,7 +92,8 @@ class MijoraVenipak extends CarrierModule
         'displayCarrierExtraContent',
         'updateCarrier',
         'displayAdminOrder',
-        'actionValidateStepComplete'
+        'actionValidateStepComplete',
+        'actionValidateOrder'
     );
 
     /**
@@ -1106,27 +1107,14 @@ class MijoraVenipak extends CarrierModule
         $cHelper = new MjvpHelper();
 
         try {
-            $address = new Address($order->id_address_delivery);
             $carrier = new Carrier($order->id_carrier);
             if (!$cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
                 return '';
             }
 
-            $check_order_id = $cDb->getOrderIdByCartId($order->id_cart);
-            $result = true;
-            if (empty($check_order_id)) {
-                $result = $cDb->updateOrderInfo($order->id_cart, array('id_order' => $order_id));
-            }
-
-            if ($result) {
-                $status = $cDb->getOrderValue('status', array('id_cart' => $order->id_cart));
-                $error = $cDb->getOrderValue('error', array('id_cart' => $order->id_cart));
-                $tracking_numbers = $cDb->getOrderValue('labels_numbers', array('id_cart' => $order->id_cart));
-            } else {
-                $status = 'error';
-                $error = $this->l('Order not found in database');
-                $tracking_numbers = '[]';
-            }
+            $status = $cDb->getOrderValue('status', array('id_cart' => $order->id_cart));
+            $error = $cDb->getOrderValue('error', array('id_cart' => $order->id_cart));
+            $tracking_numbers = $cDb->getOrderValue('labels_numbers', array('id_cart' => $order->id_cart));
         } catch (Exception $e) {
             $this->context->controller->errors[] = $this->displayName . " error:<br/>" . $e->getMessage();
             return '';
@@ -1487,5 +1475,17 @@ class MijoraVenipak extends CarrierModule
        foreach ($errors as $error) {
             $this->context->controller->errors[] = $error;
         } 
+    }
+
+    public function hookActionValidateOrder($params)
+    {
+        $id_order = $params['order']->id;
+        $id_cart = $params['cart']->id;
+        self::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+        $check_order_id = $cDb->getOrderIdByCartId($id_cart);
+        if (empty($check_order_id)) {
+             $cDb->updateOrderInfo($id_cart, array('id_order' => $id_order));
+        }
     }
 }

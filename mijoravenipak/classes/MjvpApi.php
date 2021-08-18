@@ -121,9 +121,14 @@ class MjvpApi
 
         $xml_code .= '<attribute>';
         $xml_code .= '<delivery_type>' . (!$params['consignee']['delivery_time'] ? 'nwd' : $params['consignee']['delivery_time']) . '</delivery_type>';
-        $xml_code .= '<comment_door_code>' . $params['consignee']['door_code'] . '</comment_door_code>';
-        $xml_code .= '<comment_office_no>' . $params['consignee']['cabinet_number'] . '</comment_office_no>';
-        $xml_code .= '<comment_warehous_no>' . $params['consignee']['warehouse_number'] . '</comment_warehous_no>';
+
+        // Extra params are always set. Just check if they are not empty (i.e to not send door code 0, etc.)
+        if($params['consignee']['door_code'])
+            $xml_code .= '<comment_door_code>' . $params['consignee']['door_code'] . '</comment_door_code>';
+        if($params['consignee']['cabinet_number'])
+            $xml_code .= '<comment_office_no>' . $params['consignee']['cabinet_number'] . '</comment_office_no>';
+        if($params['consignee']['warehouse_number'])
+            $xml_code .= '<comment_warehous_no>' . $params['consignee']['warehouse_number'] . '</comment_warehous_no>';
         $xml_code .= '</attribute>';
 
         foreach ($params['packs'] as $pack) {
