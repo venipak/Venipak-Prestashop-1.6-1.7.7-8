@@ -21,7 +21,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         parent::__construct();
         $this->toolbar_title = $this->l('Venipak Manifest - Ready Orders');
         $this->_select = '
-            oc.tracking_number as label_number,
+            mo.labels_numbers as label_number,
             CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
             osl.`name` AS `osname`,
             os.`color`,
@@ -29,7 +29,7 @@ class AdminVenipakShippingController extends ModuleAdminController
             a.id_order AS id_label_print
 		';
         $this->_join = '
-            LEFT JOIN `' . _DB_PREFIX_ . 'order_carrier` oc ON (oc.`id_order` = a.`id_order`)
+            LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (mo.`id_order` = a.`id_order`)
             LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
             LEFT JOIN `' . _DB_PREFIX_ . 'carrier` carrier ON (carrier.`id_carrier` = a.`id_carrier`)
             LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
@@ -52,7 +52,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
             $this->errors[] = $this->l('Select shop');
         } else {
-            $this->content .= $this->displayMenu();
             $this->readyOrdersList();
         }
     }
@@ -106,17 +105,9 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->actions = array('none');
 
         $this->bulk_actions = array(
-            'registerItella' => array(
+            'generateVenipak' => array(
                 'text' => $this->l('Generate Labels'),
                 'icon' => 'icon-save'
-            ),
-            'generateItellaLabel' => array(
-                'text' => $this->l('Print Labels'),
-                'icon' => 'icon-tag'
-            ),
-            'printItellaManifest' => array(
-                'text' => $this->l('Print Manifest'),
-                'icon' => 'icon-file-pdf-o'
             ),
         );
     }
@@ -142,37 +133,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         return parent::renderList();
     }
 
-    /**
-     * @throws SmartyException
-     */
-    private function displayMenu()
-    {
-        $menu = array(
-            array(
-                'label' => $this->l('Ready Orders'),
-                'url' => $this->context->link->getAdminLink($this->controller_name, true),
-                'active' => Tools::getValue('controller') == $this->controller_name
-            ),
-//            array(
-//                'label' => $this->l('Generated Manifests'),
-//                'url' => $this->context->link->getAdminLink('AdminItellashippingItellaManifestDone', true),
-//                'active' => false
-//            )
-        );
-
-        ItellaShipping::checkForClass('ItellaStore');
-        $storeObj = new ItellaStore();
-        $stores = ItellaStore::getStores();
-
-        $this->context->smarty->assign(array(
-            'moduleMenu' => $menu,
-            'stores' => json_encode($stores),
-            'call_url' => false // dont need js handling call courier functionality
-        ));
-
-        return $this->context->smarty->fetch(_PS_MODULE_DIR_ . 'itellashipping/views/templates/admin/manifest_menu.tpl');
-    }
-
     public function getShopNameById($id)
     {
         $shop = new Shop($id);
@@ -181,24 +141,77 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id)
     {
-        $order = new Order((int) $id);
-        if (!$order->getWsShippingNumber()) {
+
+        MijoraVenipak::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
+        if (!$tracking_number) {
             return '<span class="btn-group-action">
-                <span class="btn-group">
-                  <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkregisterItellaorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
-                  </a>
-                </span>
-            </span>';
+                        <span class="btn-group">
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
+                          </a>
+                        </span>
+                    </span>';
         }
         return '<span class="btn-group-action">
-                <span class="btn-group">
-                    <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateItellaLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
-                    </a>
-                
-                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkprintItellaManifestorder' . '&orderBox[]=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Manifest') . '
-                    </a>
-                </span>
-            </span>';
+                    <span class="btn-group">
+                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
+                        </a>
+                    </span>
+                </span>';
     }
 
+
+    public function postProcess()
+    {
+        if(Tools::isSubmit('submitBulkgenerateVenipakLabelorder') || Tools::isSubmit('submitBulkgenerateVenipakorder'))
+        {
+            $orders = Tools::getValue('orderBox');
+            $this->module->bulkActionSendLabels($orders);
+        }
+        if(Tools::isSubmit('submitLabelorder'))
+        {
+            MijoraVenipak::checkForClass('MjvpVenipak');
+            $cVenipak = new MjvpVenipak();
+
+            MijoraVenipak::checkForClass('MjvpDb');
+            $cDb = new MjvpDb();
+
+            MijoraVenipak::checkForClass('MjvpModuleConfig');
+            $cModuleConfig = new MjvpModuleConfig();
+            $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
+            $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+
+            $id_order = Tools::getValue('id_order');
+            $packageNumber = $cDb->getOrderValue('labels_numbers', array('id_order' => $id_order));
+            $filename = md5($packageNumber . $password);
+            $pdf = false;
+            if(file_exists(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf'))
+            {
+                $pdf = file_get_contents(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf');
+            }
+            if(!$pdf)
+                $pdf = $cVenipak->printLabel($username, $password, ['packages' => $packageNumber]);
+
+            if ($pdf) { // check if its not empty
+                $path = _PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf';
+                $is_saved = file_put_contents($path, $pdf);
+                if (!$is_saved) { // make sure it was saved
+                    throw new ItellaException("Failed to save label pdf to: " . $path);
+                }
+
+                // make sure there is nothing before headers
+                if (ob_get_level()) ob_end_clean();
+                header("Content-Type: application/pdf; name=\" " . $filename . ".pdf\"");
+                header("Content-Transfer-Encoding: binary");
+                // disable caching on client and proxies, if the download content vary
+                header("Expires: 0");
+                header("Cache-Control: no-cache, must-revalidate");
+                header("Pragma: no-cache");
+                readfile($path);
+            } else {
+                throw new ItellaException("Downloaded label data is empty.");
+            }
+        }
+    }
 }

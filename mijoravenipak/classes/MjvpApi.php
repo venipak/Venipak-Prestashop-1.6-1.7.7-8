@@ -118,6 +118,14 @@ class MjvpApi
         $xml_code .= '<post_code>' . $params['consignee']['postcode'] . '</post_code>';
         $xml_code .= '<contact_tel>' . $params['consignee']['phone'] . '</contact_tel>';
         $xml_code .= '</consignee>';
+
+        $xml_code .= '<attribute>';
+        $xml_code .= '<delivery_type>' . (!$params['consignee']['delivery_time'] ? 'nwd' : $params['consignee']['delivery_time']) . '</delivery_type>';
+        $xml_code .= '<comment_door_code>' . $params['consignee']['door_code'] . '</comment_door_code>';
+        $xml_code .= '<comment_office_no>' . $params['consignee']['cabinet_number'] . '</comment_office_no>';
+        $xml_code .= '<comment_warehous_no>' . $params['consignee']['warehouse_number'] . '</comment_warehous_no>';
+        $xml_code .= '</attribute>';
+
         foreach ($params['packs'] as $pack) {
             $xml_code .= '<pack>';
             $xml_code .= '<pack_no>' . $this->cVenipak->buildTrackingNumber($params['api_id'], $pack['serial_number']) . '</pack_no>';

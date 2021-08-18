@@ -209,11 +209,12 @@ class MijoraVenipak extends CarrierModule
         $this->countries_names = array('LT' => 'Lithuania', 'LV' => 'Latvia', 'EE' => 'Estonia', 'PL' => 'Poland');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
         $this->deliveryTimes = [
-            $this->l('Anytime'),
-            $this->l('8:00-14:00'),
-            $this->l('14:00-17:00'),
-            $this->l('18:00-22:00'),
-            $this->l('After 18:00'),
+            'nwd' => $this->l('Anytime'),
+            'nwd10' => $this->l('Until 10:00'),
+            'nwd12' => $this->l('Until 12:00'),
+            'nwd8_14' => $this->l('8:00-14:00'),
+            'nwd14_17' => $this->l('14:00-17:00'),
+            'nwd18_22' => $this->l('18:00-22:00'),
         ];
     }
 
@@ -256,6 +257,8 @@ class MijoraVenipak extends CarrierModule
             $this->_errors[] = $this->l('Failed to create other database records.');
             return false;
         }
+
+        $this->getVenipakTerminals();
 
         return true;
     }
@@ -511,6 +514,17 @@ class MijoraVenipak extends CarrierModule
         }
 
         return true;
+    }
+
+    /**
+     * Get terminals for all countries
+     */
+    private function getVenipakTerminals()
+    {
+        self::checkForClass('MjvpFiles');
+        $cFiles = new MjvpFiles();
+        $cFiles->updateCountriesList();
+        $cFiles->updateTerminalsList();
     }
 
     /**
@@ -1027,11 +1041,48 @@ class MijoraVenipak extends CarrierModule
         if (!$this->active) return;
 
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
+
+            $address = new Address($params['cart']->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
+            self::checkForClass('MjvpApi');
+            $cApi = new MjvpApi();
+            $all_terminals_info = $cApi->getTerminals($country_code);
+
             Media::addJsDef(array(
-                    'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'))
+                    'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
+                    'mjvp_translates' => array(
+                        'loading' => $this->l('Loading'),
+                    ),
+                    'mjvp_terminal_select_translates' => array(
+                    'modal_header' => $this->l('Pickup points map'),
+                    'terminal_list_header' => $this->l('Pickup points list'),
+                    'seach_header' => $this->l('Search around'),
+                    'search_btn' => $this->l('Find'),
+                    'modal_open_btn' => $this->l('Select pickup point'),
+                    'geolocation_btn' => $this->l('Use my location'),
+                    'your_position' => $this->l('Distance calculated from this point'),
+                    'nothing_found' => $this->l('Nothing found'),
+                    'no_cities_found' => $this->l('There were no cities found for your search term'),
+                    'geolocation_not_supported' => $this->l('Geolocation is not supported'),
+                    'select_pickup_point' => $this->l('Select a pickup point'),
+                    'search_placeholder' => $this->l('Enter postcode/address'),
+                    'workhours_header' => $this->l('Workhours'),
+                    'contacts_header' => $this->l('Contacts'),
+                    'no_pickup_points' => $this->l('No points to select'),
+                    'select_btn' => $this->l('select'),
+                    'back_to_list_btn' => $this->l('reset search'),
+                    'no_information' => $this->l('No information'),
+                    ),
+                    'mjvp_terminals' => $all_terminals_info
+                )
             );
+            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
             $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front.js');
+            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
             $this->context->controller->addCSS($this->_path . 'views/css/global.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
         }
     }
 
@@ -1113,7 +1164,7 @@ class MijoraVenipak extends CarrierModule
         $field_door_code = Tools::getValue('mjvp_door_code', 0);
         $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
         $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
-        $field_delivery_time = (int) Tools::getValue('mjvp_delivery_time', 0);
+        $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
         if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
             $errors['mjvp_door_code'] = $this->l('The door code is too long.');
         if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
@@ -1283,6 +1334,9 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
+        self::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+
         $errors = array();
         $success_orders = array();
         $found = false;
@@ -1340,6 +1394,21 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack['weight'] += (float)$product['weight'];
                         $shipment_pack['volume'] += (float)$product_volume;
                     }
+                    // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
+                    $door_code = '';
+                    $cabinet_number = '';
+                    $warehouse_number = '';
+                    $delivery_time = '';
+                    $carrier_reference = $carrier->id_reference;
+                    if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
+                    {
+                        $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
+                        $door_code = $other_info->door_code;
+                        $cabinet_number = $other_info->cabinet_number;
+                        $warehouse_number = $other_info->warehouse_number;
+                        $delivery_time = $other_info->delivery_time;
+                    }
+
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
@@ -1351,6 +1420,10 @@ class MijoraVenipak extends CarrierModule
                             'address' => $consignee_address,
                             'postcode' => $address->postcode,
                             'phone' => $consignee_phone,
+                            'door_code' => $door_code,
+                            'cabinet_number' => $cabinet_number,
+                            'warehouse_number' => $warehouse_number,
+                            'delivery_time' => $delivery_time,
                         ),
                         'packs' => array($shipment_pack),
                     );
@@ -1363,6 +1436,22 @@ class MijoraVenipak extends CarrierModule
             $manifest_xml = $cApi->buildManifestXml($manifest);
             if ($cHelper->isXMLContentValid($manifest_xml)) {
                 $status = $cApi->sendXml($manifest_xml);
+                if(!isset($status['error']) && $status['text'])
+                {
+                    foreach ($success_orders as $key => $order)
+                    {
+                        $order_id = trim($order, ' #');
+                        // Multiple labels - $status['text'] is array
+                        if(isset($status['text']) && is_array($status['text']))
+                        {
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'][$key], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                        }
+                        elseif(isset($status['text']))
+                        {
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                        }
+                    }
+                }
                 if (isset($status['error'])) {
                     if (isset($status['error']['text'])) {
                         $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];

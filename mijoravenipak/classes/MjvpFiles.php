@@ -61,12 +61,11 @@ class MjvpFiles
             || ($last_update + $this->_updateEvery) < time()
             || $forced
         ) {
-            MijoraVenipak::checkForClass('MjvpApi');
-            $cApi = new MjvpApi();
-
+            MijoraVenipak::checkForClass('MjvpHelper');
+            $cHelper = new MjvpHelper();
             Configuration::updateGlobalValue(MijoraVenipak::$_globalConstants['last_upd_countries'], time());
 
-            $all_countries = $cApi->getAllCountries();
+            $all_countries = $cHelper->getAllCountries();
             $this->generateFile($file_dir, json_encode($all_countries));
 
             return true;
@@ -100,11 +99,11 @@ class MjvpFiles
         MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
 
-        $last_update = Configuration::getGlobalValue(MijoraParcelstars::$_globalConstants['last_upd_terminals']);
+        $last_update = Configuration::getGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals']);
 
         $files_exists = true;
         $selected_countries = explode(';', Configuration::get('MJVP_PP_COUNTRIES'));
-        if (empty($selected_countries)) {
+        if (!Configuration::get('MJVP_PP_COUNTRIES') || !$selected_countries || empty($selected_countries)) {
             $selected_countries = MijoraVenipak::$_defaultPickupCountries;
         }
 
