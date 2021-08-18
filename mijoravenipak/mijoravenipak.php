@@ -1441,8 +1441,15 @@ class MijoraVenipak extends CarrierModule
                     foreach ($success_orders as $key => $order)
                     {
                         $order_id = trim($order, ' #');
-                        if(isset($status['text'][$key]))
+                        // Multiple labels - $status['text'] is array
+                        if(isset($status['text']) && is_array($status['text']))
+                        {
                             $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'][$key], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                        }
+                        elseif(isset($status['text']))
+                        {
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                        }
                     }
                 }
                 if (isset($status['error'])) {

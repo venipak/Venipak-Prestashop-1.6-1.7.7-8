@@ -147,21 +147,18 @@ class AdminVenipakShippingController extends ModuleAdminController
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
         if (!$tracking_number) {
             return '<span class="btn-group-action">
-                <span class="btn-group">
-                  <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
-                  </a>
-                </span>
-            </span>';
+                        <span class="btn-group">
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
+                          </a>
+                        </span>
+                    </span>';
         }
         return '<span class="btn-group-action">
-                <span class="btn-group">
-                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
-                    </a>
-                
-                    <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitPrintVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Manifest') . '
-                    </a>
-                </span>
-            </span>';
+                    <span class="btn-group">
+                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
+                        </a>
+                    </span>
+                </span>';
     }
 
 
@@ -171,6 +168,50 @@ class AdminVenipakShippingController extends ModuleAdminController
         {
             $orders = Tools::getValue('orderBox');
             $this->module->bulkActionSendLabels($orders);
+        }
+        if(Tools::isSubmit('submitLabelorder'))
+        {
+            MijoraVenipak::checkForClass('MjvpVenipak');
+            $cVenipak = new MjvpVenipak();
+
+            MijoraVenipak::checkForClass('MjvpDb');
+            $cDb = new MjvpDb();
+
+            MijoraVenipak::checkForClass('MjvpModuleConfig');
+            $cModuleConfig = new MjvpModuleConfig();
+            $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
+            $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+
+            $id_order = Tools::getValue('id_order');
+            $packageNumber = $cDb->getOrderValue('labels_numbers', array('id_order' => $id_order));
+            $filename = md5($packageNumber . $password);
+            $pdf = false;
+            if(file_exists(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf'))
+            {
+                $pdf = file_get_contents(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf');
+            }
+            if(!$pdf)
+                $pdf = $cVenipak->printLabel($username, $password, ['packages' => $packageNumber]);
+
+            if ($pdf) { // check if its not empty
+                $path = _PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf';
+                $is_saved = file_put_contents($path, $pdf);
+                if (!$is_saved) { // make sure it was saved
+                    throw new ItellaException("Failed to save label pdf to: " . $path);
+                }
+
+                // make sure there is nothing before headers
+                if (ob_get_level()) ob_end_clean();
+                header("Content-Type: application/pdf; name=\" " . $filename . ".pdf\"");
+                header("Content-Transfer-Encoding: binary");
+                // disable caching on client and proxies, if the download content vary
+                header("Expires: 0");
+                header("Cache-Control: no-cache, must-revalidate");
+                header("Pragma: no-cache");
+                readfile($path);
+            } else {
+                throw new ItellaException("Downloaded label data is empty.");
+            }
         }
     }
 }

@@ -62,7 +62,7 @@ class MjvpVenipak
 
     public function printLabel($username, $password, $data = array())
     {
-        if (!isset($data['packages']) && !isset($data['codes'])) {
+        if (!isset($data['packages'])) {
             throw new Exception('Not received package codes.');
             return false;
         }
@@ -76,9 +76,6 @@ class MjvpVenipak
 
         if (isset($data['packages'])) {
             $params['pack_no[]'] = $data['packages'];
-        }
-        if (isset($data['codes'])) {
-            $params['code'] = $data['codes'];
         }
 
         return $this->executeRequest('ws/print_label', 'POST', $params);
