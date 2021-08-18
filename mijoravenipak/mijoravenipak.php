@@ -1481,6 +1481,12 @@ class MijoraVenipak extends CarrierModule
     {
         $id_order = $params['order']->id;
         $id_cart = $params['cart']->id;
+
+        $carrier = new Carrier($params['cart']->id_carrier);
+        $carrier_reference = $carrier->id_reference;
+        if(!in_array($carrier_reference, Configuration::getMultiple([self::$_carriers['courier']['reference_name'], self::$_carriers['pickup']['reference_name']])))
+            return;
+
         self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
