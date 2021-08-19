@@ -1061,6 +1061,9 @@ class MijoraVenipak extends CarrierModule
             self::checkForClass('MjvpApi');
             $cApi = new MjvpApi();
             $all_terminals_info = $cApi->getTerminals($country_code);
+            $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
+            // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
+            $filtered_terminals = array_values($filtered_terminals);
 
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
@@ -1087,7 +1090,7 @@ class MijoraVenipak extends CarrierModule
                     'back_to_list_btn' => $this->l('reset search'),
                     'no_information' => $this->l('No information'),
                     ),
-                    'mjvp_terminals' => $all_terminals_info
+                    'mjvp_terminals' => $filtered_terminals
                 )
             );
             $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
@@ -1611,5 +1614,16 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
         }
+    }
+
+    private function filterTerminalsByCartWeight($terminals)
+    {
+        $cart_weight = $this->context->cart->getTotalWeight();
+        foreach ($terminals as $key => $terminal)
+        {
+            if(isset($terminal->size_limit) && $terminal->size_limit < $cart_weight)
+                unset($terminals[$key]);
+        }
+        return $terminals;
     }
 }
