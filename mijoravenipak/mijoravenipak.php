@@ -61,6 +61,7 @@ class MijoraVenipak extends CarrierModule
        'cabinet_number' => '',
        'warehouse_number' => '',
        'delivery_time' => 0,
+        'carrier_call' => 0
     );
 
     /**
@@ -125,6 +126,7 @@ class MijoraVenipak extends CarrierModule
             'warehouse_number' => 'MJVP_COURIER_WAREHOUSE_NUMBER',
             'cabinet_number' => 'MJVP_COURIER_CABINET_NUMBER',
             'delivery_time' => 'MJVP_COURIER_DELIVERY_TIME',
+            'call_before_delivery' => 'MJVP_COURIER_CALL_BEFORE_DELIVERY',
         ),
         'LABEL' => array(
             'label_size' => 'MJVP_LABEL_SIZE',
@@ -889,6 +891,13 @@ class MijoraVenipak extends CarrierModule
                 'desc' => $this->l('Allow customers to select delivery time.'),
                 'values' => $swither_values
             ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable carrier call before delivery'),
+                'name' => $cModuleConfig->getConfigKey('call_before_delivery', $section_id),
+                'desc' => $this->l('Enable this option, if you want courier to call a consignee before shipment delivery'),
+                'values' => $swither_values
+            ),
         );
 
         return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
@@ -1249,16 +1258,6 @@ class MijoraVenipak extends CarrierModule
             $venipak_cart_info['is_pickup'] = true;
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
-        $venipak_other_info = [];
-        if($other_info)
-        {
-            $venipak_other_info = [
-                'door_code' => $other_info['door_code'],
-                'cabinet_number' => $other_info['cabinet_number'],
-                'warehouse_number' => $other_info['warehouse_number'],
-                'delivery_time' => $other_info['delivery_time']
-            ];
-        }
 
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
         $this->context->smarty->assign(array(
@@ -1274,7 +1273,7 @@ class MijoraVenipak extends CarrierModule
             'label_tracking_numbers' => json_decode($tracking_numbers),
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
-            'venipak_other_info' => $venipak_other_info,
+            'venipak_other_info' => $other_info,
             'shipment_labels' => $shipment_labels,
             'delivery_times' => $this->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
@@ -1322,6 +1321,9 @@ class MijoraVenipak extends CarrierModule
             $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
             $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
             $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
+            $field_carrier_call = 0;
+            if(Tools::isSubmit('mjvp_carrier_call'))
+                $field_carrier_call = 1;
             if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
                 $errors['mjvp_door_code'] = $this->l('The door code is too long.');
             if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
@@ -1350,6 +1352,7 @@ class MijoraVenipak extends CarrierModule
             $order_extra_info['cabinet_number'] = $field_cabinet_number;
             $order_extra_info['warehouse_number'] = $field_warehouse_number;
             $order_extra_info['delivery_time'] = $field_delivery_time;
+            $order_extra_info['carrier_call'] = $field_carrier_call;
 
             $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
         }
@@ -1383,6 +1386,7 @@ class MijoraVenipak extends CarrierModule
                 'show_cabinet_number' => Configuration::get($cModuleConfig->getConfigKey('cabinet_number', 'COURIER')),
                 'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
                 'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
+                'show_carrier_call' => Configuration::get($cModuleConfig->getConfigKey('call_before_delivery', 'COURIER')),
                 'delivery_times' => $this->deliveryTimes
             ];
 
@@ -1582,6 +1586,7 @@ class MijoraVenipak extends CarrierModule
                         $cabinet_number = $other_info->cabinet_number;
                         $warehouse_number = $other_info->warehouse_number;
                         $delivery_time = $other_info->delivery_time;
+                        $carrier_call = $other_info->carrier_call;
                     }
 
                     $manifest['shipments'][] = array(
@@ -1598,6 +1603,7 @@ class MijoraVenipak extends CarrierModule
                             'door_code' => $door_code,
                             'cabinet_number' => $cabinet_number,
                             'warehouse_number' => $warehouse_number,
+                            'carrier_call' => $carrier_call,
                             'delivery_time' => $delivery_time,
                         ),
                         'packs' => $shipment_pack,

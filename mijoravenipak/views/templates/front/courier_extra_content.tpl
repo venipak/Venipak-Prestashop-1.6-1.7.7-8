@@ -63,4 +63,17 @@
             </div>
         </div>
     {/if}
+    {if isset($show_carrier_call) && $show_carrier_call}
+        {if isset($notifications.error.mjvp_call_carrier)}
+            <div class="alert alert-danger" role="alert" data-alert="danger">
+                {$notifications.error.mjvp_call_carrier}
+            </div>
+        {/if}
+        <div class="form-group row">
+            <label class="col-xs-12 form-control-label">
+                <input name="mjvp_carrier_call" type="checkbox" {if isset($carrier_call) && $carrier_call}checked{/if}>
+                {l s='Carrier will call customer before delivery' mod='mijoravenipak'}
+            </label>
+        </div>
+    {/if}
 </div>

@@ -29,12 +29,6 @@ $(document).ready(function () {
         togglePickupPoints();
     });
 
-    $(venipak_buttons.print).on('click', function(e) {
-        if (typeof venipak_buttons.print.dataset.disabled != 'undefined' && venipak_buttons.print.dataset.disabled == 'true') {
-            e.preventDefault();
-        }
-    });
-
     $(venipak_buttons.save).on('click', function(e){
         e.preventDefault();
 
@@ -167,7 +161,7 @@ $(document).ready(function () {
     function disableButtons() {
         venipak_buttons.save.disabled = true;
         venipak_buttons.generate.disabled = true;
-        venipak_buttons.print.dataset.disabled = true;
+        // venipak_buttons.print.dataset.disabled = true;
     }
 
     function enableButtons() {
