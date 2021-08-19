@@ -54,6 +54,11 @@ class MijoraVenipak extends CarrierModule
      */
     public static $_defaultPickupCountries = array('lt', 'lv', 'ee', 'pl');
 
+    /**
+     * COD modules
+     */
+    public static $_codModules = array('ps_cashondelivery');
+
     public $deliveryTimes = [];
 
     public static $_order_additional_info = array(
@@ -1266,7 +1271,6 @@ class MijoraVenipak extends CarrierModule
             'label_status' => $status,
             'label_error' => $error,
             'order_id' => $order->id,
-            'cod_amount' => $order->total_paid_tax_incl,
             'order_terminal_id' => $order_terminal_id,
             'venipak_pickup_points' => $pickup_points,
             'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
@@ -1562,12 +1566,15 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack[$i] = array(
                             'serial_number' => $pack_no,
                             'document_number' => '',
-                            'weight' => 0,
+                            'weight' => $order_info['order_weight'],
                             'volume' => 0,
                         );
                         foreach ($order_products as $key => $product) {
-                            $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                            $shipment_pack[$i]['weight'] += (float)$product['weight'];
+                            // Calculate volume in m3
+                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm')
+                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                            elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm')
+                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
                             $shipment_pack[$i]['volume'] += (float)$product_volume;
                         }
                         Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
@@ -1578,6 +1585,7 @@ class MijoraVenipak extends CarrierModule
                     $cabinet_number = '';
                     $warehouse_number = '';
                     $delivery_time = '';
+                    $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
@@ -1589,6 +1597,8 @@ class MijoraVenipak extends CarrierModule
                         $carrier_call = $other_info->carrier_call;
                     }
 
+                    $currency = new Currency($order->id_currency);
+                    $currency_iso = strtoupper($currency->iso_code);
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
@@ -1605,6 +1615,8 @@ class MijoraVenipak extends CarrierModule
                             'warehouse_number' => $warehouse_number,
                             'carrier_call' => $carrier_call,
                             'delivery_time' => $delivery_time,
+                            'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
+                            'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ),
                         'packs' => $shipment_pack,
                     );
@@ -1685,10 +1697,12 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionValidateOrder($params)
     {
-        $id_order = $params['order']->id;
-        $id_cart = $params['cart']->id;
+        $order = $params['order'];
+        $cart = $params['cart'];
+        $id_order = $order->id;
+        $id_cart = $cart->id;
 
-        $carrier = new Carrier($params['cart']->id_carrier);
+        $carrier = new Carrier($cart->id_carrier);
         $carrier_reference = $carrier->id_reference;
         if(!in_array($carrier_reference, Configuration::getMultiple([self::$_carriers['courier']['reference_name'], self::$_carriers['pickup']['reference_name']])))
             return;
@@ -1696,8 +1710,25 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
+
         if (empty($check_order_id)) {
-             $cDb->updateOrderInfo($id_cart, array('id_order' => $id_order));
+
+            $order_weight = $order->getTotalWeight();
+
+            // Convert to kg, if weight is in grams.
+            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
+                $order_weight *= 0.001;
+
+            $is_cod = 0;
+            if(in_array($order->module, self::$_codModules))
+                $is_cod = 1;
+
+             $cDb->updateOrderInfo($id_cart, array(
+                 'id_order' => $id_order,
+                 'order_weight' => $order_weight,
+                 'cod_amount' => $order->total_paid_tax_incl,
+                 'is_cod' => $is_cod
+             ));
         }
     }
 
