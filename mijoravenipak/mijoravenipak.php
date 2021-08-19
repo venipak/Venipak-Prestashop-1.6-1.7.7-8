@@ -130,6 +130,9 @@ class MijoraVenipak extends CarrierModule
             'label_size' => 'MJVP_LABEL_SIZE',
             'label_counter' => 'MJVP_COUNTER_PACKS',
         ),
+        'ADVANCED' => array(
+            'carrier_disable_passphrase' => 'MJVP_CARRIER_DISABLE_PASSPHRASE',
+        ),
     );
 
     public $_configKeysOther = array(
@@ -171,6 +174,15 @@ class MijoraVenipak extends CarrierModule
                     'type' => 'number',
                     'min' => Configuration::get($config_key),
                     'max' => 9999999,
+                );
+            }
+        }
+
+        if ($section_id == 'ADVANCED') {
+            if ($config_key == $cModuleConfig->getConfigKey('carrier_disable_passphrase', $section_id)) {
+                return array(
+                    'name' => $this->l('Carrier disable passphrase'),
+                    'validate' => 'isGenericName',
                 );
             }
         }
@@ -391,7 +403,47 @@ class MijoraVenipak extends CarrierModule
      */
     public function getOrderShippingCost($params, $shipping_cost)
     {
+        if($params instanceof Cart)
+        {
+            $cart = $params;
+            if($this->checkCarrierDisablePassphrase($cart))
+                return false;
+        }
         return $shipping_cost;
+    }
+
+    /**
+     * Check if cart contains products, whose description contains @carrier_disable_passphrase
+     */
+    private function checkCarrierDisablePassphrase($cart)
+    {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+        $carrier_disable_passphrase = Configuration::get($cModuleConfig->getConfigKey('carrier_disable_passphrase', 'ADVANCED'));
+        if($carrier_disable_passphrase)
+        {
+
+            $cart_products = $cart->getProducts();
+            $id_lang = $this->context->language->id;
+            foreach ($cart_products as $product)
+            {
+                // Cart products don't have description, so get it.
+                $product_description = Db::getInstance()->getValue(
+                    (new DbQuery())
+                        ->select('description')
+                        ->from('product_lang')
+                        ->where('`id_product` = ' . $product['id_product'] . ' AND `id_lang` = ' . $id_lang)
+                );
+
+                /**
+                 * Carrier cannot be used for the cart, if cart contains any product, whose description contains @carrier_disable_passphrase
+                 */
+                if(strpos($product_description, $carrier_disable_passphrase) !== false)
+                    return true;
+            }
+
+        }
+        return false;
     }
 
     /**
@@ -623,12 +675,16 @@ class MijoraVenipak extends CarrierModule
         if (Tools::isSubmit('submit' . $this->name . 'label')) {
             $output .= $this->saveConfig('LABEL', $this->l('Labels settings updated'));
         }
+        if (Tools::isSubmit('submit' . $this->name . 'advanced')) {
+            $output .= $this->saveConfig('ADVANCED', $this->l('Advanced settings updated'));
+        }
 
         return $output
             . $this->displayConfigApi()
             . $this->displayConfigShop()
             . $this->displayConfigCourier()
-            . $this->displayConfigLabel();
+            . $this->displayConfigLabel()
+            . $this->displayConfigAdvancedSettings();
     }
 
     /**
@@ -838,6 +894,29 @@ class MijoraVenipak extends CarrierModule
         return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
     }
 
+
+    /**
+     * Display Advanced settings section in module configuration
+     */
+    public function displayConfigAdvancedSettings()
+    {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $section_id = 'ADVANCED';
+
+        $form_fields = array(
+            array(
+                'type' => 'text',
+                'label' => $this->l('Carrier disable passphrase'),
+                'name' => $cModuleConfig->getConfigKey('carrier_disable_passphrase', $section_id),
+                'desc' => $this->l('Carriers will not be used for the cart, if cart contains any product, whose description contains this passphrase.'),
+            ),
+        );
+
+        return $this->displayConfig($section_id, $this->l('Advanced settings'), $form_fields, $this->l('Save Advanced settings'));
+    }
+
     /**
      * Display Labels section in module configuration
      */
@@ -1024,6 +1103,20 @@ class MijoraVenipak extends CarrierModule
                     }
                     if (isset($configField['max']) && $field_value > $configField['max']) {
                         $errors[] = sprintf($this->l('%s must be less then %d'), $configField['name'], $configField['max']);
+                    }
+                }
+            }
+        }
+
+        if ($section_id == 'ADVANCED') {
+            foreach ($this->_configKeys[$section_id] as $key => $key_value) {
+                $configField = $this->getConfigField($section_id, $key_value);
+                $field_value = Tools::getValue($cModuleConfig->getConfigKey($key, $section_id));
+                if (isset($configField['validate'])) {
+                    $validate = $configField['validate'];
+                    if(!Validate::$validate($field_value))
+                    {
+                        $errors[] = sprintf($this->l('%s is not valid.'), $configField['name']);
                     }
                 }
             }
