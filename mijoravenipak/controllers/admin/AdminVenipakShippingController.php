@@ -176,9 +176,12 @@ class AdminVenipakShippingController extends ModuleAdminController
         if(Tools::isSubmit('submitLabelorder'))
         {
             MijoraVenipak::checkForClass('MjvpApi');
-            $cApi = new MjvpVenipak();
+            $cApi = new MjvpApi();
             $id_order = Tools::getValue('id_order');
-            // todo: print label list
+            MijoraVenipak::checkForClass('MjvpDb');
+            $cDb = new MjvpDb();
+            $manifest_id = $cDb->getOrderValue('manifest_id', ['id_order' => $id_order]);
+            $cApi->printList($manifest_id);
         }
     }
 }

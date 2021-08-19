@@ -46,6 +46,8 @@ class MijoraVenipak extends CarrierModule
      * Main module directory path
      */
     public static $_moduleDir = _PS_MODULE_DIR_ . 'mijoravenipak/';
+    public static $_labelPdfDir = _PS_MODULE_DIR_ . 'mijoravenipak/pdf/labels/';
+    public static $_manifestPdfDir = _PS_MODULE_DIR_ . 'mijoravenipak/pdf/manifests/';
 
     /**
      * Default countries list for pickup points
@@ -142,6 +144,10 @@ class MijoraVenipak extends CarrierModule
         'label_size' => array(
             'key' => 'MJVP_LABEL_SIZE',
             'default_value' => 'a6',
+        ),
+        'last_manifest_id' => array(
+            'key' => 'MJVP_LAST_MANIFEST_ID',
+            'default_value' => 0,
         ),
     );
 
@@ -1518,13 +1524,23 @@ class MijoraVenipak extends CarrierModule
                         foreach ($order_packages_mapping as $order_id => $mapping)
                         {
                             $order_labels = array_slice($status['text'], $offset, $mapping);
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($order_labels), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $cDb->updateRow('mjvp_orders', [
+                                'labels_numbers' => json_encode($order_labels),
+                                'manifest_id' => Configuration::get($this->_configKeysOther['last_manifest_id']['key']),
+                                'status' => 'registered',
+                                'labels_date' => date('Y-m-d h:i:s')],
+                                ['id_order' => $order_id]);
                             $offset += $mapping;
                         }
                     }
                     elseif(isset($status['text']))
                     {
-                        $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text']]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => array_key_first($order_packages_mapping)]);
+                        $cDb->updateRow('mjvp_orders', [
+                            'labels_numbers' => json_encode([$manifest_id => $status['text']]),
+                            'manifest_id' => Configuration::get($this->_configKeysOther['last_manifest_id']['key']),
+                            'status' => 'registered',
+                            'labels_date' => date('Y-m-d h:i:s')],
+                            ['id_order' => array_key_first($order_packages_mapping)]);
                     }
 
                 }
