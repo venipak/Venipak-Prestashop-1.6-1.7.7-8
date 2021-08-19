@@ -20,20 +20,10 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $this->saveCart();
                 break;
             case 'printLabel':
-                $id_order = Tools::getValue('id_order', NULL);
-                $this->printLabel($id_order);
+                $this->printLabel();
                 break;
             case 'generateLabel':
-                $id_order = Tools::getValue('id_order', NULL);
-                try {
-                    echo $this->generateLabel($id_order);
-                } catch (\Exception $th) {
-                    $error_msg = $th->getMessage();
-                    ItellaShipping::checkForClass('ItellaCart');
-                    $itellaCart = new ItellaCart();
-                    $itellaCart->saveError($id_order, $error_msg);
-                    echo json_encode(array('errors' => $error_msg));
-                }
+                $this->generateLabel();
                 break;
         }
     }
@@ -149,5 +139,24 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
 
         die(json_encode($result));
+    }
+
+    public function generateLabel()
+    {
+        $order = (int) Tools::getValue('id_order');
+        $this->module->bulkActionSendLabels((array) $order);
+        if(!empty($this->context->controller->confirmations))
+            $result['success'] = $this->context->controller->confirmations;
+        if(!empty($this->context->controller->errors))
+            $result['errors'] = $this->context->controller->errors;
+        die(json_encode($result));
+    }
+
+    public function printLabel()
+    {
+        MijoraVenipak::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        $label_number = Tools::getValue('label_number');
+        $cApi->printLabel($label_number);
     }
 }

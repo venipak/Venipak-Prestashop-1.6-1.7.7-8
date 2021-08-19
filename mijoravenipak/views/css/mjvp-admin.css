@@ -25,6 +25,10 @@
     font-weight: 900;
 }
 
+.venipak-footer .venipak-extra-header {
+    padding-top: 0;
+}
+
 #venipak_print_label_btn,
 #venipak_save_cart_info_btn,
 #venipak_generate_label_btn {

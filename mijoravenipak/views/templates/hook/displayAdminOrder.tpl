@@ -1,5 +1,4 @@
 <script type="text/javascript">
-    var venipak_label = '{$orderVenipakCartInfo["label_number"]}';
     var pickup_reference = '{$pickup_reference}';
     var order_id = '{$order_id}';
 </script>
@@ -148,9 +147,18 @@
         </div>
         <div class="panel-footer venipak-footer">
       <span>
-        <a href="{$venipak_print_label_url}" data-disabled="{if $orderVenipakCartInfo.label_number != ''}false{else}true{/if}" target="_blank" name="venipak_print_label" id="venipak_print_label_btn" class="btn btn-success"><i class="icon-file-pdf-o"></i> {l s="Print" mod='venipakshipping'}</a>
+        <div class="venipak-extra-header">
+            <div class="row">
+                <div class="col-xs-12">
+                    <span>{l s="Shipment labels" mod='venipakshipping'}:</span>
+                </div>
+            </div>
+        </div>
+          {foreach from=$shipment_labels item=label}
+              <a href="{$venipak_print_label_url}&label_number={$label}" target="_blank" name="venipak_print_label" id="venipak_print_label_btn" class="btn btn-success">{$label}</a>
+          {/foreach}
       </span>
-            <span>
+      <span>
         <button type="submit" name="venipak_save_cart_info" id="venipak_save_cart_info_btn" class="btn btn-success"><i class="icon-save"></i> {l s="Save" mod='venipakshipping'}</button>
         <button type="submit" name="venipak_generate_label" id="venipak_generate_label_btn" class="btn btn-success"><i class="icon-tag"></i> {l s="Generate label" mod='venipakshipping'}</button>
       </span>

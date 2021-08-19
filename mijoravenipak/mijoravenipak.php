@@ -1158,6 +1158,7 @@ class MijoraVenipak extends CarrierModule
             ];
         }
 
+        $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
@@ -1172,9 +1173,11 @@ class MijoraVenipak extends CarrierModule
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
             'venipak_other_info' => $venipak_other_info,
+            'shipment_labels' => $shipment_labels,
             'delivery_times' => $this->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
-            'pickup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name'])
+            'pickup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name']),
+            'venipak_print_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=printLabel',
         ));
 
         return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
@@ -1497,11 +1500,11 @@ class MijoraVenipak extends CarrierModule
                         // Multiple labels - $status['text'] is array
                         if(isset($status['text']) && is_array($status['text']))
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($status['text'][$key]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text'][$key]]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
                         }
                         elseif(isset($status['text']))
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($status['text']), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text']]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
                         }
                     }
                 }
@@ -1526,7 +1529,7 @@ class MijoraVenipak extends CarrierModule
         }
 
         if (empty($errors)) {
-            $this->context->controller->confirmations[] = $this->l('Labels sent');
+            $this->context->controller->confirmations[] = $this->l('Successfully created label for the shipment.');
         } else {
             $this->showErrors($errors);
             if (!empty($success_orders)) {

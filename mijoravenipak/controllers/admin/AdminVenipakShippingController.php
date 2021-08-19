@@ -161,11 +161,6 @@ class AdminVenipakShippingController extends ModuleAdminController
                 </span>';
     }
 
-    public function saveOrderInfo()
-    {
-
-    }
-
 
     public function postProcess()
     {
@@ -178,53 +173,12 @@ class AdminVenipakShippingController extends ModuleAdminController
             elseif ($order)
                 $this->module->bulkActionSendLabels((array)$order);
         }
-        if(Tools::isSubmit('submitSaveVenipakOrder'))
-        {
-            $this->saveOrderInfo();
-        }
         if(Tools::isSubmit('submitLabelorder'))
         {
-            MijoraVenipak::checkForClass('MjvpVenipak');
-            $cVenipak = new MjvpVenipak();
-
-            MijoraVenipak::checkForClass('MjvpDb');
-            $cDb = new MjvpDb();
-
-            MijoraVenipak::checkForClass('MjvpModuleConfig');
-            $cModuleConfig = new MjvpModuleConfig();
-            $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
-            $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
-
+            MijoraVenipak::checkForClass('MjvpApi');
+            $cApi = new MjvpVenipak();
             $id_order = Tools::getValue('id_order');
-            $packageNumber = $cDb->getOrderValue('labels_numbers', array('id_order' => $id_order));
-            $filename = md5($packageNumber . $password);
-            $pdf = false;
-            if(file_exists(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf'))
-            {
-                $pdf = file_get_contents(_PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf');
-            }
-            if(!$pdf)
-                $pdf = $cVenipak->printLabel($username, $password, ['packages' => $packageNumber]);
-
-            if ($pdf) { // check if its not empty
-                $path = _PS_MODULE_DIR_ . $this->module->name . '/pdf/' . $filename . '.pdf';
-                $is_saved = file_put_contents($path, $pdf);
-                if (!$is_saved) { // make sure it was saved
-                    throw new ItellaException("Failed to save label pdf to: " . $path);
-                }
-
-                // make sure there is nothing before headers
-                if (ob_get_level()) ob_end_clean();
-                header("Content-Type: application/pdf; name=\" " . $filename . ".pdf\"");
-                header("Content-Transfer-Encoding: binary");
-                // disable caching on client and proxies, if the download content vary
-                header("Expires: 0");
-                header("Cache-Control: no-cache, must-revalidate");
-                header("Pragma: no-cache");
-                readfile($path);
-            } else {
-                throw new ItellaException("Downloaded label data is empty.");
-            }
+            // todo: print label list
         }
     }
 }
