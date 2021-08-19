@@ -13,7 +13,7 @@ $(document).ready(function () {
         save: document.getElementById('venipak_save_cart_info_btn'),
         generate: document.getElementById('venipak_generate_label_btn')
     }
-    console.log('label',venipak_label);
+
     toggleCodAmount();
     togglePickupPoints();
     // toggleMultiParcel();
@@ -155,7 +155,6 @@ $(document).ready(function () {
                 } else {
                     console.log(res);
                     showResponse(res.success, 'success');
-                    venipak_label = true;
                     location.reload();
                 }
             },
@@ -174,9 +173,6 @@ $(document).ready(function () {
     function enableButtons() {
         venipak_buttons.save.disabled = false;
         venipak_buttons.generate.disabled = false;
-        if (venipak_label) {
-            venipak_buttons.print.dataset.disabled = false;
-        }
     }
 
     window.venipak_disable = disableButtons;

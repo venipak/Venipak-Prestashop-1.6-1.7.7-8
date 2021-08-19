@@ -1409,6 +1409,13 @@ class MijoraVenipak extends CarrierModule
 
         try {
             $error_order_no = '-';
+
+            // Venipak returns batch of label numbers that have no relation to shipments for which label was generated, other than their order.
+            // This gets complicated when packs are used. So we sort orders (this way we will know which label number belongs to which order)
+            // and map each order to it's packages and parse the response accordingly.
+            sort($orders_ids);
+            $order_packages_mapping = [];
+
             foreach ($orders_ids as $order_id) {
                 $error_order_no = ' #' . $order_id;
                 $order = new Order((int)$order_id);
@@ -1438,18 +1445,28 @@ class MijoraVenipak extends CarrierModule
                         $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Consignee country is not allowed');
                         continue;
                     }
-                    $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
-                    $shipment_pack = array(
-                        'serial_number' => $pack_no,
-                        'document_number' => '',
-                        'weight' => 0,
-                        'volume' => 0,
-                    );
-                    foreach ($order_products as $key => $product) {
-                        $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                        $shipment_pack['weight'] += (float)$product['weight'];
-                        $shipment_pack['volume'] += (float)$product_volume;
+
+                    $order_info = $cDb->getOrderInfo($order_id);
+                    $packages = $order_info['packages'];
+                    $order_packages_mapping[$order_id] = $packages;
+                    $shipment_pack = [];
+                    for($i = 1; $i <= $packages; $i++)
+                    {
+                        $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
+                        $shipment_pack[$i] = array(
+                            'serial_number' => $pack_no,
+                            'document_number' => '',
+                            'weight' => 0,
+                            'volume' => 0,
+                        );
+                        foreach ($order_products as $key => $product) {
+                            $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                            $shipment_pack[$i]['weight'] += (float)$product['weight'];
+                            $shipment_pack[$i]['volume'] += (float)$product_volume;
+                        }
+                        Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                     }
+
                     // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
                     $door_code = '';
                     $cabinet_number = '';
@@ -1481,10 +1498,9 @@ class MijoraVenipak extends CarrierModule
                             'warehouse_number' => $warehouse_number,
                             'delivery_time' => $delivery_time,
                         ),
-                        'packs' => array($shipment_pack),
+                        'packs' => $shipment_pack,
                     );
                     $success_orders[] = $error_order_no;
-                    Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                 } else {
                     $notfound_ids[] = $error_order_no;
                 }
@@ -1494,19 +1510,23 @@ class MijoraVenipak extends CarrierModule
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
-                    foreach ($success_orders as $key => $order)
+
+                    // Multiple labels - $status['text'] is array
+                    if(isset($status['text']) && is_array($status['text']))
                     {
-                        $order_id = trim($order, ' #');
-                        // Multiple labels - $status['text'] is array
-                        if(isset($status['text']) && is_array($status['text']))
+                        $offset = 0;
+                        foreach ($order_packages_mapping as $order_id => $mapping)
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text'][$key]]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
-                        }
-                        elseif(isset($status['text']))
-                        {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text']]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $order_labels = array_slice($status['text'], $offset, $mapping);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($order_labels), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $offset += $mapping;
                         }
                     }
+                    elseif(isset($status['text']))
+                    {
+                        $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text']]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => array_key_first($order_packages_mapping)]);
+                    }
+
                 }
                 if (isset($status['error'])) {
                     if (isset($status['error']['text'])) {
