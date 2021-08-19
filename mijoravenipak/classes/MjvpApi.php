@@ -174,4 +174,48 @@ class MjvpApi
         return $array;
     }
 
+    public function printLabel($label_number)
+    {
+        MijoraVenipak::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
+        $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+
+        $id_order = Tools::getValue('id_order');
+        $filename = md5($label_number . $password);
+        $pdf = false;
+        $pdf_path = MijoraVenipak::$_moduleDir . '/pdf';
+        if(!file_exists($pdf_path))
+        {
+            mkdir($pdf_path, 0755);
+        }
+        if(file_exists($pdf_path . $filename . '.pdf'))
+        {
+            $pdf = file_get_contents($pdf_path . $filename . '.pdf');
+        }
+        if(!$pdf)
+            $pdf = $this->cVenipak->printLabel($username, $password, ['packages' => $label_number]);
+
+        if ($pdf) { // check if its not empty
+            $path = $pdf_path . $filename . '.pdf';
+            $is_saved = file_put_contents($path, $pdf);
+            if (!$is_saved) { // make sure it was saved
+                throw new ItellaException("Failed to save label pdf to: " . $path);
+            }
+
+            // make sure there is nothing before headers
+            if (ob_get_level()) ob_end_clean();
+            header("Content-Type: application/pdf; name=\" " . $filename . ".pdf\"");
+            header("Content-Transfer-Encoding: binary");
+            // disable caching on client and proxies, if the download content vary
+            header("Expires: 0");
+            header("Cache-Control: no-cache, must-revalidate");
+            header("Pragma: no-cache");
+            readfile($path);
+        } else {
+            throw new ItellaException("Downloaded label data is empty.");
+        }
+    }
+
 }

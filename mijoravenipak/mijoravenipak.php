@@ -8,6 +8,7 @@ class MijoraVenipak extends CarrierModule
 {
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
+    const CONTROLLER_ADMIN_AJAX = 'AdminVenipakshippingAjax';
     const EXTRA_FIELDS_SIZE = 10;
 
     /**
@@ -93,7 +94,8 @@ class MijoraVenipak extends CarrierModule
         'updateCarrier',
         'displayAdminOrder',
         'actionValidateStepComplete',
-        'actionValidateOrder'
+        'actionValidateOrder',
+        'actionAdminControllerSetMedia'
     );
 
     /**
@@ -280,6 +282,10 @@ class MijoraVenipak extends CarrierModule
                 'title' => $this->l('Venipak Warehouses'),
                 'parent_tab' => (int) Tab::getIdFromClassName('AdminParentShipping')
             ),
+            self::CONTROLLER_ADMIN_AJAX => array(
+                'title' => $this->l('VenipakAdminAjax'),
+                'parent_tab' => -1
+            )
         );
     }
 
@@ -1120,11 +1126,58 @@ class MijoraVenipak extends CarrierModule
             return '';
         }
 
+        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+
+        self::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+
+        $order_country_code = $venipak_cart_info['country_code'];
+        $pickup_points = $cApi->getTerminals($order_country_code);
+        $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
+        $venipak_carriers = [];
+        foreach (self::$_carriers as $carrier)
+        {
+            $reference = Configuration::get($carrier['reference_name']);
+            $carrier = Carrier::getCarrierByReference($reference);
+            $venipak_carriers[$reference] = $carrier->name;
+        }
+
+        $order_carrier_reference = $venipak_cart_info['id_carrier_ref'];
+        if($order_carrier_reference == Configuration::get(self::$_carriers['pickup']['reference_name']))
+            $venipak_cart_info['is_pickup'] = true;
+
+        $other_info = json_decode($venipak_cart_info['other_info'], true);
+        $venipak_other_info = [];
+        if($other_info)
+        {
+            $venipak_other_info = [
+                'door_code' => $other_info['door_code'],
+                'cabinet_number' => $other_info['cabinet_number'],
+                'warehouse_number' => $other_info['warehouse_number'],
+                'delivery_time' => $other_info['delivery_time']
+            ];
+        }
+
+        $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
+            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
             'label_status' => $status,
             'label_error' => $error,
+            'order_id' => $order->id,
+            'cod_amount' => $order->total_paid_tax_incl,
+            'order_terminal_id' => $order_terminal_id,
+            'venipak_pickup_points' => $pickup_points,
+            'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
             'label_tracking_numbers' => json_decode($tracking_numbers),
+            'orderVenipakCartInfo' => $venipak_cart_info,
+            'venipak_carriers' => $venipak_carriers,
+            'venipak_other_info' => $venipak_other_info,
+            'shipment_labels' => $shipment_labels,
+            'delivery_times' => $this->deliveryTimes,
+            'carrier_reference' => $order_carrier_reference,
+            'pickup_reference' => Configuration::get(self::$_carriers['pickup']['reference_name']),
+            'venipak_print_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=printLabel',
         ));
 
         return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
@@ -1356,6 +1409,13 @@ class MijoraVenipak extends CarrierModule
 
         try {
             $error_order_no = '-';
+
+            // Venipak returns batch of label numbers that have no relation to shipments for which label was generated, other than their order.
+            // This gets complicated when packs are used. So we sort orders (this way we will know which label number belongs to which order)
+            // and map each order to it's packages and parse the response accordingly.
+            sort($orders_ids);
+            $order_packages_mapping = [];
+
             foreach ($orders_ids as $order_id) {
                 $error_order_no = ' #' . $order_id;
                 $order = new Order((int)$order_id);
@@ -1385,18 +1445,28 @@ class MijoraVenipak extends CarrierModule
                         $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Consignee country is not allowed');
                         continue;
                     }
-                    $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
-                    $shipment_pack = array(
-                        'serial_number' => $pack_no,
-                        'document_number' => '',
-                        'weight' => 0,
-                        'volume' => 0,
-                    );
-                    foreach ($order_products as $key => $product) {
-                        $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                        $shipment_pack['weight'] += (float)$product['weight'];
-                        $shipment_pack['volume'] += (float)$product_volume;
+
+                    $order_info = $cDb->getOrderInfo($order_id);
+                    $packages = $order_info['packages'];
+                    $order_packages_mapping[$order_id] = $packages;
+                    $shipment_pack = [];
+                    for($i = 1; $i <= $packages; $i++)
+                    {
+                        $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
+                        $shipment_pack[$i] = array(
+                            'serial_number' => $pack_no,
+                            'document_number' => '',
+                            'weight' => 0,
+                            'volume' => 0,
+                        );
+                        foreach ($order_products as $key => $product) {
+                            $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                            $shipment_pack[$i]['weight'] += (float)$product['weight'];
+                            $shipment_pack[$i]['volume'] += (float)$product_volume;
+                        }
+                        Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                     }
+
                     // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
                     $door_code = '';
                     $cabinet_number = '';
@@ -1428,10 +1498,9 @@ class MijoraVenipak extends CarrierModule
                             'warehouse_number' => $warehouse_number,
                             'delivery_time' => $delivery_time,
                         ),
-                        'packs' => array($shipment_pack),
+                        'packs' => $shipment_pack,
                     );
                     $success_orders[] = $error_order_no;
-                    Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                 } else {
                     $notfound_ids[] = $error_order_no;
                 }
@@ -1441,19 +1510,23 @@ class MijoraVenipak extends CarrierModule
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
-                    foreach ($success_orders as $key => $order)
+
+                    // Multiple labels - $status['text'] is array
+                    if(isset($status['text']) && is_array($status['text']))
                     {
-                        $order_id = trim($order, ' #');
-                        // Multiple labels - $status['text'] is array
-                        if(isset($status['text']) && is_array($status['text']))
+                        $offset = 0;
+                        foreach ($order_packages_mapping as $order_id => $mapping)
                         {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'][$key], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
-                        }
-                        elseif(isset($status['text']))
-                        {
-                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => $status['text'], 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $order_labels = array_slice($status['text'], $offset, $mapping);
+                            $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode($order_labels), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => $order_id]);
+                            $offset += $mapping;
                         }
                     }
+                    elseif(isset($status['text']))
+                    {
+                        $cDb->updateRow('mjvp_orders', ['labels_numbers' => json_encode([$manifest_id => $status['text']]), 'status' => 'registered', 'labels_date' => date('Y-m-d h:i:s')], ['id_order' => array_key_first($order_packages_mapping)]);
+                    }
+
                 }
                 if (isset($status['error'])) {
                     if (isset($status['error']['text'])) {
@@ -1476,7 +1549,7 @@ class MijoraVenipak extends CarrierModule
         }
 
         if (empty($errors)) {
-            $this->context->controller->confirmations[] = $this->l('Labels sent');
+            $this->context->controller->confirmations[] = $this->l('Successfully created label for the shipment.');
         } else {
             $this->showErrors($errors);
             if (!empty($success_orders)) {
@@ -1507,6 +1580,20 @@ class MijoraVenipak extends CarrierModule
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
         if (empty($check_order_id)) {
              $cDb->updateOrderInfo($id_cart, array('id_order' => $id_order));
+        }
+    }
+
+    public function hookActionAdminControllerSetMedia()
+    {
+        if (get_class($this->context->controller) == 'AdminOrdersController') {
+            {
+                Media::addJsDef([
+                    'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
+                    'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=saveOrder',
+                ]);
+                $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
+                $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
+            }
         }
     }
 }
