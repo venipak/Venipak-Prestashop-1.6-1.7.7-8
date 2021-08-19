@@ -32,4 +32,12 @@ class MjvpModuleConfig
         }
         return $this->module->_configKeys[$section][$key_name] ?? '';
     }
+
+    /**
+     * Get config key from all keys list
+     */
+    public function getConfigKeyOther($key_name)
+    {
+        return $this->module->_configKeysOther[$key_name]['key'] ?? '';
+    }
 }

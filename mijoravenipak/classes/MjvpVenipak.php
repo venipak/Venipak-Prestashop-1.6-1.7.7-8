@@ -81,12 +81,12 @@ class MjvpVenipak
         return $this->executeRequest('ws/print_label', 'POST', $params);
     }
 
-    public function printList($username, $password, $package_code)
+    public function printList($username, $password, $manifest_id)
     {
         $params = array(
             'user' => $username,
             'pass' => $password,
-            'code' => $package_code,
+            'code' => $manifest_id,
         );
 
         return $this->executeRequest('ws/print_list', 'POST', $params);

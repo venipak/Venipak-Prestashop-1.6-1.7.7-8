@@ -36,6 +36,7 @@ class MjvpDb
             $this->_table_orders => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_orders . '` (
                 `id_cart` int(10) unsigned NOT NULL COMMENT "Cart ID",
                 `id_order` int(10) COMMENT "Order ID",
+                `manifest_id` varchar(30) COMMENT "Manifest identifier on Venipak system",
                 `order_weight` float(10) COMMENT "Order weight" DEFAULT 0,
                 `cod_amount` float(10) COMMENT "COD amount (default is order total)" DEFAULT 0,
                 `packages` int(10) COMMENT "Number of packages used for the order" DEFAULT 1,

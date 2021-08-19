@@ -80,6 +80,7 @@ class MjvpApi
         $params['manifest_id'] = (isset($params['manifest_id'])) ? $params['manifest_id'] : '';
         $params['manifest_name'] = (isset($params['manifest_name'])) ? $params['manifest_name'] : '';
         $manifest_title = $this->cVenipak->buildManifestNumber($api_id, $params['manifest_id']);
+        Configuration::updateValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
 
         $xml_code = '<manifest title="' . $manifest_title . '" name="' . $params['manifest_name'] . '">';
         foreach ($params['shipments'] as $shipment) {
@@ -174,7 +175,17 @@ class MjvpApi
         return $array;
     }
 
+    public function printList($labels)
+    {
+        $this->getPdfEntity('manifest', $labels);
+    }
+
     public function printLabel($label_number)
+    {
+        $this->getPdfEntity('label', $label_number);
+    }
+
+    private function getPdfEntity($type, $label_numbers)
     {
         MijoraVenipak::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
@@ -182,40 +193,67 @@ class MjvpApi
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
 
-        $id_order = Tools::getValue('id_order');
-        $filename = md5($label_number . $password);
-        $pdf = false;
-        $pdf_path = MijoraVenipak::$_moduleDir . '/pdf';
-        if(!file_exists($pdf_path))
-        {
-            mkdir($pdf_path, 0755);
+        $pdf_path = '';
+        switch ($type) {
+            case 'label':
+                $pdf_path = MijoraVenipak::$_labelPdfDir;
+                $apiFunction = 'printLabel';
+                $params = ['packages' => $label_numbers];
+                break;
+            case 'manifest':
+                $pdf_path = MijoraVenipak::$_manifestPdfDir;
+                $apiFunction = 'printList';
+                $params = $label_numbers;
+                break;
+            default:
+                break;
         }
-        if(file_exists($pdf_path . $filename . '.pdf'))
-        {
-            $pdf = file_get_contents($pdf_path . $filename . '.pdf');
-        }
-        if(!$pdf)
-            $pdf = $this->cVenipak->printLabel($username, $password, ['packages' => $label_number]);
 
+        if(is_array($label_numbers))
+            $filename = md5(implode('&', $label_numbers) . $password);
+        else
+            $filename = md5($label_numbers . $password);
+        $pdf = $this->getPdf($pdf_path, $filename);
+        if(!$pdf)
+            // todo: pass manifest ID instead, when getting list
+            $pdf = $this->cVenipak->$apiFunction($username, $password, $params);
         if ($pdf) { // check if its not empty
             $path = $pdf_path . $filename . '.pdf';
             $is_saved = file_put_contents($path, $pdf);
             if (!$is_saved) { // make sure it was saved
-                throw new ItellaException("Failed to save label pdf to: " . $path);
+                throw new Exception("Failed to save label pdf to: " . $path);
             }
-
-            // make sure there is nothing before headers
-            if (ob_get_level()) ob_end_clean();
-            header("Content-Type: application/pdf; name=\" " . $filename . ".pdf\"");
-            header("Content-Transfer-Encoding: binary");
-            // disable caching on client and proxies, if the download content vary
-            header("Expires: 0");
-            header("Cache-Control: no-cache, must-revalidate");
-            header("Pragma: no-cache");
-            readfile($path);
+            $this->printPdf($path, $filename);
         } else {
-            throw new ItellaException("Downloaded label data is empty.");
+            throw new Exception("Downloaded label data is empty.");
         }
+    }
+
+    private function getPdf($pdf_path, $filename)
+    {
+        $pdf = false;
+        if(!file_exists($pdf_path))
+        {
+            mkdir($pdf_path, 0755, true);
+        }
+        if(file_exists($pdf_path . $filename . 'pdf'))
+        {
+            $pdf = file_get_contents($pdf_path . $filename . 'pdf');
+        }
+        return $pdf;
+    }
+
+    private function printPdf($path, $filename)
+    {
+        // make sure there is nothing before headers
+        if (ob_get_level()) ob_end_clean();
+        header("Content-Type: application/pdf; name=\" " . $filename . ".pdf");
+        header("Content-Transfer-Encoding: binary");
+        // disable caching on client and proxies, if the download content vary
+        header("Expires: 0");
+        header("Cache-Control: no-cache, must-revalidate");
+        header("Pragma: no-cache");
+        readfile($path);
     }
 
 }
