@@ -130,6 +130,12 @@ class MjvpApi
             $xml_code .= '<comment_office_no>' . $params['consignee']['cabinet_number'] . '</comment_office_no>';
         if($params['consignee']['warehouse_number'])
             $xml_code .= '<comment_warehous_no>' . $params['consignee']['warehouse_number'] . '</comment_warehous_no>';
+        if($params['consignee']['carrier_call'])
+            $xml_code .= '<comment_call>' . $params['consignee']['carrier_call'] . '</comment_call>';
+        if($params['consignee']['cod'])
+            $xml_code .= '<cod>' . $params['consignee']['cod'] . '</cod>';
+        if($params['consignee']['cod_type'])
+            $xml_code .= '<cod_type>' . $params['consignee']['cod_type'] . '</cod_type>';
         $xml_code .= '</attribute>';
 
         foreach ($params['packs'] as $pack) {

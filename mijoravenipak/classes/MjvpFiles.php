@@ -101,7 +101,6 @@ class MjvpFiles
 
         $last_update = Configuration::getGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals']);
 
-        $files_exists = true;
         $selected_countries = explode(';', Configuration::get('MJVP_PP_COUNTRIES'));
         if (!Configuration::get('MJVP_PP_COUNTRIES') || !$selected_countries || empty($selected_countries)) {
             $selected_countries = MijoraVenipak::$_defaultPickupCountries;

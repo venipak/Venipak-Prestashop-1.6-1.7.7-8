@@ -12,11 +12,6 @@
             var mjvp_postal_code = "{$postcode}";
             var mjvp_city = "{$city}";
             document.addEventListener("DOMContentLoaded", function(event) {
-                if ({$cart_quantity} > 2) {
-                    $('#mjvp-pickup-select-modal').closest('.checkoutblock').hide();
-                    return;
-                }
-
                 venipak_custom_modal();
             });
         </script>

@@ -54,6 +54,11 @@ class MijoraVenipak extends CarrierModule
      */
     public static $_defaultPickupCountries = array('lt', 'lv', 'ee', 'pl');
 
+    /**
+     * COD modules
+     */
+    public static $_codModules = array('ps_cashondelivery');
+
     public $deliveryTimes = [];
 
     public static $_order_additional_info = array(
@@ -61,6 +66,7 @@ class MijoraVenipak extends CarrierModule
        'cabinet_number' => '',
        'warehouse_number' => '',
        'delivery_time' => 0,
+        'carrier_call' => 0
     );
 
     /**
@@ -125,10 +131,14 @@ class MijoraVenipak extends CarrierModule
             'warehouse_number' => 'MJVP_COURIER_WAREHOUSE_NUMBER',
             'cabinet_number' => 'MJVP_COURIER_CABINET_NUMBER',
             'delivery_time' => 'MJVP_COURIER_DELIVERY_TIME',
+            'call_before_delivery' => 'MJVP_COURIER_CALL_BEFORE_DELIVERY',
         ),
         'LABEL' => array(
             'label_size' => 'MJVP_LABEL_SIZE',
             'label_counter' => 'MJVP_COUNTER_PACKS',
+        ),
+        'ADVANCED' => array(
+            'carrier_disable_passphrase' => 'MJVP_CARRIER_DISABLE_PASSPHRASE',
         ),
     );
 
@@ -171,6 +181,15 @@ class MijoraVenipak extends CarrierModule
                     'type' => 'number',
                     'min' => Configuration::get($config_key),
                     'max' => 9999999,
+                );
+            }
+        }
+
+        if ($section_id == 'ADVANCED') {
+            if ($config_key == $cModuleConfig->getConfigKey('carrier_disable_passphrase', $section_id)) {
+                return array(
+                    'name' => $this->l('Carrier disable passphrase'),
+                    'validate' => 'isGenericName',
                 );
             }
         }
@@ -391,7 +410,47 @@ class MijoraVenipak extends CarrierModule
      */
     public function getOrderShippingCost($params, $shipping_cost)
     {
+        if($params instanceof Cart)
+        {
+            $cart = $params;
+            if($this->checkCarrierDisablePassphrase($cart))
+                return false;
+        }
         return $shipping_cost;
+    }
+
+    /**
+     * Check if cart contains products, whose description contains @carrier_disable_passphrase
+     */
+    private function checkCarrierDisablePassphrase($cart)
+    {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+        $carrier_disable_passphrase = Configuration::get($cModuleConfig->getConfigKey('carrier_disable_passphrase', 'ADVANCED'));
+        if($carrier_disable_passphrase)
+        {
+
+            $cart_products = $cart->getProducts();
+            $id_lang = $this->context->language->id;
+            foreach ($cart_products as $product)
+            {
+                // Cart products don't have description, so get it.
+                $product_description = Db::getInstance()->getValue(
+                    (new DbQuery())
+                        ->select('description')
+                        ->from('product_lang')
+                        ->where('`id_product` = ' . $product['id_product'] . ' AND `id_lang` = ' . $id_lang)
+                );
+
+                /**
+                 * Carrier cannot be used for the cart, if cart contains any product, whose description contains @carrier_disable_passphrase
+                 */
+                if(strpos($product_description, $carrier_disable_passphrase) !== false)
+                    return true;
+            }
+
+        }
+        return false;
     }
 
     /**
@@ -623,12 +682,16 @@ class MijoraVenipak extends CarrierModule
         if (Tools::isSubmit('submit' . $this->name . 'label')) {
             $output .= $this->saveConfig('LABEL', $this->l('Labels settings updated'));
         }
+        if (Tools::isSubmit('submit' . $this->name . 'advanced')) {
+            $output .= $this->saveConfig('ADVANCED', $this->l('Advanced settings updated'));
+        }
 
         return $output
             . $this->displayConfigApi()
             . $this->displayConfigShop()
             . $this->displayConfigCourier()
-            . $this->displayConfigLabel();
+            . $this->displayConfigLabel()
+            . $this->displayConfigAdvancedSettings();
     }
 
     /**
@@ -833,9 +896,39 @@ class MijoraVenipak extends CarrierModule
                 'desc' => $this->l('Allow customers to select delivery time.'),
                 'values' => $swither_values
             ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable carrier call before delivery'),
+                'name' => $cModuleConfig->getConfigKey('call_before_delivery', $section_id),
+                'desc' => $this->l('Enable this option, if you want courier to call a consignee before shipment delivery'),
+                'values' => $swither_values
+            ),
         );
 
         return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
+    }
+
+
+    /**
+     * Display Advanced settings section in module configuration
+     */
+    public function displayConfigAdvancedSettings()
+    {
+        self::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $section_id = 'ADVANCED';
+
+        $form_fields = array(
+            array(
+                'type' => 'text',
+                'label' => $this->l('Carrier disable passphrase'),
+                'name' => $cModuleConfig->getConfigKey('carrier_disable_passphrase', $section_id),
+                'desc' => $this->l('Carriers will not be used for the cart, if cart contains any product, whose description contains this passphrase.'),
+            ),
+        );
+
+        return $this->displayConfig($section_id, $this->l('Advanced settings'), $form_fields, $this->l('Save Advanced settings'));
     }
 
     /**
@@ -1029,6 +1122,20 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
+        if ($section_id == 'ADVANCED') {
+            foreach ($this->_configKeys[$section_id] as $key => $key_value) {
+                $configField = $this->getConfigField($section_id, $key_value);
+                $field_value = Tools::getValue($cModuleConfig->getConfigKey($key, $section_id));
+                if (isset($configField['validate'])) {
+                    $validate = $configField['validate'];
+                    if(!Validate::$validate($field_value))
+                    {
+                        $errors[] = sprintf($this->l('%s is not valid.'), $configField['name']);
+                    }
+                }
+            }
+        }
+
         return $errors;
     }
 
@@ -1061,6 +1168,9 @@ class MijoraVenipak extends CarrierModule
             self::checkForClass('MjvpApi');
             $cApi = new MjvpApi();
             $all_terminals_info = $cApi->getTerminals($country_code);
+            $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
+            // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
+            $filtered_terminals = array_values($filtered_terminals);
 
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
@@ -1087,7 +1197,7 @@ class MijoraVenipak extends CarrierModule
                     'back_to_list_btn' => $this->l('reset search'),
                     'no_information' => $this->l('No information'),
                     ),
-                    'mjvp_terminals' => $all_terminals_info
+                    'mjvp_terminals' => $filtered_terminals
                 )
             );
             $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
@@ -1153,16 +1263,6 @@ class MijoraVenipak extends CarrierModule
             $venipak_cart_info['is_pickup'] = true;
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
-        $venipak_other_info = [];
-        if($other_info)
-        {
-            $venipak_other_info = [
-                'door_code' => $other_info['door_code'],
-                'cabinet_number' => $other_info['cabinet_number'],
-                'warehouse_number' => $other_info['warehouse_number'],
-                'delivery_time' => $other_info['delivery_time']
-            ];
-        }
 
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
         $this->context->smarty->assign(array(
@@ -1171,14 +1271,13 @@ class MijoraVenipak extends CarrierModule
             'label_status' => $status,
             'label_error' => $error,
             'order_id' => $order->id,
-            'cod_amount' => $order->total_paid_tax_incl,
             'order_terminal_id' => $order_terminal_id,
             'venipak_pickup_points' => $pickup_points,
             'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
             'label_tracking_numbers' => json_decode($tracking_numbers),
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
-            'venipak_other_info' => $venipak_other_info,
+            'venipak_other_info' => $other_info,
             'shipment_labels' => $shipment_labels,
             'delivery_times' => $this->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
@@ -1226,6 +1325,9 @@ class MijoraVenipak extends CarrierModule
             $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
             $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
             $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
+            $field_carrier_call = 0;
+            if(Tools::isSubmit('mjvp_carrier_call'))
+                $field_carrier_call = 1;
             if(strlen($field_door_code) > self::EXTRA_FIELDS_SIZE)
                 $errors['mjvp_door_code'] = $this->l('The door code is too long.');
             if(strlen($field_cabinet_number) > self::EXTRA_FIELDS_SIZE)
@@ -1254,6 +1356,7 @@ class MijoraVenipak extends CarrierModule
             $order_extra_info['cabinet_number'] = $field_cabinet_number;
             $order_extra_info['warehouse_number'] = $field_warehouse_number;
             $order_extra_info['delivery_time'] = $field_delivery_time;
+            $order_extra_info['carrier_call'] = $field_carrier_call;
 
             $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
         }
@@ -1287,6 +1390,7 @@ class MijoraVenipak extends CarrierModule
                 'show_cabinet_number' => Configuration::get($cModuleConfig->getConfigKey('cabinet_number', 'COURIER')),
                 'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
                 'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
+                'show_carrier_call' => Configuration::get($cModuleConfig->getConfigKey('call_before_delivery', 'COURIER')),
                 'delivery_times' => $this->deliveryTimes
             ];
 
@@ -1462,12 +1566,15 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack[$i] = array(
                             'serial_number' => $pack_no,
                             'document_number' => '',
-                            'weight' => 0,
+                            'weight' => $order_info['order_weight'],
                             'volume' => 0,
                         );
                         foreach ($order_products as $key => $product) {
-                            $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                            $shipment_pack[$i]['weight'] += (float)$product['weight'];
+                            // Calculate volume in m3
+                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm')
+                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                            elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm')
+                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
                             $shipment_pack[$i]['volume'] += (float)$product_volume;
                         }
                         Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
@@ -1478,6 +1585,7 @@ class MijoraVenipak extends CarrierModule
                     $cabinet_number = '';
                     $warehouse_number = '';
                     $delivery_time = '';
+                    $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
@@ -1486,8 +1594,11 @@ class MijoraVenipak extends CarrierModule
                         $cabinet_number = $other_info->cabinet_number;
                         $warehouse_number = $other_info->warehouse_number;
                         $delivery_time = $other_info->delivery_time;
+                        $carrier_call = $other_info->carrier_call;
                     }
 
+                    $currency = new Currency($order->id_currency);
+                    $currency_iso = strtoupper($currency->iso_code);
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
@@ -1502,7 +1613,10 @@ class MijoraVenipak extends CarrierModule
                             'door_code' => $door_code,
                             'cabinet_number' => $cabinet_number,
                             'warehouse_number' => $warehouse_number,
+                            'carrier_call' => $carrier_call,
                             'delivery_time' => $delivery_time,
+                            'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
+                            'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ),
                         'packs' => $shipment_pack,
                     );
@@ -1583,10 +1697,12 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionValidateOrder($params)
     {
-        $id_order = $params['order']->id;
-        $id_cart = $params['cart']->id;
+        $order = $params['order'];
+        $cart = $params['cart'];
+        $id_order = $order->id;
+        $id_cart = $cart->id;
 
-        $carrier = new Carrier($params['cart']->id_carrier);
+        $carrier = new Carrier($cart->id_carrier);
         $carrier_reference = $carrier->id_reference;
         if(!in_array($carrier_reference, Configuration::getMultiple([self::$_carriers['courier']['reference_name'], self::$_carriers['pickup']['reference_name']])))
             return;
@@ -1594,8 +1710,25 @@ class MijoraVenipak extends CarrierModule
         self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
+
         if (empty($check_order_id)) {
-             $cDb->updateOrderInfo($id_cart, array('id_order' => $id_order));
+
+            $order_weight = $order->getTotalWeight();
+
+            // Convert to kg, if weight is in grams.
+            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
+                $order_weight *= 0.001;
+
+            $is_cod = 0;
+            if(in_array($order->module, self::$_codModules))
+                $is_cod = 1;
+
+             $cDb->updateOrderInfo($id_cart, array(
+                 'id_order' => $id_order,
+                 'order_weight' => $order_weight,
+                 'cod_amount' => $order->total_paid_tax_incl,
+                 'is_cod' => $is_cod
+             ));
         }
     }
 
@@ -1611,5 +1744,16 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
         }
+    }
+
+    private function filterTerminalsByCartWeight($terminals)
+    {
+        $cart_weight = $this->context->cart->getTotalWeight();
+        foreach ($terminals as $key => $terminal)
+        {
+            if(isset($terminal->size_limit) && $terminal->size_limit < $cart_weight)
+                unset($terminals[$key]);
+        }
+        return $terminals;
     }
 }
