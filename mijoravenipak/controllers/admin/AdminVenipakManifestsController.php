@@ -23,17 +23,44 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->_select = ' a.manifest_id, (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total';
 
+    }
+
+    public function init()
+    {
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
             $this->errors[] = $this->l('Select shop');
         } else {
             $this->content .= $this->displayMenu();
             $this->readyManifestList();
         }
+        parent::init();
+    }
+
+    /**
+     * @throws PrestaShopException
+     * @throws SmartyException
+     */
+    public function renderList()
+    {
+        $content =  parent::renderList();
+        $content .= $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/call_carrier_modal.tpl');
+        return $content;
+    }
+
+    public function setMedia($isNewTheme = false)
+    {
+        parent::setMedia($isNewTheme);
+        $warehouses = MjvpWarehouse::getWarehouses();
+        $this->addJs('modules/' . $this->module->name . '/views/js/mjvp-manifest.js');
+        Media::addJsDef([
+                'warehouses' => $warehouses,
+            ]
+        );
     }
 
 
     /**
-     * @throws SmartyException
+     * @throws SmartyException|PrestaShopException
      */
     private function displayMenu()
     {
@@ -55,7 +82,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $this->context->smarty->assign(array(
             'moduleMenu' => $menu,
-            'warehouses' => json_encode($warehouses),
+            'warehouses' => $warehouses,
             'call_url' => $this->context->link->getAdminLink($this->controller_name),
         ));
 
