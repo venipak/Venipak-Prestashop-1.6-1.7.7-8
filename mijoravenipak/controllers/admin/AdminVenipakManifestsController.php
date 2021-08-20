@@ -54,6 +54,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->addJs('modules/' . $this->module->name . '/views/js/mjvp-manifest.js');
         Media::addJsDef([
                 'warehouses' => $warehouses,
+                'call_url' => $this->context->link->getAdminLink($this->controller_name),
             ]
         );
     }
@@ -83,7 +84,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->context->smarty->assign(array(
             'moduleMenu' => $menu,
             'warehouses' => $warehouses,
-            'call_url' => $this->context->link->getAdminLink($this->controller_name),
         ));
 
         return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/manifest_menu.tpl');

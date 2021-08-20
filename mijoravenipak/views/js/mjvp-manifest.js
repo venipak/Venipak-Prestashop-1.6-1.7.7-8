@@ -2,6 +2,12 @@ var venipak_manifest_id = 0;
 var venipak_modal = false;
 $(document).ready(function () {
     create_venipak_modal();
+    $('#arrival-time-from').datetimepicker({
+            dateFormat: 'yy-mm-dd'
+    });
+    $('#arrival-time-to').datetimepicker({
+            dateFormat: 'yy-mm-dd'
+    });
     venipak_modal.modal({ show: false });
     venipak_modal.find('#id_venipak_warehouse').on('change', function(e){
         warehouse = findWarehouseInfo(this.value);
@@ -9,10 +15,8 @@ $(document).ready(function () {
             return false;
         }
         venipak_modal.find('#warehouse_info').html(
-            '<p>'+warehouse.contact+'</p>' +
-            '<p>'+warehouse.city+'</p>' +
-            '<p>'+warehouse.zip_code+' '+warehouse.city+', '+warehouse.country_code+'</p>' +
-            '<p>'+warehouse.phone+'</p>'
+            '<p>'+warehouse.contact + ' ' + warehouse.phone+ '</p>' +
+            '<p>'+warehouse.zip_code+' '+warehouse.city+', '+warehouse.country_code+'</p>'
         );
     });
     venipak_modal.find('#id_venipak_warehouse').trigger('change');
@@ -53,10 +57,11 @@ function sendCall(address_id, manifest_id) {
     if (!manifest_id) {
         showErrorMessage('{l s="No manifest selected" mod="mijoravenipak"}');
     }
+    validate
 
     $.ajax({
         type: "POST",
-        url: "{$call_url}&ajax=1&id_venipak_warehouse=" + address_id + "&id_manifest=" + manifest_id,
+        url: call_url + "&ajax=1&id_venipak_warehouse=" + address_id + "&id_manifest=" + manifest_id,
         async: false,
         processData: false,
         contentType: false,

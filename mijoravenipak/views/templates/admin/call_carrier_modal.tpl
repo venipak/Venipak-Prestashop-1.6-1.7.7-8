@@ -15,6 +15,23 @@
                     </select>
                 </p>
                 <p id="warehouse_info"></p>
+                <p>
+                    {l s="Coment to courier (optional)" mod="mijoravenipak"}
+                    <input type="text" name="courier_comment">
+                </p>
+                <div class="alert alert-warning">
+                    {l s='Must be at least 2 hours difference between TIME FROM and TIME TO' mod="mijoravenipak"}
+                </div>
+                <p>
+                    {l s='Carrier arrival time (from)' mod="mijoravenipak"}
+                    <input id="arrival-time-from" type="text" class="input-medium" name="arrival_time_from" value=""/>
+{*                    <span class="input-group-addon"><i class="icon-calendar-empty"></i></span>*}
+                </p>
+                <p>
+                    {l s='Carrier arrival time (to)' mod="mijoravenipak"}
+                    <input id="arrival-time-to" type="text" class="input-medium" name="arrival_time_to" value=""/>
+{*                    <span class="input-group-addon"><i class="icon-calendar-empty"></i></span>*}
+                </p>
             </div>
             <div class="modal-footer">
                 <a href="#" id="confirm_modal_left_button" class="btn btn-success">

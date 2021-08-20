@@ -218,7 +218,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->context->smarty->assign(array(
             'moduleMenu' => $menu,
             'warehouses' => json_encode($warehouses),
-            'call_url' => $this->context->link->getAdminLink($this->controller_name),
         ));
 
         return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/manifest_menu.tpl');
