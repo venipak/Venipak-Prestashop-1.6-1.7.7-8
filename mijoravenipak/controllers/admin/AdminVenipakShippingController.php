@@ -5,8 +5,6 @@ class AdminVenipakShippingController extends ModuleAdminController
     /** @var bool Is bootstrap used */
     public $bootstrap = true;
 
-    private $total_orders = 0;
-
     /**
      * AdminOmnivaltShippingStoresController class constructor
      *
@@ -39,7 +37,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->_sql = '
       SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'orders` a
       WHERE 1 ' . Shop::addSqlRestrictionOnLang('a');
-        $this->total_orders = DB::getInstance()->getValue($this->_sql);
 
         $this->_where = ' AND carrier.id_reference IN ('
             . Configuration::get('MJVP_COURIER_ID_REFERENCE') . ','
@@ -82,15 +79,19 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'filter_key' => 'os!id_order_state',
                 'filter_type' => 'int',
                 'order_key' => 'osname',
+                'search' => false,
             ),
             'customer' => array(
                 'title' => $this->l('Customer'),
                 'havingFilter' => true,
+                'search' => false,
             ),
             'label_number' => array(
                 'type' => 'text',
-                'title' => $this->l('Tracking number'),
+                'title' => $this->l('Tracking number(s)'),
                 'havingFilter' => false,
+                'callback' => 'parseLabelNumbers',
+                'search' => false,
             )
         );
 
@@ -184,4 +185,10 @@ class AdminVenipakShippingController extends ModuleAdminController
             $cApi->printList($manifest_id);
         }
     }
+
+    public function parseLabelNumbers($labels)
+    {
+        return implode(', ', json_decode($labels, true));
+    }
+
 }

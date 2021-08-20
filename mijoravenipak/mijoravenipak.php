@@ -198,21 +198,21 @@ class MijoraVenipak extends CarrierModule
     }
 
     public static $_order_states = array(
-        'MJVP_ORDER_STATE_READY' => array(
+        'order_state_ready' => array(
+            'key' => 'MJVP_ORDER_STATE_READY',
             'color' => '#FCEAA8',
             'lang' => array(
                 'en' => 'Venipak shipment ready',
                 'lt' => 'Venipak siunta paruošta',
             ),
-            'icon' => '', // Icon set not working
         ),
-        'MJVP_ORDER_STATE_ERROR' => array(
+        'order_state_error' => array(
+            'key' => 'MJVP_ORDER_STATE_ERROR',
             'color' => '#F24017',
             'lang' => array(
                 'en' => 'Error on Venipak shipment',
                 'lt' => 'Klaida Venipak siuntoje',
             ),
-            'icon' => '', // Icon set not working
         ),
     );
 
@@ -271,6 +271,11 @@ class MijoraVenipak extends CarrierModule
 
         if (!$this->createDbTables()) {
             $this->_errors[] = $this->l('Failed to create tables.');
+            return false;
+        }
+
+        if (!$this->addOrderStates()) {
+            $this->_errors[] = $this->l('Failed to order states.');
             return false;
         }
 
@@ -341,6 +346,43 @@ class MijoraVenipak extends CarrierModule
             if (!$tab->save()) {
                 $this->displayError($this->l('Error while creating tab ') . $tabData['title']);
                 return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Add Venipak order states
+     */
+    private function addOrderStates()
+    {
+
+        foreach (self::$_order_states as $os)
+        {
+            $order_state = (int)Configuration::get($os['key']);
+            $order_status = new OrderState($order_state, (int)Context::getContext()->language->id);
+
+            if (!$order_status->id || !$order_state) {
+                $orderState = new OrderState();
+                $orderState->name = array();
+                foreach (Language::getLanguages() as $language) {
+                    if (strtolower($language['iso_code']) == 'lt')
+                        $orderState->name[$language['id_lang']] = $os['lang']['lt'];
+                    else
+                        $orderState->name[$language['id_lang']] = $os['lang']['en'];
+                }
+                $orderState->send_email = false;
+                $orderState->color = $os['color'];
+                $orderState->hidden = false;
+                $orderState->delivery = false;
+                $orderState->logable = true;
+                $orderState->invoice = false;
+                $orderState->unremovable = false;
+                if ($orderState->add()) {
+                    Configuration::updateValue($os['key'], $orderState->id);
+                }
+                else
+                    return false;
             }
         }
         return true;
@@ -1637,6 +1679,7 @@ class MijoraVenipak extends CarrierModule
                         $offset = 0;
                         foreach ($order_packages_mapping as $order_id => $mapping)
                         {
+                            $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $order_labels = array_slice($status['text'], $offset, $mapping);
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
@@ -1649,6 +1692,7 @@ class MijoraVenipak extends CarrierModule
                     }
                     elseif(isset($status['text']))
                     {
+                        $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
                             'labels_numbers' => json_encode([$manifest_id => $status['text']]),
                             'manifest_id' => Configuration::get($this->_configKeysOther['last_manifest_id']['key']),
@@ -1755,5 +1799,17 @@ class MijoraVenipak extends CarrierModule
                 unset($terminals[$key]);
         }
         return $terminals;
+    }
+
+    public function changeOrderStatus($id_order, $status)
+    {
+        $order = new Order((int)$id_order);
+        if ($order->current_state != $status)
+        {
+            $history = new OrderHistory();
+            $history->id_order = (int)$id_order;
+            $history->id_employee = Context::getContext()->employee->id;
+            $history->changeIdOrderState((int)$status, $order);
+        }
     }
 }
