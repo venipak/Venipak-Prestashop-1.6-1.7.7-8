@@ -8,7 +8,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     public $bootstrap = true;
 
     /**
-     * AdminOmnivaltShippingStoresController class constructor
+     * AdminVenipakWarehouseController class constructor
      *
      * @throws PrestaShopException
      * @throws SmartyException

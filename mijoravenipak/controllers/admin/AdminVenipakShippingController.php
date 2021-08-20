@@ -6,7 +6,7 @@ class AdminVenipakShippingController extends ModuleAdminController
     public $bootstrap = true;
 
     /**
-     * AdminOmnivaltShippingStoresController class constructor
+     * AdminVenipakShippingController class constructor
      *
      * @throws PrestaShopException
      * @throws SmartyException
@@ -49,6 +49,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
             $this->errors[] = $this->l('Select shop');
         } else {
+            $this->content .= $this->displayMenu();
             $this->readyOrdersList();
         }
     }
@@ -181,8 +182,10 @@ class AdminVenipakShippingController extends ModuleAdminController
             $id_order = Tools::getValue('id_order');
             MijoraVenipak::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
-            $manifest_id = $cDb->getOrderValue('manifest_id', ['id_order' => $id_order]);
-            $cApi->printList($manifest_id);
+            /* todo: this is still not suitable to print several labels at once. If order has several packs, it'll get only first label
+                how to pass array to curl? I.e pack[] = x, pack[] = y, etc.*/
+            $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
+            $cApi->printLabel(array_shift($labels_numbers));
         }
     }
 
@@ -191,4 +194,33 @@ class AdminVenipakShippingController extends ModuleAdminController
         return implode(', ', json_decode($labels, true));
     }
 
+    /**
+     * @throws SmartyException
+     */
+    private function displayMenu()
+    {
+        $menu = array(
+            array(
+                'label' => $this->l('Ready Orders'),
+                'url' => $this->context->link->getAdminLink($this->controller_name),
+                'active' => Tools::getValue('controller') == $this->controller_name
+            ),
+            array(
+                'label' => $this->l('Generated Manifests'),
+                'url' => $this->context->link->getAdminLink('AdminVenipakManifests'),
+                'active' => false
+            )
+        );
+
+        MijoraVenipak::checkForClass('MjvpWarehouse');
+        $warehouses = MjvpWarehouse::getWarehouses();
+
+        $this->context->smarty->assign(array(
+            'moduleMenu' => $menu,
+            'warehouses' => json_encode($warehouses),
+            'call_url' => $this->context->link->getAdminLink($this->controller_name),
+        ));
+
+        return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/manifest_menu.tpl');
+    }
 }

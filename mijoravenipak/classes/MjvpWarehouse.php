@@ -18,6 +18,8 @@ class MjvpWarehouse extends ObjectModel
 
     public $zip_code;
 
+    public $id_shop;
+
     public $phone;
 
     public $default_on;
@@ -36,9 +38,25 @@ class MjvpWarehouse extends ObjectModel
             'city' =>                array('type' => self::TYPE_STRING, 'required' => true, 'size' => 40, 'validate' => 'isCityName'),
             'address' =>             array('type' => self::TYPE_STRING, 'required' => true, 'size' => 50, 'validate' => 'isAddress'),
             'zip_code' =>            array('type' => self::TYPE_STRING, 'required' => true, 'size' => 6, 'validate' => 'isZipCodeFormat'),
-            'phone' =>               array('type' => self::TYPE_BOOL, 'required' => true, 'size' => 30, 'validate' => 'isPhoneNumber'),
-            'default_on' =>             array('type' => self::TYPE_BOOL, 'required' => true, 'validate' => 'isBool'),
+            'id_shop' =>             array('type' => self::TYPE_STRING, 'validate' => 'isInt', 'required' => true),
+            'phone' =>               array('type' => self::TYPE_BOOL,   'required' => true, 'size' => 30, 'validate' => 'isPhoneNumber'),
+            'default_on' =>          array('type' => self::TYPE_BOOL,   'required' => true, 'validate' => 'isBool'),
         ),
     );
+
+    public static function getWarehouses()
+    {
+        return Db::getInstance()->executeS(
+            'SELECT *
+                  FROM `' . _DB_PREFIX_ . pSQL(self::$definition['table']) . '`
+                  WHERE id_shop = ' . Context::getContext()->shop->id
+        );
+    }
+
+    public function add($auto_date = true, $null_values = false)
+    {
+        $this->id_shop = Context::getContext()->shop->id;
+        return parent::add($auto_date, $null_values);
+    }
 
 }

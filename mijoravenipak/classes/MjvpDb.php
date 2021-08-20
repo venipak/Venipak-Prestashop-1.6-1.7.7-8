@@ -11,7 +11,7 @@ class MjvpDb
      */
     private $_table_orders = 'mjvp_orders';
     private $_table_warehouses = 'mjvp_warehouse';
-    //private $_table_cart = 'mjvp_cart';
+    private $_table_manifests = 'mjvp_manifest';
 
     /**
      * Status values for rows in 'orders' table
@@ -62,12 +62,24 @@ class MjvpDb
                 `city` varchar(50) NOT NULL,
                 `address` varchar(255) NOT NULL,
                 `zip_code` varchar(10) NOT NULL,
+                `id_shop` int(10) NOT NULL,
                 `phone` varchar(15) NOT NULL,
                 `default_on` tinyint NOT NULL,
                 PRIMARY KEY (`id`)
             ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
-        );
 
+            $this->_table_manifests => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_manifests  . '` (
+                `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                `manifest_id` varchar(40) NOT NULL,
+                `id_shop` int(10) unsigned NOT NULL,
+                `id_warehouse` int(10) unsigned DEFAULT 0,
+                `shipment_weight` float(10) DEFAULT 0,
+                `call_comment` varchar(255) DEFAULT NULL,
+                `carrier_arrival_date` datetime NOT NULL,
+                `date_add` datetime NOT NULL,
+                PRIMARY KEY (`id`)
+              ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',
+        );
         foreach ($sql as $query) {
             try {
                 $res_query = Db::getInstance()->execute($query);
@@ -232,6 +244,14 @@ class MjvpDb
     public function getOrderValue($get_column, $where, $where_condition = 'AND')
     {
         return $this->getValue($this->_table_orders, $get_column, $where, $where_condition);
+    }
+
+    /**
+     * Get table value from module 'manifests' table
+     */
+    public function getManifestValue($get_column, $where, $where_condition = 'AND')
+    {
+        return $this->getValue($this->_table_manifests, $get_column, $where, $where_condition);
     }
 
     /**

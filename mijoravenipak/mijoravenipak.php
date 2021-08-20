@@ -9,6 +9,7 @@ class MijoraVenipak extends CarrierModule
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
     const CONTROLLER_WAREHOUSE = 'AdminVenipakWarehouse';
     const CONTROLLER_ADMIN_AJAX = 'AdminVenipakshippingAjax';
+    const CONTROLLER_ADMIN_MANIFEST = 'AdminVenipakManifests';
     const EXTRA_FIELDS_SIZE = 10;
 
     /**
@@ -88,6 +89,7 @@ class MijoraVenipak extends CarrierModule
         'MjvpDb' => 'classes/MjvpDb.php',
         'MjvpCart' => 'classes/MjvpCart.php',
         'MjvpWarehouse' => 'classes/MjvpWarehouse.php',
+        'MjvpManifest' => 'classes/MjvpManifest.php',
         'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
     );
 
@@ -314,6 +316,10 @@ class MijoraVenipak extends CarrierModule
             ),
             self::CONTROLLER_ADMIN_AJAX => array(
                 'title' => $this->l('VenipakAdminAjax'),
+                'parent_tab' => -1
+            ),
+            self::CONTROLLER_ADMIN_MANIFEST => array(
+                'title' => $this->l('Venipak Manifests'),
                 'parent_tab' => -1
             )
         );
@@ -1672,6 +1678,12 @@ class MijoraVenipak extends CarrierModule
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
+                    $manifest_number = Configuration::get($this->_configKeysOther['last_manifest_id']['key']);
+                    self::checkForClass('MjvpManifest');
+                    $mjvp_manifest = new MjvpManifest();
+                    $mjvp_manifest->manifest_id = $manifest_number;
+                    $mjvp_manifest->id_shop = $this->context->shop->id;
+                    $mjvp_manifest->save();
 
                     // Multiple labels - $status['text'] is array
                     if(isset($status['text']) && is_array($status['text']))
@@ -1683,7 +1695,7 @@ class MijoraVenipak extends CarrierModule
                             $order_labels = array_slice($status['text'], $offset, $mapping);
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
-                                'manifest_id' => Configuration::get($this->_configKeysOther['last_manifest_id']['key']),
+                                'manifest_id' => $manifest_number,
                                 'status' => 'registered',
                                 'labels_date' => date('Y-m-d h:i:s')],
                                 ['id_order' => $order_id]);
@@ -1695,7 +1707,7 @@ class MijoraVenipak extends CarrierModule
                         $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
                             'labels_numbers' => json_encode([$manifest_id => $status['text']]),
-                            'manifest_id' => Configuration::get($this->_configKeysOther['last_manifest_id']['key']),
+                            'manifest_id' => $manifest_number,
                             'status' => 'registered',
                             'labels_date' => date('Y-m-d h:i:s')],
                             ['id_order' => array_key_first($order_packages_mapping)]);
