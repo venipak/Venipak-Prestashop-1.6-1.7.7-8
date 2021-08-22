@@ -30,8 +30,8 @@ class MjvpManifest extends ObjectModel
             'id_warehouse' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId'),
             'shipment_weight' => array('type' => self::TYPE_FLOAT, 'validate' => 'isFloat'),
             'call_comment' => array('type' => self::TYPE_STRING, 'size' => 255, 'validate' => 'isGenericName'),
-            'arrival_date_from' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
-            'arrival_date_to' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
+            'arrival_date_from' => array('type' => self::TYPE_DATE, 'validate' => 'isDate',  'allow_null' => true),
+            'arrival_date_to' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'allow_null' => true),
             'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
         )
     );

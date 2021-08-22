@@ -93,12 +93,90 @@ class MjvpApi
     }
 
     /**
+     * Create XML structure for Carrier invitation
+     */
+    public function buildCourierInvitationXml($params)
+    {
+        MijoraVenipak::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
+
+        if (empty($api_id)) {
+            throw new Exception(sprintf('%s value is empty','API ID'));
+        }
+
+        $xml_code = $this->buildInvitationXml($params);
+
+        return $this->buildXml($xml_code, $params['desc_type']);
+    }
+
+    /**
+     * Build sender XML structure
+     */
+    public function buildInvitationXml($params)
+    {
+        $params['desc_type'] = (isset($params['desc_type'])) ? $params['desc_type'] : 1;
+        $params['sender']['name'] = (isset($params['sender']['name'])) ? $params['sender']['name'] : '';
+        $params['sender']['company_code'] = (isset($params['sender']['company_code'])) ? $params['sender']['company_code'] : '';
+        $params['sender']['country'] = (isset($params['sender']['country'])) ? $params['sender']['country'] : '';
+        $params['sender']['city'] = (isset($params['sender']['city'])) ? $params['sender']['city'] : '';
+        $params['sender']['address'] = (isset($params['sender']['address'])) ? $params['sender']['address'] : '';
+        $params['sender']['post_code'] = (isset($params['sender']['post_code'])) ? $params['sender']['post_code'] : '';
+        $params['sender']['contact_person'] = (isset($params['sender']['contact_person'])) ? $params['sender']['contact_person'] : '';
+        $params['sender']['contact_tel'] = (isset($params['sender']['contact_tel'])) ? $params['sender']['contact_tel'] : '';
+        $params['sender']['contact_email'] = (isset($params['sender']['contact_email'])) ? $params['sender']['contact_email'] : '';
+        $params['weight'] = (isset($params['weight'])) ? $params['weight'] : 0;
+        $params['volume'] = (isset($params['volume'])) ? $params['volume'] : 0;
+        $params['date_y'] = (isset($params['date_y'])) ? $params['date_y'] : '';
+        $params['date_m'] = (isset($params['date_m'])) ? $params['date_m'] : '';
+        $params['date_d'] = (isset($params['date_d'])) ? $params['date_d'] : '';
+        $params['date_d'] = (isset($params['date_d'])) ? $params['date_d'] : '';
+        $params['hour_from'] = (isset($params['hour_from'])) ? $params['hour_from'] : '';
+        $params['min_from'] = (isset($params['min_from'])) ? $params['min_from'] : '';
+        $params['hour_to'] = (isset($params['hour_to'])) ? $params['hour_to'] : '';
+        $params['comment'] = (isset($params['comment'])) ? $params['comment'] : '';
+        $params['spp'] = (isset($params['spp'])) ? $params['spp'] : '';
+        $params['doc_no'] = (isset($params['doc_no'])) ? $params['doc_no'] : '';
+
+        $xml_code = '<sender>';
+        $xml_code .= '<name>' . $params['sender']['name'] . '</name>';
+        if (!empty($params['sender']['code'])) {
+            $xml_code .= '<company_code>' . $params['sender']['code'] . '</company_code>';
+        }
+        $xml_code .= '<country>' . $params['sender']['country_code'] . '</country>';
+        $xml_code .= '<city>' . $params['sender']['city'] . '</city>';
+        $xml_code .= '<address>' . $params['sender']['address'] . '</address>';
+        $xml_code .= '<post_code>' . $params['sender']['postcode'] . '</post_code>';
+        $xml_code .= '<contact_person>' . $params['sender']['contact_person'] . '</contact_person>';
+        $xml_code .= '<contact_tel>' . $params['sender']['contact_phone'] . '</contact_tel>';
+        $xml_code .= '<contact_email>' . $params['sender']['contact_email'] . '</contact_email>';
+        $xml_code .= '</sender>';
+        $xml_code .= '<weight>' . $params['weight']. '</weight>';
+        $xml_code .= '<volume>' . $params['volume']. '</volume>';
+        $xml_code .= '<date_y>' . $params['date_y']. '</date_y>';
+        $xml_code .= '<date_m>' . $params['date_m']. '</date_m>';
+        $xml_code .= '<date_d>' . $params['date_d']. '</date_d>';
+        $xml_code .= '<hour_from>' . $params['hour_from']. '</hour_from>';
+        $xml_code .= '<min_from>' . $params['min_from']. '</min_from>';
+        $xml_code .= '<hour_to>' . $params['hour_to']. '</hour_to>';
+        $xml_code .= '<min_to>' . $params['min_to']. '</min_to>';
+        if (isset($params['comment']))
+            $xml_code .= '<comment>' . $params['comment']. '</comment>';
+        if (isset($params['spp']))
+            $xml_code .= '<spp>' . $params['spp']. '</spp>';
+        if (isset($params['doc_no']))
+            $xml_code .= '<doc_no>' . $params['doc_no']. '</doc_no>';
+        return $xml_code;
+    }
+
+    /**
      * Build shipment XML structure
      */
     public function buildShipmentXml($params)
     {
         $params['api_id'] = (isset($params['api_id'])) ? $params['api_id'] : '';
-        $params['consignee']['name'] = (isset($params['consignee']['name'])) ? $params['consignee']['name'] : '';
+        $params['sender']['name'] = (isset($params['consignee']['name'])) ? $params['consignee']['name'] : '';
         $params['consignee']['code'] = (isset($params['consignee']['code'])) ? $params['consignee']['code'] : '';
         $params['consignee']['country_code'] = (isset($params['consignee']['country_code'])) ? $params['consignee']['country_code'] : '';
         $params['consignee']['city'] = (isset($params['consignee']['city'])) ? $params['consignee']['city'] : '';

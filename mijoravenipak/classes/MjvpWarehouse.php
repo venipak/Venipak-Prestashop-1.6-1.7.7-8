@@ -4,7 +4,7 @@ class MjvpWarehouse extends ObjectModel
 {
     public $id;
 
-    public $warehouse_name;
+    public $name;
 
     public $company_code;
 
@@ -31,7 +31,7 @@ class MjvpWarehouse extends ObjectModel
         'table' => 'mjvp_warehouse',
         'primary' => 'id',
         'fields' => array(
-            'warehouse_name' =>      array('type' => self::TYPE_STRING, 'required' => true, 'size' => 60, 'validate' => 'isGenericName'),
+            'name' =>      array('type' => self::TYPE_STRING, 'required' => true, 'size' => 60, 'validate' => 'isGenericName'),
             'company_code' =>        array('type' => self::TYPE_STRING, 'required' => true, 'size' => 16),
             'contact' =>             array('type' => self::TYPE_STRING, 'required' => true, 'size' => 40, 'validate' => 'isName'),
             'country_code' =>        array('type' => self::TYPE_STRING, 'required' => true, 'size' => 2, 'validate' => 'isLangIsoCode'),

@@ -6,6 +6,8 @@
                 <h3>{l s="Call Venipak Courier" mod="mijoravenipak"}</h3>
             </div>
             <div id='call-modal-errors' class="alert alert-danger">
+                <ul>
+                </ul>
             </div>
             <div class="modal-body">
                 {if isset($warehouses) && !empty($warehouses)}
@@ -13,7 +15,7 @@
                         {l s="Please select warehouse to call courier to:" mod="mijoravenipak"}
                         <select id="id_venipak_warehouse" class="chosen">
                             {foreach from=$warehouses item=warehouse}
-                                <option value="{$warehouse.id}" {if $warehouse.default_on}selected{/if}>{$warehouse.warehouse_name}</option>
+                                <option value="{$warehouse.id}" {if $warehouse.default_on}selected{/if}>{$warehouse.name}</option>
                             {/foreach}
                         </select>
                     </p>
@@ -25,10 +27,13 @@
                 <p id="warehouse_info"></p>
                 <p>
                     {l s="Coment to courier (optional)" mod="mijoravenipak"}
-                    <input id="courier_comment" type="text" name="courier_comment">
+                    <input id="call_comment" type="text" name="call_comment">
                 </p>
                 <div class="alert alert-warning">
-                    {l s='Must be at least 2 hours difference between TIME FROM and TIME TO' mod="mijoravenipak"}
+                    <ul>
+                        <li>{l s='Must be at least 2 hours difference between TIME FROM and TIME TO' mod="mijoravenipak"}</li>
+                        <li>{l s='Minutes should be indicated quarterly: 15, 30, 45, 00' mod="mijoravenipak"}</li>
+                    </ul>
                 </div>
                 <p>
                     {l s='Carrier arrival time (from)' mod="mijoravenipak"}

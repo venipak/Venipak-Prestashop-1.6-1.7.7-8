@@ -36,7 +36,7 @@ function create_venipak_modal() {
             showErrorMessage(call_errors.manifest);
         }
         validateArrivalDate();
-        if($('#call-modal-errors p').length == 0)
+        if($('#call-modal-errors li').length == 0)
         {
             cleanErrors();
             sendCall();
@@ -66,14 +66,21 @@ function sendCall() {
         dataType: "json",
         data : {
             'id_manifest' : venipak_manifest_id,
-            'id_venipak_warehouse' : $('#id_venipak_warehouse').val(),
-            'courier_comment' : $('#courier_comment').val(),
+            'id_warehouse' : $('#id_venipak_warehouse').val(),
+            'call_comment' : $('#call_comment').val(),
             'arrival_date_from' : $('#arrival-time-from').val(),
             'arrival_date_to' : $('#arrival-time-to').val(),
         },
         success: function (res) {
             if (typeof res['error'] != 'undefined') {
-                showErrorMessage(res['error']);
+                if(Array.isArray(res['error']))
+                {
+                    res['error'].forEach((error, i) => {
+                        showErrorMessage(error);
+                    });
+                }
+                else
+                    showErrorMessage(res['error']);
                 return false;
             }
             showSuccessMessage(res['success']);
@@ -89,6 +96,7 @@ function validateArrivalDate()
 {
     const dateFromVal = $('#arrival-time-from').val();
     const dateToVal = $('#arrival-time-to').val();
+    const dateNow = new Date();
     if(!dateFromVal || !dateToVal)
         showErrorMessage(call_errors.arrival_times);
     let dateFrom = new Date(dateFromVal);
@@ -97,20 +105,29 @@ function validateArrivalDate()
     {
         showErrorMessage(call_errors.invalid_dates);
     }
-    else if((dateTo - dateFrom) / (3600 * 1000)  < call_min_difference)
+    if((dateTo - dateFrom) / (3600 * 1000)  < call_min_difference)
     {
         showErrorMessage(call_errors.date_diff);
+    }
+    if(dateFrom <= dateNow)
+    {
+        showErrorMessage(call_errors.past_date);
+    }
+    // To check if quarterly, convert to minutes and check if divisible by 15.
+    if((dateFrom.valueOf() / (60 * 1000)) % 15 !== 0 || (dateTo.valueOf() / (60 * 1000)) % 15 !== 0)
+    {
+        showErrorMessage(call_errors.minutes_quarterly);
     }
 }
 
 function showErrorMessage(message)
 {
-    $('#call-modal-errors').append(`<p>${message}</p>`);
+    $('#call-modal-errors ul').append(`<li>${message}</li>`);
     $('#call-modal-errors').show();
 }
 
 function cleanErrors()
 {
-    $('#call-modal-errors p').remove();
+    $('#call-modal-errors li').remove();
     $('#call-modal-errors').hide();
 }

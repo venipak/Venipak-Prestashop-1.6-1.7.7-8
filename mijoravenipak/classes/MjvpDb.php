@@ -55,7 +55,7 @@ class MjvpDb
 
             $this->_table_warehouses => 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . $this->_table_warehouses . '` (
                 `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-                `warehouse_name` varchar(60) NOT NULL,
+                `name` varchar(60) NOT NULL,
                 `company_code` varchar(16) NOT NULL,
                 `contact` varchar(40) NOT NULL,
                 `country_code` varchar(5),
