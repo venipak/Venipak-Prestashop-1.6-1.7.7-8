@@ -11,6 +11,7 @@ class MijoraVenipak extends CarrierModule
     const CONTROLLER_ADMIN_AJAX = 'AdminVenipakshippingAjax';
     const CONTROLLER_ADMIN_MANIFEST = 'AdminVenipakManifests';
     const EXTRA_FIELDS_SIZE = 10;
+    const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -1799,6 +1800,10 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
+        }
+        if(isset($this->context->controller->module) && $this->context->controller->module = $this)
+        {
+            $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
         }
     }
 

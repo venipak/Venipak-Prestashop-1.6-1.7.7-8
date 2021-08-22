@@ -8,15 +8,17 @@ class MjvpManifest extends ObjectModel
 
     public $id_shop;
 
-    public $date_add;
-
     public $id_warehouse;
 
     public $shipment_weight;
 
     public $call_comment;
 
-    public $carrier_arrival_date;
+    public $arrival_date_from;
+
+    public $arrival_date_to;
+
+    public $date_add;
 
     /** @var array Class variables and their validation types */
     public static $definition = array(
@@ -28,35 +30,10 @@ class MjvpManifest extends ObjectModel
             'id_warehouse' => array('type' => self::TYPE_INT, 'validate' => 'isUnsignedId'),
             'shipment_weight' => array('type' => self::TYPE_FLOAT, 'validate' => 'isFloat'),
             'call_comment' => array('type' => self::TYPE_STRING, 'size' => 255, 'validate' => 'isGenericName'),
+            'arrival_date_from' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
+            'arrival_date_to' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
             'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
-            'carrier_arrival_date' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
         )
     );
-
-    public function getManifestItems()
-    {
-        $sql = '
-      SELECT * FROM `' . _DB_PREFIX_ . 'venipak_cart` ic
-      WHERE id_venipak_manifest = ' . $this->id_venipak_manifest;
-        $result = DB::getInstance()->executeS($sql);
-
-        $items = array();
-        foreach ($result as $row) {
-            $items[] = array(
-                'tracking_number' => implode(' ', explode(',', $row['label_number'])),
-                'amount' => $row['packs'],
-                'weight' => $row['weight'],
-                'delivery_address' => $this->generateDeliveryAddress($row)
-            );
-        }
-
-        return $items;
-    }
-
-
-    public function toString()
-    {
-        return 'ID: ' . $this->id_venipak_manifest . ' | ID_SHOP: ' . $this->id_shop . ' | DATE: ' . $this->date_add;
-    }
 
 }

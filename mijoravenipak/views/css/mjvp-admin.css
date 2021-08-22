@@ -69,3 +69,7 @@
 .venipak .response {
     margin-top: 1em;
 }
+
+#call-modal-errors {
+    display: none;
+}

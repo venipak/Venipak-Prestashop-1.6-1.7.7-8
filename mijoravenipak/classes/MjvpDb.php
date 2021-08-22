@@ -75,7 +75,8 @@ class MjvpDb
                 `id_warehouse` int(10) unsigned DEFAULT 0,
                 `shipment_weight` float(10) DEFAULT 0,
                 `call_comment` varchar(255) DEFAULT NULL,
-                `carrier_arrival_date` datetime NOT NULL,
+                `arrival_date_from` datetime DEFAULT NULL,
+                `arrival_date_to` datetime DEFAULT NULL,
                 `date_add` datetime NOT NULL,
                 PRIMARY KEY (`id`)
               ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',

@@ -5,19 +5,27 @@
                 <a class="close" data-dismiss="modal" >&times;</a>
                 <h3>{l s="Call Venipak Courier" mod="mijoravenipak"}</h3>
             </div>
+            <div id='call-modal-errors' class="alert alert-danger">
+            </div>
             <div class="modal-body">
-                <p>
-                    {l s="Please select warehouse to call courier to:" mod="mijoravenipak"}
-                    <select id="id_venipak_warehouse" class="chosen">
-                        {foreach from=$warehouses item=warehouse}
-                            <option value="{$warehouse.id}" {if $warehouse.default_on}selected{/if}>{$warehouse.warehouse_name}</option>
-                        {/foreach}
-                    </select>
-                </p>
+                {if isset($warehouses) && !empty($warehouses)}
+                    <p>
+                        {l s="Please select warehouse to call courier to:" mod="mijoravenipak"}
+                        <select id="id_venipak_warehouse" class="chosen">
+                            {foreach from=$warehouses item=warehouse}
+                                <option value="{$warehouse.id}" {if $warehouse.default_on}selected{/if}>{$warehouse.warehouse_name}</option>
+                            {/foreach}
+                        </select>
+                    </p>
+                {else}
+                    <div class="alert alert-warning">
+                        {l s='Could not find any Venipak warehouse. Address from your Shop settings will be used, make sure you filled out all information.' mod="mijoravenipak"}
+                    </div>
+                {/if}
                 <p id="warehouse_info"></p>
                 <p>
                     {l s="Coment to courier (optional)" mod="mijoravenipak"}
-                    <input type="text" name="courier_comment">
+                    <input id="courier_comment" type="text" name="courier_comment">
                 </p>
                 <div class="alert alert-warning">
                     {l s='Must be at least 2 hours difference between TIME FROM and TIME TO' mod="mijoravenipak"}
@@ -25,12 +33,10 @@
                 <p>
                     {l s='Carrier arrival time (from)' mod="mijoravenipak"}
                     <input id="arrival-time-from" type="text" class="input-medium" name="arrival_time_from" value=""/>
-{*                    <span class="input-group-addon"><i class="icon-calendar-empty"></i></span>*}
                 </p>
                 <p>
                     {l s='Carrier arrival time (to)' mod="mijoravenipak"}
                     <input id="arrival-time-to" type="text" class="input-medium" name="arrival_time_to" value=""/>
-{*                    <span class="input-group-addon"><i class="icon-calendar-empty"></i></span>*}
                 </p>
             </div>
             <div class="modal-footer">

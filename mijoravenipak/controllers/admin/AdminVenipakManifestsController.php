@@ -21,7 +21,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         MijoraVenipak::checkForClass('MjvpManifest');
         $this->_select = ' a.manifest_id, (SELECT COUNT(*) FROM `'
-            . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total';
+            . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total,
+            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival ';
 
     }
 
@@ -42,6 +43,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
      */
     public function renderList()
     {
+        unset($this->toolbar_btn['new']);
         $content =  parent::renderList();
         $content .= $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/call_carrier_modal.tpl');
         return $content;
@@ -54,7 +56,17 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->addJs('modules/' . $this->module->name . '/views/js/mjvp-manifest.js');
         Media::addJsDef([
                 'warehouses' => $warehouses,
-                'call_url' => $this->context->link->getAdminLink($this->controller_name),
+                'call_url' => $this->context->link->getAdminLink($this->controller_name, true, [], ['submitCallCarrier' => 1]),
+                'call_min_difference' => MijoraVenipak::CARRIER_CALL_MINIMUM_DIFFERENCE,
+                'call_errors' => [
+                    'warehouse' => $this->module->l('No warehouse selected'),
+                    'manifest' => $this->module->l('No manifest selected'),
+                    'arrival_times' => $this->module->l('Please select carrier arrival time interval.'),
+                    'request' => $this->module->l('Failed to request Call courier'),
+                    'invalid_dates' => $this->module->l('Incorrect arrival date interval: end of interval is earlier than the beginning.'),
+                    'date_diff' => $this->module->l(sprintf('There must be at least %s hours difference between carrier arrival intervals',
+                        MijoraVenipak::CARRIER_CALL_MINIMUM_DIFFERENCE)),
+                ]
             ]
         );
     }
@@ -109,7 +121,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'callback' => 'getShopNameById',
             ),
             'date_add' => array(
-                'title' => $this->l('Date'),
+                'title' => $this->l('Creation Date'),
                 'align' => 'center',
                 'type' => 'datetime',
                 'filter_key' => 'a!date_add',
@@ -119,6 +131,11 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'align' => 'text-center',
                 'search' => false,
                 'class' => 'fixed-width-xs',
+            ),
+            'date_arrival' => array(
+                'title' => $this->l('Carrier arrival'),
+                'align' => 'center',
+                'type' => 'text',
             ),
         );
 
@@ -141,19 +158,27 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function printBtn($id)
     {
-        return '<span class="btn-group-action">
-                <span class="btn-group">
-                    <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone&ajax=1' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
-                    </a>
-                </span>
-            </span>
+        MijoraVenipak::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
 
-            <span class="btn-group-action">
-                <span class="btn-group">
-                    <a data-manifest="' . $id . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
-                    </a>
-                </span>
-            </span>';
+        $arrival_time_from = $manifest_number = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
+        $arrival_time_to = $manifest_number = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
+        $content = '<span class="btn-group-action">
+                        <span class="btn-group">
+                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone&ajax=1' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
+                            </a>
+                        </span>
+                    </span>';
+        if(!$arrival_time_from || !$arrival_time_to)
+        {
+            $content .= '<span class="btn-group-action">
+                            <span class="btn-group">
+                                <a data-manifest="' . $id . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
+                                </a>
+                            </span>
+                        </span>';
+        }
+        return $content;
     }
 
     public function postProcess()
@@ -168,6 +193,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
             $id_manifest = Tools::getValue('id');
             $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
             $cApi->printList($manifest_number);
+        }
+        if(Tools::isSubmit('submitCallCarrier'))
+        {
+
         }
     }
 }

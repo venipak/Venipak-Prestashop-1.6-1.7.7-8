@@ -31,10 +31,19 @@ function create_venipak_modal() {
 
     var confirmModal = $('#venipak_modal');
     confirmModal.find('#confirm_modal_left_button').click(function () {
-        sendCall($('#id_venipak_warehouse').val(), venipak_manifest_id);
-        confirmModal.modal('hide');
+        cleanErrors();
+        if (!venipak_manifest_id) {
+            showErrorMessage(call_errors.manifest);
+        }
+        validateArrivalDate();
+        if($('#call-modal-errors p').length == 0)
+        {
+            cleanErrors();
+            sendCall();
+        }
     });
     confirmModal.find('#confirm_modal_right_button').click(function () {
+        cleanErrors();
         confirmModal.modal('hide');
     });
 
@@ -50,32 +59,58 @@ function findWarehouseInfo(id_warehouse) {
     return false;
 }
 
-function sendCall(address_id, manifest_id) {
-    if (!address_id) {
-        showErrorMessage('{l s="No warehouse selected" mod="mijoravenipak"}');
-    }
-    if (!manifest_id) {
-        showErrorMessage('{l s="No manifest selected" mod="mijoravenipak"}');
-    }
-    validate
-
+function sendCall() {
     $.ajax({
         type: "POST",
-        url: call_url + "&ajax=1&id_venipak_warehouse=" + address_id + "&id_manifest=" + manifest_id,
-        async: false,
-        processData: false,
-        contentType: false,
-        cache: false,
+        url: call_url + "&ajax=1",
         dataType: "json",
+        data : {
+            'id_manifest' : venipak_manifest_id,
+            'id_venipak_warehouse' : $('#id_venipak_warehouse').val(),
+            'courier_comment' : $('#courier_comment').val(),
+            'arrival_date_from' : $('#arrival-time-from').val(),
+            'arrival_date_to' : $('#arrival-time-to').val(),
+        },
         success: function (res) {
             if (typeof res['error'] != 'undefined') {
                 showErrorMessage(res['error']);
                 return false;
             }
             showSuccessMessage(res['success']);
+            confirmModal.modal('hide');
         },
         error: function (res) {
-            showErrorMessage('{l s="Failed to request Call courier" mod="mijoravenipak"}');
+            showErrorMessage(call_errors.request);
         }
     });
+}
+
+function validateArrivalDate()
+{
+    const dateFromVal = $('#arrival-time-from').val();
+    const dateToVal = $('#arrival-time-to').val();
+    if(!dateFromVal || !dateToVal)
+        showErrorMessage(call_errors.arrival_times);
+    let dateFrom = new Date(dateFromVal);
+    let dateTo = new Date(dateToVal);
+    if(dateFrom - dateTo > 0)
+    {
+        showErrorMessage(call_errors.invalid_dates);
+    }
+    else if((dateTo - dateFrom) / (3600 * 1000)  < call_min_difference)
+    {
+        showErrorMessage(call_errors.date_diff);
+    }
+}
+
+function showErrorMessage(message)
+{
+    $('#call-modal-errors').append(`<p>${message}</p>`);
+    $('#call-modal-errors').show();
+}
+
+function cleanErrors()
+{
+    $('#call-modal-errors p').remove();
+    $('#call-modal-errors').hide();
 }
