@@ -127,7 +127,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('Creation Date'),
                 'align' => 'center',
                 'type' => 'datetime',
-                'filter_key' => 'a!date_add',
+                'search' => false,
             ),
             'manifest_total' => array(
                 'title' => $this->l('Orders in manifest'),
@@ -139,6 +139,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('Carrier arrival'),
                 'align' => 'center',
                 'type' => 'text',
+                'search' => false,
             ),
         );
 
@@ -220,11 +221,27 @@ class AdminVenipakManifestsController extends ModuleAdminController
             'desc_type' => 3
         ];
         $sender = [];
-        $id_warehouse = $form_data['id_warehouse'];
+
+        // If no warehouses are created, data from shop settings will be used for sender data.
+        if(isset($form_data['id_warehouse']))
+        {
+            $id_warehouse = $form_data['id_warehouse'];
+            $warehouse = new MjvpWarehouse($id_warehouse);
+        }
+        else
+        {
+            $id_warehouse = 0;
+            $warehouse_data = $this->formTemporayWarehouse();
+            if(!empty($warehouse_data['errors']))
+            {
+                die(json_encode(['error' => $warehouse_data['errors']]));
+            }
+            $warehouse = $warehouse_data['warehouse'];
+        }
+
         $id_manifest = $form_data['id_manifest'];
         $manifest = new MjvpManifest($id_manifest);
         $manifest->id_warehouse = $id_warehouse;
-        $warehouse = new MjvpWarehouse($id_warehouse);
         $sender['name'] = $warehouse->name;
         $sender['code'] = $warehouse->company_code;
         $sender['country_code'] = $warehouse->country_code;
@@ -319,12 +336,15 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $errors = [];
 
         // Warehouse
-        $id_warehouse = (int)Tools::getValue('id_warehouse');
-        $warehouse = new MjvpWarehouse($id_warehouse);
-        $data['id_warehouse'] = $id_warehouse;
-        if(!Validate::isLoadedObject($warehouse))
+        if(Tools::isSubmit('id_warehouse'))
         {
-            $errors[] = $this->module->l('Selected Warehouse does not exist');
+            $id_warehouse = (int)Tools::getValue('id_warehouse');
+            $warehouse = new MjvpWarehouse($id_warehouse);
+            $data['id_warehouse'] = $id_warehouse;
+            if(!Validate::isLoadedObject($warehouse))
+            {
+                $errors[] = $this->module->l('Selected Warehouse does not exist');
+            }
         }
 
         // Manifest
@@ -338,7 +358,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         // Comment
         $comment = Tools::getValue('call_comment', '');
-        $data['comment'] = $comment;
+        $data['call_comment'] = $comment;
         if(strlen($comment) > 50)
         {
             $errors[] = $this->module->l('Maximum comment length is 50 characters');
@@ -346,8 +366,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $arrival_from = Tools::getValue('arrival_date_from');
         $arrival_to = Tools::getValue('arrival_date_to');
-        $data['arrival_from'] = $arrival_from;
-        $data['arrival_to'] = $arrival_to;
+        $data['arrival_date_from'] = $arrival_from;
+        $data['arrival_date_to'] = $arrival_to;
         if(!$arrival_from || !$arrival_to)
         {
             $errors[] = $this->module->l('Courier arrival interval is not submit.');
@@ -374,5 +394,51 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         return $data;
 
+    }
+
+    public function formTemporayWarehouse()
+    {
+        $data = $errors = [];
+        $cConfig = new MjvpModuleConfig();
+        $warehouse = new MjvpWarehouse();
+        $shop_name = Configuration::get($cConfig->getConfigKey('shop_name', 'SHOP'));
+        if(!$shop_name)
+            $errors[] = $this->module->l('Shop name is required. Please update you Shop settings.');
+        $warehouse->name = $shop_name;
+
+        $company_code = Configuration::get($cConfig->getConfigKey('company_code', 'SHOP'));
+        $warehouse->company_code = $company_code;
+
+        $shop_country_code = Configuration::get($cConfig->getConfigKey('shop_country_code', 'SHOP'));
+        if(!$shop_country_code)
+            $errors[] = $this->module->l('Shop country code is required. Please update you Shop settings.');
+        $warehouse->country_code = $shop_country_code;
+
+        $shop_city = Configuration::get($cConfig->getConfigKey('shop_city', 'SHOP'));
+        if(!$shop_city)
+            $errors[] = $this->module->l('Shop city is required. Please update you Shop settings.');
+        $warehouse->city = $shop_city;
+
+        $shop_address = Configuration::get($cConfig->getConfigKey('shop_address', 'SHOP'));
+        if(!$shop_address)
+            $errors[] = $this->module->l('Shop address is required. Please update you Shop settings.');
+        $warehouse->address = $shop_address;
+
+        $shop_postcode = Configuration::get($cConfig->getConfigKey('shop_postcode', 'SHOP'));
+        if(!$shop_postcode)
+            $errors[] = $this->module->l('Shop postcode is required. Please update you Shop settings.');
+        $warehouse->zip_code = $shop_postcode;
+
+        $shop_contact = Configuration::get($cConfig->getConfigKey('shop_contact', 'SHOP'));
+        $warehouse->contact = $shop_contact;
+
+        $shop_phone = Configuration::get($cConfig->getConfigKey('shop_phone', 'SHOP'));
+        if(!$shop_phone)
+            $errors[] = $this->module->l('Shop phone is required. Please update you Shop settings.');
+        $warehouse->phone = $shop_phone;
+
+        $data['warehouse'] = $warehouse;
+        $data['errors'] = $errors;
+        return $data;
     }
 }
