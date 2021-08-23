@@ -111,6 +111,10 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'text' => $this->l('Generate Labels'),
                 'icon' => 'icon-save'
             ),
+            'printLabels' => array(
+                'text' => $this->l('Print Labels'),
+                'icon' => 'icon-print'
+            ),
         );
     }
 
@@ -182,10 +186,13 @@ class AdminVenipakShippingController extends ModuleAdminController
             $id_order = Tools::getValue('id_order');
             MijoraVenipak::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
-            /* todo: this is still not suitable to print several labels at once. If order has several packs, it'll get only first label
-                how to pass array to curl? I.e pack[] = x, pack[] = y, etc.*/
             $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
-            $cApi->printLabel(array_shift($labels_numbers));
+            $cApi->printLabel($labels_numbers);
+        }
+        if(Tools::isSubmit('submitBulkprintLabelsorder'))
+        {
+            $orders = Tools::getValue('orderBox');
+            $this->module->bulkActionPrintLabels($orders);
         }
     }
 

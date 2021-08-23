@@ -75,7 +75,10 @@ class MjvpVenipak
         );
 
         if (isset($data['packages'])) {
-            $params['pack_no[]'] = $data['packages'];
+            foreach ($data['packages'] as $key => $package)
+            {
+                $params['pack_no[' . $key . ']'] = $package;
+            }
         }
 
         return $this->executeRequest('ws/print_label', 'POST', $params);

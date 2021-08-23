@@ -1515,11 +1515,16 @@ class MijoraVenipak extends CarrierModule
                 'text' => $this->l('Send Venipak labels'),
                 'icon' => 'icon-cloud-upload'
             ));
+            $this->context->controller->addMjvpBulkAction('mjvp_print_labels', array(
+                'text' => $this->l('Print Venipak labels'),
+                'icon' => 'icon-print'
+            ));
 
             $is_bulk_send_labels = Tools::isSubmit('submitBulkmjvp_send_labelsorder');
+            $is_bulk_print_labels = Tools::isSubmit('submitBulkmjvp_print_labelsorder');
 
             try {
-                if (!isset($params['select']) && $is_bulk_send_labels) {
+                if (!isset($params['select']) && ($is_bulk_send_labels || $is_bulk_print_labels)) {
                     $orders = Tools::getValue('orderBox');
 
                     if (empty($orders)) {
@@ -1529,6 +1534,10 @@ class MijoraVenipak extends CarrierModule
 
                     if ($is_bulk_send_labels) {
                         $this->bulkActionSendLabels($orders);
+                    }
+
+                    if ($is_bulk_print_labels) {
+                        $this->bulkActionPrintLabels($orders);
                     }
                 }
             } catch (Exception $e) {
@@ -1782,6 +1791,25 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
             }
         }
+    }
+
+    /**
+     * Mass label printing
+     */
+    public function bulkActionPrintLabels($orders_ids)
+    {
+        // Get all tracking numbers and invoke print_list
+        MijoraVenipak::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        $labels_numbers_db = Db::getInstance()->executeS('SELECT `labels_numbers` FROM ' . _DB_PREFIX_ . "mjvp_orders
+            WHERE `id_order` IN (" . implode(',', $orders_ids) . ')');
+        $labels_numbers = [];
+        foreach ($labels_numbers_db as $labels_numbers_row)
+        {
+            if($labels_numbers_row['labels_numbers'])
+                $labels_numbers = array_merge($labels_numbers, json_decode($labels_numbers_row['labels_numbers'], true));
+        }
+        $cApi->printLabel($labels_numbers);
     }
 
     private function showErrors($errors)

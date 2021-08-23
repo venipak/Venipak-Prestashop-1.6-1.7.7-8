@@ -161,6 +161,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
         $label_number = Tools::getValue('label_number');
+        if(!is_array($label_number))
+            $label_number = (array) $label_number;
         $cApi->printLabel($label_number);
     }
 }
