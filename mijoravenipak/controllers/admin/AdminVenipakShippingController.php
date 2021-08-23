@@ -5,10 +5,8 @@ class AdminVenipakShippingController extends ModuleAdminController
     /** @var bool Is bootstrap used */
     public $bootstrap = true;
 
-    private $total_orders = 0;
-
     /**
-     * AdminOmnivaltShippingStoresController class constructor
+     * AdminVenipakShippingController class constructor
      *
      * @throws PrestaShopException
      * @throws SmartyException
@@ -39,7 +37,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->_sql = '
       SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'orders` a
       WHERE 1 ' . Shop::addSqlRestrictionOnLang('a');
-        $this->total_orders = DB::getInstance()->getValue($this->_sql);
 
         $this->_where = ' AND carrier.id_reference IN ('
             . Configuration::get('MJVP_COURIER_ID_REFERENCE') . ','
@@ -52,6 +49,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
             $this->errors[] = $this->l('Select shop');
         } else {
+            $this->content .= $this->displayMenu();
             $this->readyOrdersList();
         }
     }
@@ -82,15 +80,19 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'filter_key' => 'os!id_order_state',
                 'filter_type' => 'int',
                 'order_key' => 'osname',
+                'search' => false,
             ),
             'customer' => array(
                 'title' => $this->l('Customer'),
                 'havingFilter' => true,
+                'search' => false,
             ),
             'label_number' => array(
                 'type' => 'text',
-                'title' => $this->l('Tracking number'),
+                'title' => $this->l('Tracking number(s)'),
                 'havingFilter' => false,
+                'callback' => 'parseLabelNumbers',
+                'search' => false,
             )
         );
 
@@ -180,8 +182,44 @@ class AdminVenipakShippingController extends ModuleAdminController
             $id_order = Tools::getValue('id_order');
             MijoraVenipak::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
-            $manifest_id = $cDb->getOrderValue('manifest_id', ['id_order' => $id_order]);
-            $cApi->printList($manifest_id);
+            /* todo: this is still not suitable to print several labels at once. If order has several packs, it'll get only first label
+                how to pass array to curl? I.e pack[] = x, pack[] = y, etc.*/
+            $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
+            $cApi->printLabel(array_shift($labels_numbers));
         }
+    }
+
+    public function parseLabelNumbers($labels)
+    {
+        return implode(', ', json_decode($labels, true));
+    }
+
+    /**
+     * @throws SmartyException
+     */
+    private function displayMenu()
+    {
+        $menu = array(
+            array(
+                'label' => $this->l('Ready Orders'),
+                'url' => $this->context->link->getAdminLink($this->controller_name),
+                'active' => Tools::getValue('controller') == $this->controller_name
+            ),
+            array(
+                'label' => $this->l('Generated Manifests'),
+                'url' => $this->context->link->getAdminLink('AdminVenipakManifests'),
+                'active' => false
+            )
+        );
+
+        MijoraVenipak::checkForClass('MjvpWarehouse');
+        $warehouses = MjvpWarehouse::getWarehouses();
+
+        $this->context->smarty->assign(array(
+            'moduleMenu' => $menu,
+            'warehouses' => json_encode($warehouses),
+        ));
+
+        return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/manifest_menu.tpl');
     }
 }

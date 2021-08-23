@@ -8,7 +8,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     public $bootstrap = true;
 
     /**
-     * AdminOmnivaltShippingStoresController class constructor
+     * AdminVenipakWarehouseController class constructor
      *
      * @throws PrestaShopException
      * @throws SmartyException
@@ -34,7 +34,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
             ),
-            'warehouse_name' => array(
+            'name' => array(
                 'title' => $this->l('Warehouse name'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
@@ -116,8 +116,8 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                 array(
                     'type' => 'text',
                     'label' => $this->trans('Warehouse name', array(), 'Admin.Global'),
-                    'name' => 'warehouse_name',
-                    'filter_key' => 'a!warehouse_name',
+                    'name' => 'name',
+                    'filter_key' => 'a!name',
                     'required' => true,
                     'col' => '3',
                     'hint' => $this->trans('Enter the warehouse name', array(), 'Admin.Catalog.Help') . '&nbsp;' . $this->trans('Invalid characters:', array(), 'Admin.Notifications.Info') . ' <>;=#{}',

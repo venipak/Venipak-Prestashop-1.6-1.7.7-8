@@ -151,4 +151,12 @@ class MjvpHelper
             $this->writeToLog("*** Function " . $function . "() on " . basename($file) . " ***\n" . $text, $debug_file_name);
         }
     }
+
+    /**
+     * Split arrival date to: year, month, day, hour, minutes.
+     */
+    public function parseDate($date)
+    {
+        return date_parse_from_format('Y-m-d h:i:s', $date);
+    }
 }
