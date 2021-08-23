@@ -21,8 +21,13 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         $this->table = 'mjvp_warehouse';
         $this->list_id = 'mjvp_warehouse';
         $this->identifier = 'id';
+        $this->_select = ' mw.id as arrival_time, ';
+        $this->_join = '
+            LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id` = mw.`id`)
+    ';
+
         parent::__construct();
-        $this->toolbar_title = $this->l('Venipak Warehouses');
+        $this->toolbar_title = $this->module->l('Venipak Warehouses');
         $this->prepareWarehouseList();
     }
 
@@ -35,43 +40,49 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                 'class' => 'fixed-width-xs',
             ),
             'name' => array(
-                'title' => $this->l('Warehouse name'),
+                'title' => $this->module->l('Warehouse name'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
             ),
             'company_code' => array(
                 'type' => 'text',
-                'title' => $this->l('Company code'),
+                'title' => $this->module->l('Company code'),
                 'align' => 'center',
             ),
             'contact' => array(
-                'title' => $this->l('Full name of contact person'),
+                'title' => $this->module->l('Full name of contact person'),
                 'type' => 'text',
             ),
             'country_code' => array(
-                'title' => $this->l('Country code'),
+                'title' => $this->module->l('Country code'),
                 'type' => 'text',
             ),
             'city' => array(
                 'type' => 'text',
-                'title' => $this->l('City'),
+                'title' => $this->module->l('City'),
             ),
             'address' => array(
                 'type' => 'text',
-                'title' => $this->l('Warehouse address'),
+                'title' => $this->module->l('Warehouse address'),
             ),
             'zip_code' => array(
                 'type' => 'text',
-                'title' => $this->l('Zip code of warehouse'),
+                'title' => $this->module->l('Zip code of warehouse'),
             ),
             'phone' => array(
                 'type' => 'text',
-                'title' => $this->l('Contact phone number'),
+                'title' => $this->module->l('Contact phone number'),
             ),
             'default_on' => array(
                 'type' => 'bool',
-                'title' => $this->l('Default'),
+                'title' => $this->module->l('Default'),
                 'active' => 'status',
+            ),
+            'arrival_time' => array(
+                'type' => 'text',
+                'title' => $this->module->l('Carrier arrival'),
+                'search' => false,
+                'callback' => 'getArrivalTime'
             ),
         );
 
@@ -274,4 +285,37 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         return $fields_value;
     }
 
+    public function getArrivalTime($id_warehouse)
+    {
+        $manifest_rows = Db::getInstance()->executeS("SELECT arrival_date_to, arrival_date_from FROM " . _DB_PREFIX_ . "mjvp_manifest
+            WHERE id_warehouse = " . $id_warehouse);
+
+        foreach ($manifest_rows as $manifest_row)
+        {
+            date_default_timezone_set('Europe/Vilnius');
+            $time_data = [
+                $manifest_row['arrival_date_to'],
+                $manifest_row['arrival_date_from'],
+            ];
+            if(count($time_data) < 2)
+                return $this->module->l('No arrival today.');
+            $date_arrival_from = new DateTime($time_data[0]);
+            $date_arrival_to = new DateTime($time_data[1]);
+            $now = new DateTime('NOW');
+            if($date_arrival_to > $now)
+            {
+                $date_arrival_from->setTime(0,0,0);
+                $now->setTime(0,0,0);
+                $date_diff = $date_arrival_from->diff($now);
+                if($date_diff->d == 0)
+                {
+                    $from_time = date('H:i', strtotime($time_data[0]));
+                    $to_time = date('H:i', strtotime($time_data[1]));
+                    return $from_time . ' - ' . $to_time;
+                }
+            }
+        }
+
+        return $this->module->l('No arrival today.');
+    }
 }

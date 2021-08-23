@@ -106,7 +106,7 @@ function validateArrivalDate()
     {
         showErrorMessage(call_errors.invalid_dates);
     }
-    if((dateTo - dateFrom) / (3600 * 1000)  < call_min_difference)
+    if(Math.abs((dateTo - dateFrom)) / (3600 * 1000)  < call_min_difference)
     {
         showErrorMessage(call_errors.date_diff);
     }
