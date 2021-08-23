@@ -23,6 +23,14 @@ function mjvp_registerSelection(selected_field_id) {
   ajaxData.selected_terminal = document.getElementById(selected_field_id).value;
   ajaxData.country_code = document.getElementById("mjvp-pickup-country").value;
 
+    var terminal = null;
+    mjvp_terminals.forEach((val, i) => {
+        if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
+            terminal = val;
+        }
+    });
+    ajaxData.terminal = terminal;
+
   $.ajax(mjvp_front_controller_url,
     {
       data: ajaxData,

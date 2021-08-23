@@ -44,8 +44,20 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             if (empty($selected_terminal)) {
                 die(Tools::jsonEncode('TERMINAL NOT SELECTED'));
             }
-
+            $terminal = Tools::getValue('terminal');
             $sql_values['terminal_id'] = $selected_terminal;
+            if(is_array($terminal) && !empty($terminal))
+            {
+                $sql_values['terminal_info'] = json_encode([
+                    'name' => $terminal['name'],
+                    'company_code' => $terminal['code'],
+                    'country' => $terminal['country'],
+                    'city' => $terminal['city'],
+                    'address' => $terminal['address'],
+                    'post_code' => $terminal['zip'],
+                ]);
+            }
+
         }
 
         if (in_array($ps_carrier->id_reference, $couriers_references)) {
