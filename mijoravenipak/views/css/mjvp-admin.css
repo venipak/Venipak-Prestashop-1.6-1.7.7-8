@@ -73,3 +73,16 @@
 #call-modal-errors {
     display: none;
 }
+
+#venipak_modal .modal-header {
+    padding: 20px;
+    padding-top: 13px;
+}
+
+#content #venipak_modal h3:not(.modal-title) {
+    margin: 0px -10px 15px;
+}
+
+#venipak_modal .modal-header .close {
+     margin-top: 5px;
+}

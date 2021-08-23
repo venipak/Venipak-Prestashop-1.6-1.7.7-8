@@ -136,8 +136,6 @@ class MjvpApi
         $params['min_from'] = (isset($params['min_from'])) ? $params['min_from'] : '';
         $params['hour_to'] = (isset($params['hour_to'])) ? $params['hour_to'] : '';
         $params['comment'] = (isset($params['comment'])) ? $params['comment'] : '';
-        $params['spp'] = (isset($params['spp'])) ? $params['spp'] : '';
-        $params['doc_no'] = (isset($params['doc_no'])) ? $params['doc_no'] : '';
 
         $xml_code = '<sender>';
         $xml_code .= '<name>' . $params['sender']['name'] . '</name>';
@@ -163,10 +161,6 @@ class MjvpApi
         $xml_code .= '<min_to>' . $params['min_to']. '</min_to>';
         if (isset($params['comment']))
             $xml_code .= '<comment>' . $params['comment']. '</comment>';
-        if (isset($params['spp']))
-            $xml_code .= '<spp>' . $params['spp']. '</spp>';
-        if (isset($params['doc_no']))
-            $xml_code .= '<doc_no>' . $params['doc_no']. '</doc_no>';
         return $xml_code;
     }
 

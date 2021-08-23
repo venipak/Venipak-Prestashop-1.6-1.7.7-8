@@ -289,10 +289,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         // Get carrier arrival time
         $arrival_from = $form_data['arrival_date_from'];
-        // Fix: convert to format with seconds, otherwise Prestashop fails to validat date
+        // Fix: convert to format with seconds, otherwise Prestashop fails to validate date
         $manifest->arrival_date_from = date('Y-m-d H:i:s', strtotime($arrival_from));
         $arrival_from_parsed = $cHelper->parseDate($arrival_from);
-        $arrival_to = $form_data['arrival_date_from'];
+        $arrival_to = $form_data['arrival_date_to'];
         $manifest->arrival_date_to = date('Y-m-d H:i:s', strtotime($arrival_to));
         $arrival_to_parsed = $cHelper->parseDate($arrival_to);
         $invitation_data['date_y'] = $arrival_from_parsed['year'];
@@ -311,7 +311,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $courier_invitation_xml = $cApi->buildCourierInvitationXml($invitation_data);
         if ($cHelper->isXMLContentValid($courier_invitation_xml))
         {
-            die();
             $status = $cApi->sendXml($courier_invitation_xml);
             if (!isset($status['error']) && $status['text']) {
                 $manifest->save();
@@ -319,7 +318,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
             }
             else
             {
-                die(json_encode(['error' => $status['error']]));
+                die(json_encode(['error' => $status['error']['text']]));
             }
 
         }
@@ -403,7 +402,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $warehouse = new MjvpWarehouse();
         $shop_name = Configuration::get($cConfig->getConfigKey('shop_name', 'SHOP'));
         if(!$shop_name)
-            $errors[] = $this->module->l('Shop name is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop name is required.');
         $warehouse->name = $shop_name;
 
         $company_code = Configuration::get($cConfig->getConfigKey('company_code', 'SHOP'));
@@ -411,22 +410,22 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $shop_country_code = Configuration::get($cConfig->getConfigKey('shop_country_code', 'SHOP'));
         if(!$shop_country_code)
-            $errors[] = $this->module->l('Shop country code is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop country code is required.');
         $warehouse->country_code = $shop_country_code;
 
         $shop_city = Configuration::get($cConfig->getConfigKey('shop_city', 'SHOP'));
         if(!$shop_city)
-            $errors[] = $this->module->l('Shop city is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop city is required.');
         $warehouse->city = $shop_city;
 
         $shop_address = Configuration::get($cConfig->getConfigKey('shop_address', 'SHOP'));
         if(!$shop_address)
-            $errors[] = $this->module->l('Shop address is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop address is required.');
         $warehouse->address = $shop_address;
 
         $shop_postcode = Configuration::get($cConfig->getConfigKey('shop_postcode', 'SHOP'));
         if(!$shop_postcode)
-            $errors[] = $this->module->l('Shop postcode is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop postcode is required.');
         $warehouse->zip_code = $shop_postcode;
 
         $shop_contact = Configuration::get($cConfig->getConfigKey('shop_contact', 'SHOP'));
@@ -434,8 +433,13 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $shop_phone = Configuration::get($cConfig->getConfigKey('shop_phone', 'SHOP'));
         if(!$shop_phone)
-            $errors[] = $this->module->l('Shop phone is required. Please update you Shop settings.');
+            $errors[] = $this->module->l('Shop phone is required.');
         $warehouse->phone = $shop_phone;
+
+        if(!empty($errors))
+        {
+            $errors[] = $this->module->l('Please update your shop settings.');
+        }
 
         $data['warehouse'] = $warehouse;
         $data['errors'] = $errors;
