@@ -84,7 +84,8 @@ function sendCall() {
                 return false;
             }
             showSuccessMessage(res['success']);
-            confirmModal.modal('hide');
+            $('#venipak_modal').modal('hide');
+            location.reload();
         },
         error: function (res) {
             showErrorMessage(call_errors.request);

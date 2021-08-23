@@ -136,8 +136,6 @@ class MjvpApi
         $params['min_from'] = (isset($params['min_from'])) ? $params['min_from'] : '';
         $params['hour_to'] = (isset($params['hour_to'])) ? $params['hour_to'] : '';
         $params['comment'] = (isset($params['comment'])) ? $params['comment'] : '';
-        $params['spp'] = (isset($params['spp'])) ? $params['spp'] : '';
-        $params['doc_no'] = (isset($params['doc_no'])) ? $params['doc_no'] : '';
 
         $xml_code = '<sender>';
         $xml_code .= '<name>' . $params['sender']['name'] . '</name>';
@@ -163,10 +161,6 @@ class MjvpApi
         $xml_code .= '<min_to>' . $params['min_to']. '</min_to>';
         if (isset($params['comment']))
             $xml_code .= '<comment>' . $params['comment']. '</comment>';
-        if (isset($params['spp']))
-            $xml_code .= '<spp>' . $params['spp']. '</spp>';
-        if (isset($params['doc_no']))
-            $xml_code .= '<doc_no>' . $params['doc_no']. '</doc_no>';
         return $xml_code;
     }
 
@@ -182,7 +176,9 @@ class MjvpApi
         $params['consignee']['city'] = (isset($params['consignee']['city'])) ? $params['consignee']['city'] : '';
         $params['consignee']['address'] = (isset($params['consignee']['address'])) ? $params['consignee']['address'] : '';
         $params['consignee']['postcode'] = (isset($params['consignee']['postcode'])) ? $params['consignee']['postcode'] : '';
+        $params['consignee']['person'] = (isset($params['consignee']['person'])) ? $params['consignee']['person'] : '';
         $params['consignee']['phone'] = (isset($params['consignee']['phone'])) ? $params['consignee']['phone'] : '';
+        $params['consignee']['email'] = (isset($params['consignee']['email'])) ? $params['consignee']['email'] : '';
         $params['packs'] = (isset($params['packs'])) ? $params['packs'] : array();
 
         $xml_code = '<shipment>';
@@ -195,20 +191,23 @@ class MjvpApi
         $xml_code .= '<city>' . $params['consignee']['city'] . '</city>';
         $xml_code .= '<address>' . $params['consignee']['address'] . '</address>';
         $xml_code .= '<post_code>' . $params['consignee']['postcode'] . '</post_code>';
+        $xml_code .= '<contact_person>' . $params['consignee']['person'] . '</contact_person>';
         $xml_code .= '<contact_tel>' . $params['consignee']['phone'] . '</contact_tel>';
+        $xml_code .= '<contact_email>' . $params['consignee']['email'] . '</contact_email>';
         $xml_code .= '</consignee>';
 
         $xml_code .= '<attribute>';
-        $xml_code .= '<delivery_type>' . (!$params['consignee']['delivery_time'] ? 'nwd' : $params['consignee']['delivery_time']) . '</delivery_type>';
+        if(isset($params['consignee']['delivery_time']))
+            $xml_code .= '<delivery_type>' . (!$params['consignee']['delivery_time'] ? 'nwd' : $params['consignee']['delivery_time']) . '</delivery_type>';
 
         // Extra params are always set. Just check if they are not empty (i.e to not send door code 0, etc.)
-        if($params['consignee']['door_code'])
+        if(isset($params['consignee']['door_code']) && $params['consignee']['door_code'])
             $xml_code .= '<comment_door_code>' . $params['consignee']['door_code'] . '</comment_door_code>';
-        if($params['consignee']['cabinet_number'])
+        if(isset($params['consignee']['cabinet_number']) && $params['consignee']['cabinet_number'])
             $xml_code .= '<comment_office_no>' . $params['consignee']['cabinet_number'] . '</comment_office_no>';
-        if($params['consignee']['warehouse_number'])
+        if(isset($params['consignee']['warehouse_number']) && $params['consignee']['warehouse_number'])
             $xml_code .= '<comment_warehous_no>' . $params['consignee']['warehouse_number'] . '</comment_warehous_no>';
-        if($params['consignee']['carrier_call'])
+        if(isset($params['consignee']['carrier_call']) && $params['consignee']['carrier_call'])
             $xml_code .= '<comment_call>' . $params['consignee']['carrier_call'] . '</comment_call>';
         if($params['consignee']['cod'])
             $xml_code .= '<cod>' . $params['consignee']['cod'] . '</cod>';

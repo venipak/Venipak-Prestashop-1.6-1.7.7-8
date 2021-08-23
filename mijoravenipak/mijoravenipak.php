@@ -1636,6 +1636,7 @@ class MijoraVenipak extends CarrierModule
                     $delivery_time = '';
                     $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
+                    $consignee = [];
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
                         $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
@@ -1644,14 +1645,7 @@ class MijoraVenipak extends CarrierModule
                         $warehouse_number = $other_info->warehouse_number;
                         $delivery_time = $other_info->delivery_time;
                         $carrier_call = $other_info->carrier_call;
-                    }
-
-                    $currency = new Currency($order->id_currency);
-                    $currency_iso = strtoupper($currency->iso_code);
-                    $manifest['shipments'][] = array(
-                        'order_id' => $order_id,
-                        'order_code' => $order->reference,
-                        'consignee' => array(
+                        $consignee = [
                             'name' => $consignee_name,
                             'code' => $consignee_code,
                             'country_code' => $country_iso,
@@ -1666,7 +1660,50 @@ class MijoraVenipak extends CarrierModule
                             'delivery_time' => $delivery_time,
                             'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
-                        ),
+                        ];
+                    }
+                    // If carrier is pickup terminal, consignee has to use terminal data.
+                    if(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference)
+                    {
+                        $terminal_info = json_decode($cDb->getOrderValue('terminal_info', array('id_order' => $order_id)));
+                        $contact_person = '';
+                        $contact_phone = '';
+                        $contact_email = '';
+                        $address = new Address($order->id_address_delivery);
+                        if(Validate::isLoadedObject($address))
+                        {
+                            $contact_person = $address->firstname . ' ' . $address->lastname;
+                            $contact_phone = $address->phone;
+                        }
+                        $customer = new Customer($order->id_customer);
+
+                        if(Validate::isLoadedObject($customer))
+                        {
+                            $contact_email = $customer->email;
+                        }
+                        $consignee = [
+                            'name' => $terminal_info->name,
+                            'code' => $terminal_info->company_code,
+                            'country_code' => $terminal_info->country,
+                            'city' => $terminal_info->city,
+                            'address' => $terminal_info->address,
+                            'postcode' => $terminal_info->post_code,
+                            'person' => $contact_person,
+                            'phone' => $contact_phone,
+                            'email' => $contact_email,
+                            'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
+                            'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
+                        ];
+                    }
+
+
+
+                    $currency = new Currency($order->id_currency);
+                    $currency_iso = strtoupper($currency->iso_code);
+                    $manifest['shipments'][] = array(
+                        'order_id' => $order_id,
+                        'order_code' => $order->reference,
+                        'consignee' => $consignee,
                         'packs' => $shipment_pack,
                     );
                     $success_orders[] = $error_order_no;

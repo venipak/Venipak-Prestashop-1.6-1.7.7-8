@@ -44,6 +44,7 @@ class MjvpDb
                 `id_carrier_ref` int(10) COMMENT "Carrier reference ID",
                 `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
                 `terminal_id` int(10) COMMENT "Terminal ID",
+                `terminal_info` text COLLATE utf8_unicode_ci NULL COMMENT "Selected terminal\'s name, company_code, country, city, address, post_code",
                 `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
                 `status` varchar(30) COMMENT "Status for module of current order",
                 `other_info` text COLLATE utf8_unicode_ci NULL COMMENT "Json of other order settings array",
