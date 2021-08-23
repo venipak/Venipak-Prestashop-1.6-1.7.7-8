@@ -1624,7 +1624,7 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack[$i] = array(
                             'serial_number' => $pack_no,
                             'document_number' => '',
-                            'weight' => $order_info['order_weight'],
+                            'weight' => Tools::ps_round($order_info['order_weight'] / $packages, 2),
                             'volume' => 0,
                         );
                         foreach ($order_products as $key => $product) {
@@ -1633,7 +1633,7 @@ class MijoraVenipak extends CarrierModule
                                 $product_volume = $product['width'] * $product['height'] * $product['depth'];
                             elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm')
                                 $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
-                            $shipment_pack[$i]['volume'] += (float)$product_volume;
+                            $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
                         }
                         Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                     }
