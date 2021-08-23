@@ -200,6 +200,9 @@ class MjvpApi
         if(isset($params['consignee']['delivery_time']))
             $xml_code .= '<delivery_type>' . (!$params['consignee']['delivery_time'] ? 'nwd' : $params['consignee']['delivery_time']) . '</delivery_type>';
 
+        if(isset($params['consignee']['return_doc']))
+            $xml_code .= '<return_doc>' . ($params['consignee']['return_doc'] ? 1 : 0) . '</return_doc>';
+
         // Extra params are always set. Just check if they are not empty (i.e to not send door code 0, etc.)
         if(isset($params['consignee']['door_code']) && $params['consignee']['door_code'])
             $xml_code .= '<comment_door_code>' . $params['consignee']['door_code'] . '</comment_door_code>';

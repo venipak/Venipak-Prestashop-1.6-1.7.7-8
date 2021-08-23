@@ -1646,6 +1646,8 @@ class MijoraVenipak extends CarrierModule
                     $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
                     $consignee = [];
+                    $currency = new Currency($order->id_currency);
+                    $currency_iso = strtoupper($currency->iso_code);
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
                         $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
@@ -1667,6 +1669,7 @@ class MijoraVenipak extends CarrierModule
                             'warehouse_number' => $warehouse_number,
                             'carrier_call' => $carrier_call,
                             'delivery_time' => $delivery_time,
+                            'return_doc' => isset($other_info->return_doc) ? $other_info->return_doc : 0,
                             'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
@@ -1705,10 +1708,6 @@ class MijoraVenipak extends CarrierModule
                         ];
                     }
 
-
-
-                    $currency = new Currency($order->id_currency);
-                    $currency_iso = strtoupper($currency->iso_code);
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
