@@ -1741,6 +1741,16 @@ class MijoraVenipak extends CarrierModule
                         {
                             $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $order_labels = array_slice($status['text'], $offset, $mapping);
+
+                            // Add first label number to OrderCarrier as tracking number.
+                            $id_order_carrier = (int) Db::getInstance()->getValue('
+                                SELECT `id_order_carrier`
+                                FROM `' . _DB_PREFIX_ . 'order_carrier`
+                                WHERE `id_order` = ' . (int) $order_id);
+                            $order_carrier = new OrderCarrier($id_order_carrier);
+                            $order_carrier->tracking_number = $order_labels[0];
+                            $order_carrier->save();
+
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
                                 'manifest_id' => $manifest_number,
@@ -1752,13 +1762,22 @@ class MijoraVenipak extends CarrierModule
                     }
                     elseif(isset($status['text']))
                     {
+                        $id_order = array_key_first($order_packages_mapping);
+                        $id_order_carrier = (int) Db::getInstance()->getValue('
+                                SELECT `id_order_carrier`
+                                FROM `' . _DB_PREFIX_ . 'order_carrier`
+                                WHERE `id_order` = ' . (int) $order_id);
+                        $order_carrier = new OrderCarrier($id_order_carrier);
+                        $order_carrier->tracking_number = $status['text'];
+                        $order_carrier->save();
+
                         $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
                             'labels_numbers' => json_encode([$manifest_id => $status['text']]),
                             'manifest_id' => $manifest_number,
                             'status' => 'registered',
                             'labels_date' => date('Y-m-d h:i:s')],
-                            ['id_order' => array_key_first($order_packages_mapping)]);
+                            ['id_order' => $id_order]);
                     }
 
                 }
