@@ -1222,8 +1222,10 @@ class MijoraVenipak extends CarrierModule
             // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
             $filtered_terminals = array_values($filtered_terminals);
 
+            $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
+                    'address_query' => $address_query,
                     'mjvp_translates' => array(
                         'loading' => $this->l('Loading'),
                     ),

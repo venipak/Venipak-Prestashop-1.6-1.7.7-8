@@ -739,6 +739,11 @@ var DOMManipulator = /*#__PURE__*/function () {
       this.UI.modal.classList.remove('tmjs-hidden');
       this.TMJS.map.zoomMap();
       this.TMJS.publish('modal-opened', true);
+      if(!this.TMJS.dom._lastSearchTerm || this.TMJS.dom._lastSearchTerm == address_query)
+      {
+        this.TMJS.dom.resetSearch();
+        this.TMJS.dom.searchNearest(address_query);
+      }
       return this;
     }
   }, {
@@ -896,7 +901,6 @@ var DOMManipulator = /*#__PURE__*/function () {
 
           this.scrollIntoView(_location._li);
         }
-
         return;
       }
 
