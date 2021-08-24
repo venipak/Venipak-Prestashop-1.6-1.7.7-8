@@ -426,10 +426,7 @@ a:focus.tmjs-select-btn {
     top: -10px;
   }
 }
-/* .itella-map img.active {
-  filter: hue-rotate(90deg);
-  animation: tmjs-bounce 0.4s infinite alternate;
-} */
+
 .tmjs-active-marker {
   animation: tmjs-bounce 0.4s infinite alternate;
 }

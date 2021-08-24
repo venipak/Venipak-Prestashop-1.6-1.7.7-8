@@ -248,6 +248,11 @@ class MijoraVenipak extends CarrierModule
             'nwd14_17' => $this->l('14:00-17:00'),
             'nwd18_22' => $this->l('18:00-22:00'),
         ];
+
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+            $this->_configKeys['COURIER']['delivery_time_' . $key] = 'MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key);
+        }
     }
 
     /**
@@ -941,22 +946,55 @@ class MijoraVenipak extends CarrierModule
             ),
             array(
                 'type' => 'switch',
-                'label' => $this->l('Enable delivery time selection'),
-                'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
-                'desc' => $this->l('Allow customers to select delivery time.'),
-                'values' => $swither_values
-            ),
-            array(
-                'type' => 'switch',
                 'label' => $this->l('Enable carrier call before delivery'),
                 'name' => $cModuleConfig->getConfigKey('call_before_delivery', $section_id),
                 'desc' => $this->l('Enable this option, if you want courier to call a consignee before shipment delivery'),
                 'values' => $swither_values
             ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable delivery time selection'),
+                'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
+                'desc' => $this->l('Allow customers to select delivery time.'),
+                'values' => $swither_values
+            ),
         );
+        $form_fields = array_merge($form_fields, $this->getDeliveryTimeSelectionFormFields());
 
         return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
     }
+
+    public function getDeliveryTimeSelectionFormFields()
+    {
+        $form_fields = [];
+        $label = $this->l('Enable/Disable delivery times');
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+
+            $config_key = $this->_configKeys['COURIER']['delivery_time_' . $key];
+            $form_fields[] = [
+                'type' => 'checkbox',
+                'name' => $config_key,
+                'label' => $label,
+                'form_group_class' => 'delivery-checkbox hide',
+                'values' => [
+                    'query' => [
+                        [
+                            'id' => 'ON',
+                            'name' => $deliveryTime,
+                            'val' => '1',
+                        ],
+                    ],
+                    'id' => 'id',
+                    'name' => 'name',
+                ],
+            ];
+            $label = '';
+        }
+
+        return $form_fields;
+    }
+
 
 
     /**
@@ -1063,6 +1101,7 @@ class MijoraVenipak extends CarrierModule
 
         // Module, token and currentIndex
         $helper->module = $this;
+        $helper->bootstrap = true;
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
@@ -1087,12 +1126,12 @@ class MijoraVenipak extends CarrierModule
         // Load saved settings
         if (isset($this->_configKeys[strtoupper($section_id)])) {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
+                $prefix = '';
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                    $prefix = '_ON';
+
                 $value = Configuration::get($key);
-                /*if ($key === $cModuleConfig->getConfigKey('MJVP_PP_COUNTRIES', 'PICKUPPOINTS')) {
-                    $value = explode(';', $value);
-                    $key .= '[]';
-                }*/
-                $helper->fields_value[$key] = $value;
+                $helper->fields_value[$key . $prefix] = $value;
             }
         }
 
@@ -1111,7 +1150,12 @@ class MijoraVenipak extends CarrierModule
             $output .= $this->displayError($errors);
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
-                $value = Tools::getValue($key);
+
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                    $value = Tools::getValue($key . '_ON');
+                else
+                    $value = Tools::getValue($key);
+
                 if (is_array($value)) {
                     $value = implode(';', $value);
                 }
@@ -1433,7 +1477,9 @@ class MijoraVenipak extends CarrierModule
 
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
 
-        if ($carrier_type !== 'pickup') {
+        $delivery_times = $this->getEnabledDeliveryTimes();
+
+        if ($carrier_type == 'courier') {
 
             $configuration = [
                 'show_door_code' => Configuration::get($cModuleConfig->getConfigKey('door_code', 'COURIER')),
@@ -1441,8 +1487,9 @@ class MijoraVenipak extends CarrierModule
                 'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
                 'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
                 'show_carrier_call' => Configuration::get($cModuleConfig->getConfigKey('call_before_delivery', 'COURIER')),
-                'delivery_times' => $this->deliveryTimes
+                'delivery_times' => $delivery_times
             ];
+
 
             $cart = $params['cart'];
             $order_extra_info = self::$_order_additional_info;
@@ -1462,47 +1509,51 @@ class MijoraVenipak extends CarrierModule
             
             return $this->context->smarty->fetch(self::$_moduleDir . '/views/templates/front/courier_extra_content.tpl');
         }
+        elseif ($carrier_type == 'pickup')
+        {
 
-        $address = new Address($params['cart']->id_address_delivery);
-        $country = new Country();
-        $country_code = $country->getIsoById($address->id_country);
+            $address = new Address($params['cart']->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
 
-        if (empty($country_code)) {
-            return '';
-        }
-
-        try {
-            $all_terminals_info = $cApi->getTerminals($country_code);
-            if (empty($all_terminals_info)) {
+            if (empty($country_code)) {
                 return '';
             }
-        } catch (Exception $e) {
-            return '';
+
+            try {
+                $all_terminals_info = $cApi->getTerminals($country_code);
+                if (empty($all_terminals_info)) {
+                    return '';
+                }
+            } catch (Exception $e) {
+                return '';
+            }
+
+            try {
+                $sql_terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $params['cart']->id));
+            } catch (Exception $e) {
+                $sql_terminal_id = '';
+            }
+
+            $quantity = 0;
+            foreach ($params['cart']->getProducts() as $product) {
+                $quantity = $quantity + $product['cart_quantity'];
+            }
+
+            $this->context->smarty->assign(
+                array(
+                    'terminals' => $all_terminals_info,
+                    'postcode' => $address->postcode,
+                    'city' => $address->city,
+                    'country_code' => $country_code,
+                    'selected_terminal' => $sql_terminal_id,
+                    'cart_quantity' => $quantity,
+                    'images_url' => $this->_path . 'views/images/',
+                )
+            );
+
+            return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
         }
-
-        try {
-            $sql_terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $params['cart']->id));
-        } catch (Exception $e) {
-            $sql_terminal_id = '';
-        }
-
-        $quantity = 0;
-        foreach ($params['cart']->getProducts() as $product) {
-            $quantity = $quantity + $product['cart_quantity'];
-        }
-
-        $this->context->smarty->assign(
-            array(
-                'terminals' => $all_terminals_info,
-                'postcode' => $address->postcode,
-                'city' => $address->city,
-                'country_code' => $country_code,
-                'selected_terminal' => $sql_terminal_id,
-                'cart_quantity' => $quantity,
-            )
-        );
-
-        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
     }
 
     /**
@@ -1877,8 +1928,9 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
         }
-        if(isset($this->context->controller->module) && $this->context->controller->module = $this)
+        if((isset($this->context->controller->module) && $this->context->controller->module = $this) || Tools::getValue('configure') == $this->name)
         {
+            $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
             $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
         }
     }
@@ -1905,7 +1957,6 @@ class MijoraVenipak extends CarrierModule
         $all_terminals_info = $cApi->getTerminals($country_code);
         $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
 
-        // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
         $filtered_terminals = array_values($filtered_terminals);
         if(!$filter)
             return $filtered_terminals;
@@ -1935,6 +1986,17 @@ class MijoraVenipak extends CarrierModule
         $terminals = array_values($terminals);
         return $terminals;
 
+    }
+
+    private function getEnabledDeliveryTimes()
+    {
+        $delivery_times =  [];
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+            if(Configuration::get('MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key)))
+                $delivery_times[$key] = $deliveryTime;
+        }
+        return $delivery_times;
     }
 
     public function changeOrderStatus($id_order, $status)

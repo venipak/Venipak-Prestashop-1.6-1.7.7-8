@@ -44,7 +44,7 @@
             </div>
         </div>
     {/if}
-    {if isset($show_delivery_time) && $show_delivery_time}
+    {if isset($show_delivery_time) && $show_delivery_time && isset($delivery_times) && !empty($delivery_times)}
         {if isset($notifications.error.mjvp_delivery_time)}
             <div class="alert alert-danger" role="alert" data-alert="danger">
                 {$notifications.error.mjvp_delivery_time}
@@ -52,7 +52,7 @@
         {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
-                {l s='Select a delivery time' mod='mijoravenipak'} ({l s='optional' mod='mijoravenipak'})
+                {l s='Select a delivery time (optional)' mod='mijoravenipak'}
             </label>
             <div class="col-xs-8">
                 <select name="mjvp_delivery_time" class="form-control form-control-select">

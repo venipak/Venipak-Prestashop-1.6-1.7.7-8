@@ -1,6 +1,7 @@
 <script type="text/javascript">
     var pickup_reference = '{$pickup_reference}';
     var order_id = '{$order_id}';
+    var terminal_warning = '{l s="Pickup point not selected" mod='venipakshipping'}';
 </script>
 <div class="row venipak">
     <div class="col-lg-6 col-md-6 col-xs-12 panel">

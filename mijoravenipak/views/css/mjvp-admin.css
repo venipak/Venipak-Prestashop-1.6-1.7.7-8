@@ -86,3 +86,6 @@
 #venipak_modal .modal-header .close {
      margin-top: 5px;
 }
+.bootstrap .form-group.delivery-checkbox {
+    margin-bottom: 0;
+}
