@@ -29,6 +29,11 @@
                 <input type="text" class="tmjs-search-input">
                 <a href="#search" class="tmjs-search-btn"><img src="{$images_url}search.svg" width="18"></a>
             </div>
+            <h3 class="tmjs-pt-1" data-tmjs-string="seach_header">{l s='Radius' mod='mijoravenipak'}</h3>
+            <div class="tmjs-d-block">
+                <input id='terminal-search-radius' type="text" name="search-radius" class="tmjs-search-input">
+                <span>{l s='km' mod='mijoravenipak'}</span>
+            </div>
 
             <div class="tmjs-d-block tmjs-pt-1">
                 <a href="#useMyLocation" class="tmjs-geolocation-btn">

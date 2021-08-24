@@ -196,3 +196,15 @@
   top: 10px;
   position: relative;
 }
+
+#terminal-search-radius {
+  width: 55px;
+  height: 25px;
+  margin-right: 8px;
+}
+
+#terminal-search-radius + span {
+  font-weight: bold;
+  font-size: 14px;
+  line-height: 25px;
+}

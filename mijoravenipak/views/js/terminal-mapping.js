@@ -234,7 +234,8 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
         });
 
           _this2.setTerminals(terminals);
-
+          if(!_this2.terminals_cache)
+            _this2.terminals_cache = terminals;
           _this2.dom.renderTerminalList(_this2.map.locations);
 
           console.info(_this2.prefix + 'Terminals loaded');
@@ -499,6 +500,7 @@ var DOMManipulator = /*#__PURE__*/function () {
     this.prefix = TMJS.prefix;
     this._searchTimeoutId = null;
     this._lastSearchTerm = '';
+    this._lastRadius = '';
     this.containerParent = null;
     this.modalParent = null;
     this.isModal = true;
@@ -721,6 +723,12 @@ var DOMManipulator = /*#__PURE__*/function () {
 
         _this2.searchNearestDebounce(e.target.value, e.keyCode == '13');
       });
+      this.UI.modal.querySelector('#terminal-search-radius').addEventListener('keyup', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var search_term = (_this2._lastSearchTerm !== undefined ? _this2._lastSearchTerm : '');
+        _this2.searchNearestDebounce(search_term, e.keyCode == '13');
+      });
       this.UI.modal.querySelector('.tmjs-search-btn').addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -791,7 +799,7 @@ var DOMManipulator = /*#__PURE__*/function () {
   }, {
     key: "geoLocationSuccess",
     value: function geoLocationSuccess(position) {
-      this._lastSearchTerm = '';
+      this._lastSearchTerm = this._lastRadius = '';
       var referencePoint = {
         lat: position.coords.latitude,
         lng: position.coords.longitude
@@ -957,7 +965,7 @@ var DOMManipulator = /*#__PURE__*/function () {
   }, {
     key: "resetSearch",
     value: function resetSearch() {
-      this._lastSearchTerm = '';
+      this._lastSearchTerm = this._lastRadius = '';
       this.renderTerminalList(this.TMJS.map.resetDistance(), true);
       this.TMJS.map.removeReferencePosition();
       this.TMJS.publish('reset-search-result');
@@ -974,14 +982,15 @@ var DOMManipulator = /*#__PURE__*/function () {
         this.resetSearch();
         return;
       }
-
-      if (search === this._lastSearchTerm) {
+      var radius = parseFloat($('#terminal-search-radius').val());
+      if (search === this._lastSearchTerm && radius === this._lastRadius) {
         console.log('Search term hasnt changed');
         return;
       }
 
       this.TMJS.publish('add-search-loader');
       this._lastSearchTerm = search;
+      this._lastRadius = radius;
       var queryParams = {
         sourceCountry: this.TMJS.country_code ? this.TMJS.country_code : false,
         singleLine: search,
@@ -996,12 +1005,22 @@ var DOMManipulator = /*#__PURE__*/function () {
         if (!response.ok) throw new Error(response.status);
         return response.json();
       }).then(function (json) {
-        return _this4.updateDistanceByCandidate(json);
+        _this4.TMJS.setTerminals(_this4.TMJS.terminals_cache);
+        _this4.updateDistanceByCandidate(json);
+        if(!isNaN(radius))
+          _this4.filterLocationsByRadius(radius);
       })["catch"](function (error) {
         return _this4.candidateError(error);
       });
     }
   }, {
+      key: "filterLocationsByRadius",
+      value: function filterLocationsByRadius(radius) {
+        this.TMJS.map.locations = this.TMJS.map.locations.filter((location) => location.distance <= radius);
+        this.TMJS.dom.renderTerminalList(this.TMJS.map.locations);
+        this.TMJS.map.updateMapMarkers();
+      }
+    }, {
     key: "candidateError",
     value: function candidateError(error) {
       console.log(error);
