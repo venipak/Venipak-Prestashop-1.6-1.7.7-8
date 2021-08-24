@@ -106,7 +106,8 @@ class MijoraVenipak extends CarrierModule
         'displayAdminOrder',
         'actionValidateStepComplete',
         'actionValidateOrder',
-        'actionAdminControllerSetMedia'
+        'actionAdminControllerSetMedia',
+        'displayAdminListBefore'
     );
 
     /**
@@ -1511,15 +1512,6 @@ class MijoraVenipak extends CarrierModule
     public function hookActionAdminOrdersListingFieldsModifier($params)
     {
         if ($this->context->controller instanceof AdminOrdersController) {
-            $this->context->controller->addMjvpBulkAction('mjvp_send_labels', array(
-                'text' => $this->l('Send Venipak labels'),
-                'icon' => 'icon-cloud-upload'
-            ));
-            $this->context->controller->addMjvpBulkAction('mjvp_print_labels', array(
-                'text' => $this->l('Print Venipak labels'),
-                'icon' => 'icon-print'
-            ));
-
             $is_bulk_send_labels = Tools::isSubmit('submitBulkmjvp_send_labelsorder');
             $is_bulk_print_labels = Tools::isSubmit('submitBulkmjvp_print_labelsorder');
 
@@ -1912,6 +1904,28 @@ class MijoraVenipak extends CarrierModule
             $history->id_order = (int)$id_order;
             $history->id_employee = Context::getContext()->employee->id;
             $history->changeIdOrderState((int)$status, $order);
+        }
+    }
+
+    public function hookDisplayAdminListBefore($params)
+    {
+        if (get_class($this->context->controller) == 'AdminOrdersController')
+        {
+            $smarty = $params['smarty'];
+            $bulk_actions = $smarty->getVariable('bulk_actions')->value;
+            $bulk_actions['mjvp_send_labels'] = [
+                'text' => $this->l('Send Venipak labels'),
+                'icon' => 'icon-cloud-upload'
+            ];
+            $bulk_actions['mjvp_print_labels'] = [
+                'text' => $this->l('Print Venipak labels'),
+                'icon' => 'icon-print'
+            ];
+            $this->context->smarty->assign(
+                array(
+                    'bulk_actions' => $bulk_actions,
+                )
+            );
         }
     }
 }
