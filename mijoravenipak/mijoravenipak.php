@@ -1213,18 +1213,16 @@ class MijoraVenipak extends CarrierModule
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
 
             $address = new Address($params['cart']->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
-            self::checkForClass('MjvpApi');
-            $cApi = new MjvpApi();
-            $all_terminals_info = $cApi->getTerminals($country_code);
-            $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
-            // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
-            $filtered_terminals = array_values($filtered_terminals);
+            $filtered_terminals = $this->getFilteredTerminals();
 
             $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
+            $this->context->smarty->assign([
+                    'images_url' => $this->_path . 'views/images/',
+                ]
+            );
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
+                    'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
                     'address_query' => $address_query,
                     'mjvp_translates' => array(
                         'loading' => $this->l('Loading'),
@@ -1500,7 +1498,6 @@ class MijoraVenipak extends CarrierModule
                 'city' => $address->city,
                 'country_code' => $country_code,
                 'selected_terminal' => $sql_terminal_id,
-                'images_url' => $this->_path . 'views/images/',
                 'cart_quantity' => $quantity,
             )
         );
@@ -1895,6 +1892,49 @@ class MijoraVenipak extends CarrierModule
                 unset($terminals[$key]);
         }
         return $terminals;
+    }
+
+    public function getFilteredTerminals($filter = '')
+    {
+        $cart = $this->context->cart;
+        $address = new Address($cart->id_address_delivery);
+        $country = new Country();
+        $country_code = $country->getIsoById($address->id_country);
+        self::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        $all_terminals_info = $cApi->getTerminals($country_code);
+        $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
+
+        // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
+        $filtered_terminals = array_values($filtered_terminals);
+        if(!$filter)
+            return $filtered_terminals;
+
+        $terminals = $filtered_terminals;
+        $terminal_field = 'type';
+        $value = 0;
+        if($filter == 'pickup')
+        {
+            $value = 1;
+        }
+        elseif($filter == 'locker')
+        {
+            $value = 3;
+        }
+        elseif ($filter == 'cod')
+        {
+            $terminal_field = 'cod_enabled';
+            $value = 1;
+        }
+
+        foreach ($terminals as $key => $terminal)
+        {
+            if(isset($terminal->$terminal_field) && $terminal->$terminal_field != $value)
+                unset($terminals[$key]);
+        }
+        $terminals = array_values($terminals);
+        return $terminals;
+
     }
 
     public function changeOrderStatus($id_order, $status)

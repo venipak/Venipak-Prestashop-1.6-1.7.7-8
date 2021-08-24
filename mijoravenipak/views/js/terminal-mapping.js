@@ -223,7 +223,12 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
                lat: terminal.lat,
                lng: terminal.lng
              };
-             terminal['identifier'] = 'venipak';
+             // Pickup type
+             if(terminal.type == 1)
+                terminal['identifier'] = 'venipak-pickup';
+             // Locker type
+             else if(terminal.type == 3)
+                terminal['identifier'] = 'venipak-locker';
              terminals.push(terminal);
            }
         });
@@ -674,7 +679,7 @@ var DOMManipulator = /*#__PURE__*/function () {
     key: "addModal",
     value: function addModal(id, strings) {
       var close_button_class = this.isModal ? '' : 'tmjs-hidden';
-      var template = "\n      <div class=\"tmjs-modal-content\">\n\n        <div class=\"tmjs-modal-body\">\n          <div class=\"tmjs-map-container\"><div class=\"tmjs-map\"></div></div>\n          <div class=\"tmjs-terminal-sidebar\">\n            <div class=\"tmjs-terminal-finder\">\n              <h2 data-tmjs-string=\"modal_header\">".concat(strings.modal_header, "</h2>\n              <div class=\"tmjs-close-modal-btn ").concat(close_button_class, "\"></div>\n              <h3 class=\"tmjs-pt-2\" data-tmjs-string=\"seach_header\">").concat(strings.seach_header, "</h3>\n\n              <div class=\"tmjs-d-block\">\n                <input type=\"text\" class=\"tmjs-search-input\">\n                <a href=\"#search\" class=\"tmjs-search-btn\" ><img src=\"").concat(this.TMJS.imagePath, "search.svg\" width=\"18\"></a>\n              </div>\n\n              <div class=\"tmjs-d-block tmjs-pt-1\">\n                <a href=\"#useMyLocation\" class=\"tmjs-geolocation-btn\"><img src=\"").concat(this.TMJS.imagePath, "gps.svg\" width=\"15\"><span data-tmjs-string=\"geolocation_btn\">").concat(strings.geolocation_btn, "</span></a>\n              </div>\n              <div class=\"tmjs-search-result tmjs-d-block tmjs-pt-2\"></div>\n            </div>\n\n            <div class=\"tmjs-terminal-block\">\n              <h3 data-tmjs-string=\"terminal_list_header\">").concat(strings.terminal_list_header, "</h3>\n              <ul class=\"tmjs-terminal-list\"></ul>\n            </div>\n          </div>\n        </div>\n      </div>\n    ");
+      var template = mjvp_map_template;
       var modal = this.createElement('div', {
         classList: [this.isModal ? 'tmjs-modal' : 'tmjs-modal-flat', this.isModal ? 'tmjs-hidden' : ''],
         innerHTML: template
@@ -1129,8 +1134,11 @@ var Map = /*#__PURE__*/function () {
           iconSize: [80, 144]
         }
       });
-      _this._icons['venipak'] = new Icon({
-            iconUrl: mjvp_imgs_url + "/venipak.svg"
+      _this._icons['venipak-pickup'] = new Icon({
+            iconUrl: mjvp_imgs_url + "/venipak-main.svg"
+      });
+      _this._icons['venipak-locker'] = new Icon({
+        iconUrl: mjvp_imgs_url + "/venipak-alt.svg"
       });
 
       if (_this._markerLayer.getLayers().length > 0) {
