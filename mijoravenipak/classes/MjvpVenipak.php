@@ -70,7 +70,7 @@ class MjvpVenipak
         $params = array(
             'user' => $username,
             'pass' => $password,
-            'format' => $this->getParamValue($data, 'page_size', array('a4', 'other'), 'other'),
+            'format' => $this->getParamValue($data, 'format', array('a4', 'other'), 'other'),
             'carrier' => $this->getParamValue($data, 'carrier', array('venipak', 'global', 'all'), 'all'),
         );
 

@@ -284,7 +284,10 @@ class MjvpApi
             case 'label':
                 $pdf_path = MijoraVenipak::$_labelPdfDir;
                 $apiFunction = 'printLabel';
-                $params = ['packages' => $label_numbers];
+                $params = [
+                    'packages' => $label_numbers,
+                    'format' => Configuration::get($cModuleConfig->getConfigKeyOther('label_size'))
+                ];
                 break;
             case 'manifest':
                 $pdf_path = MijoraVenipak::$_manifestPdfDir;

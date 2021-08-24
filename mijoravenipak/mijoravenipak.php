@@ -1041,9 +1041,9 @@ class MijoraVenipak extends CarrierModule
                         'label' => 'A4',
                     ),
                     array(
-                        'id' => 'A6',
-                        'value' => 'a6',
-                        'label' => 'A6',
+                        'id' => '100 X 150',
+                        'value' => '100x150',
+                        'label' => '100 X 150',
                     ),
                 ),
                 'desc' => $this->l('Paper size of printing labels'),
