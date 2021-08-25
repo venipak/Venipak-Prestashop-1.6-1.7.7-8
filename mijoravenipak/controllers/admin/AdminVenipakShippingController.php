@@ -151,20 +151,28 @@ class AdminVenipakShippingController extends ModuleAdminController
         MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
-        if (!$tracking_number) {
-            return '<span class="btn-group-action">
+        $content = '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate Label') . '
+                          <a class="btn btn-default" id="change-shipment-modal" href="#"><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
                           </a>
                         </span>
                     </span>';
+        if (!$tracking_number) {
+            $content .= '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
+                          </a>
+                        </span>
+                    </span>';
+            return $content;
         }
-        return '<span class="btn-group-action">
+        $content .= '<span class="btn-group-action">
                     <span class="btn-group">
-                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Label') . '
+                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label') . '
                         </a>
                     </span>
                 </span>';
+        return $content;
     }
 
 

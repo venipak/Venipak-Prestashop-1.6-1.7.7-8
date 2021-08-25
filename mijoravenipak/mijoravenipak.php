@@ -229,7 +229,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.1.0';
+        $this->version = '0.6.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1764,7 +1764,7 @@ class MijoraVenipak extends CarrierModule
                 }
             }
             $manifest_xml = $cApi->buildManifestXml($manifest);
-            if ($cHelper->isXMLContentValid($manifest_xml)) {
+            if ($cHelper->isXMLContentValid($manifest_xml) && $found) {
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
@@ -2070,7 +2070,7 @@ class MijoraVenipak extends CarrierModule
             $smarty = $params['smarty'];
             $bulk_actions = $smarty->getVariable('bulk_actions')->value;
             $bulk_actions['mjvp_send_labels'] = [
-                'text' => $this->l('Send Venipak labels'),
+                'text' => $this->l('Generate Venipak labels'),
                 'icon' => 'icon-cloud-upload'
             ];
             $bulk_actions['mjvp_print_labels'] = [

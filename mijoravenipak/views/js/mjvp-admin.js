@@ -181,6 +181,8 @@ $(document).ready(function () {
                 $response.append('<ol></ol>');
 
             // Clean html tags
+            if(Array.isArray(msg))
+                msg = msg[0];
             msg = msg.replace(/<\/?[^>]+(>|$)/g, "");
             $response.find('ol').addClass('mb-0').append(`<li>${msg}</li>`);
             $response.show();
