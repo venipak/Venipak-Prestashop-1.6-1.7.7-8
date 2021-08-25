@@ -86,3 +86,16 @@
 #venipak_modal .modal-header .close {
      margin-top: 5px;
 }
+.bootstrap .form-group.delivery-checkbox {
+    margin-bottom: 0;
+}
+
+#venipak-order-card .card-header {
+    height: 60px;
+    padding-bottom: 0;
+    padding-top: 13px;
+}
+
+#venipak-order-card .venipak-logo {
+    height: 75%;
+}

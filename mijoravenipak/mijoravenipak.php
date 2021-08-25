@@ -1,5 +1,7 @@
 <?php
 
+use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -106,7 +108,8 @@ class MijoraVenipak extends CarrierModule
         'displayAdminOrder',
         'actionValidateStepComplete',
         'actionValidateOrder',
-        'actionAdminControllerSetMedia'
+        'actionAdminControllerSetMedia',
+        'displayAdminListBefore'
     );
 
     /**
@@ -229,7 +232,7 @@ class MijoraVenipak extends CarrierModule
         $this->version = '0.1.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.6');
+        $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
         $this->bootstrap = true;
 
         parent::__construct();
@@ -247,6 +250,11 @@ class MijoraVenipak extends CarrierModule
             'nwd14_17' => $this->l('14:00-17:00'),
             'nwd18_22' => $this->l('18:00-22:00'),
         ];
+
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+            $this->_configKeys['COURIER']['delivery_time_' . $key] = 'MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key);
+        }
     }
 
     /**
@@ -254,7 +262,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function install()
     {
-        $this->registerTabs();
 
         if (extension_loaded('curl') == false) {
             $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
@@ -293,7 +300,7 @@ class MijoraVenipak extends CarrierModule
             $this->_errors[] = $this->l('Failed to create other database records.');
             return false;
         }
-
+        $this->registerTabs();
         $this->getVenipakTerminals();
 
         return true;
@@ -940,22 +947,55 @@ class MijoraVenipak extends CarrierModule
             ),
             array(
                 'type' => 'switch',
-                'label' => $this->l('Enable delivery time selection'),
-                'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
-                'desc' => $this->l('Allow customers to select delivery time.'),
-                'values' => $swither_values
-            ),
-            array(
-                'type' => 'switch',
                 'label' => $this->l('Enable carrier call before delivery'),
                 'name' => $cModuleConfig->getConfigKey('call_before_delivery', $section_id),
                 'desc' => $this->l('Enable this option, if you want courier to call a consignee before shipment delivery'),
                 'values' => $swither_values
             ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable delivery time selection'),
+                'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
+                'desc' => $this->l('Allow customers to select delivery time.'),
+                'values' => $swither_values
+            ),
         );
+        $form_fields = array_merge($form_fields, $this->getDeliveryTimeSelectionFormFields());
 
         return $this->displayConfig($section_id, $this->l('Courier Settings'), $form_fields, $this->l('Save courier settings'));
     }
+
+    public function getDeliveryTimeSelectionFormFields()
+    {
+        $form_fields = [];
+        $label = $this->l('Enable/Disable delivery times');
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+
+            $config_key = $this->_configKeys['COURIER']['delivery_time_' . $key];
+            $form_fields[] = [
+                'type' => 'checkbox',
+                'name' => $config_key,
+                'label' => $label,
+                'form_group_class' => 'delivery-checkbox hide',
+                'values' => [
+                    'query' => [
+                        [
+                            'id' => 'ON',
+                            'name' => $deliveryTime,
+                            'val' => '1',
+                        ],
+                    ],
+                    'id' => 'id',
+                    'name' => 'name',
+                ],
+            ];
+            $label = '';
+        }
+
+        return $form_fields;
+    }
+
 
 
     /**
@@ -1002,9 +1042,9 @@ class MijoraVenipak extends CarrierModule
                         'label' => 'A4',
                     ),
                     array(
-                        'id' => 'A6',
-                        'value' => 'a6',
-                        'label' => 'A6',
+                        'id' => '100 X 150',
+                        'value' => '100x150',
+                        'label' => '100 X 150',
                     ),
                 ),
                 'desc' => $this->l('Paper size of printing labels'),
@@ -1062,6 +1102,7 @@ class MijoraVenipak extends CarrierModule
 
         // Module, token and currentIndex
         $helper->module = $this;
+        $helper->bootstrap = true;
         $helper->name_controller = $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
         $helper->currentIndex = AdminController::$currentIndex . '&configure=' . $this->name;
@@ -1086,12 +1127,12 @@ class MijoraVenipak extends CarrierModule
         // Load saved settings
         if (isset($this->_configKeys[strtoupper($section_id)])) {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
+                $prefix = '';
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                    $prefix = '_ON';
+
                 $value = Configuration::get($key);
-                /*if ($key === $cModuleConfig->getConfigKey('MJVP_PP_COUNTRIES', 'PICKUPPOINTS')) {
-                    $value = explode(';', $value);
-                    $key .= '[]';
-                }*/
-                $helper->fields_value[$key] = $value;
+                $helper->fields_value[$key . $prefix] = $value;
             }
         }
 
@@ -1110,7 +1151,12 @@ class MijoraVenipak extends CarrierModule
             $output .= $this->displayError($errors);
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
-                $value = Tools::getValue($key);
+
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                    $value = Tools::getValue($key . '_ON');
+                else
+                    $value = Tools::getValue($key);
+
                 if (is_array($value)) {
                     $value = implode(';', $value);
                 }
@@ -1212,17 +1258,17 @@ class MijoraVenipak extends CarrierModule
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
 
             $address = new Address($params['cart']->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
-            self::checkForClass('MjvpApi');
-            $cApi = new MjvpApi();
-            $all_terminals_info = $cApi->getTerminals($country_code);
-            $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
-            // Reindexing. For some reason, forEach in JS fails, if elements are not indexed.
-            $filtered_terminals = array_values($filtered_terminals);
+            $filtered_terminals = $this->getFilteredTerminals();
 
+            $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
+            $this->context->smarty->assign([
+                    'images_url' => $this->_path . 'views/images/',
+                ]
+            );
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
+                    'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
+                    'address_query' => $address_query,
                     'mjvp_translates' => array(
                         'loading' => $this->l('Loading'),
                     ),
@@ -1334,7 +1380,10 @@ class MijoraVenipak extends CarrierModule
             'venipak_print_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=printLabel',
         ));
 
-        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
+        if(version_compare(_PS_VERSION_, '1.7.7', '<'))
+            return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
+        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder177.tpl');
+
     }
 
     public function hookActionValidateStepComplete($params)
@@ -1432,7 +1481,9 @@ class MijoraVenipak extends CarrierModule
 
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
 
-        if ($carrier_type !== 'pickup') {
+        $delivery_times = $this->getEnabledDeliveryTimes();
+
+        if ($carrier_type == 'courier') {
 
             $configuration = [
                 'show_door_code' => Configuration::get($cModuleConfig->getConfigKey('door_code', 'COURIER')),
@@ -1440,8 +1491,9 @@ class MijoraVenipak extends CarrierModule
                 'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
                 'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
                 'show_carrier_call' => Configuration::get($cModuleConfig->getConfigKey('call_before_delivery', 'COURIER')),
-                'delivery_times' => $this->deliveryTimes
+                'delivery_times' => $delivery_times
             ];
+
 
             $cart = $params['cart'];
             $order_extra_info = self::$_order_additional_info;
@@ -1461,48 +1513,51 @@ class MijoraVenipak extends CarrierModule
             
             return $this->context->smarty->fetch(self::$_moduleDir . '/views/templates/front/courier_extra_content.tpl');
         }
+        elseif ($carrier_type == 'pickup')
+        {
 
-        $address = new Address($params['cart']->id_address_delivery);
-        $country = new Country();
-        $country_code = $country->getIsoById($address->id_country);
+            $address = new Address($params['cart']->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
 
-        if (empty($country_code)) {
-            return '';
-        }
-
-        try {
-            $all_terminals_info = $cApi->getTerminals($country_code);
-            if (empty($all_terminals_info)) {
+            if (empty($country_code)) {
                 return '';
             }
-        } catch (Exception $e) {
-            return '';
+
+            try {
+                $all_terminals_info = $cApi->getTerminals($country_code);
+                if (empty($all_terminals_info)) {
+                    return '';
+                }
+            } catch (Exception $e) {
+                return '';
+            }
+
+            try {
+                $sql_terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $params['cart']->id));
+            } catch (Exception $e) {
+                $sql_terminal_id = '';
+            }
+
+            $quantity = 0;
+            foreach ($params['cart']->getProducts() as $product) {
+                $quantity = $quantity + $product['cart_quantity'];
+            }
+
+            $this->context->smarty->assign(
+                array(
+                    'terminals' => $all_terminals_info,
+                    'postcode' => $address->postcode,
+                    'city' => $address->city,
+                    'country_code' => $country_code,
+                    'selected_terminal' => $sql_terminal_id,
+                    'cart_quantity' => $quantity,
+                    'images_url' => $this->_path . 'views/images/',
+                )
+            );
+
+            return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
         }
-
-        try {
-            $sql_terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $params['cart']->id));
-        } catch (Exception $e) {
-            $sql_terminal_id = '';
-        }
-
-        $quantity = 0;
-        foreach ($params['cart']->getProducts() as $product) {
-            $quantity = $quantity + $product['cart_quantity'];
-        }
-
-        $this->context->smarty->assign(
-            array(
-                'terminals' => $all_terminals_info,
-                'postcode' => $address->postcode,
-                'city' => $address->city,
-                'country_code' => $country_code,
-                'selected_terminal' => $sql_terminal_id,
-                'images_url' => $this->_path . 'views/images/',
-                'cart_quantity' => $quantity,
-            )
-        );
-
-        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
     }
 
     /**
@@ -1511,15 +1566,11 @@ class MijoraVenipak extends CarrierModule
     public function hookActionAdminOrdersListingFieldsModifier($params)
     {
         if ($this->context->controller instanceof AdminOrdersController) {
-            $this->context->controller->addMjvpBulkAction('mjvp_send_labels', array(
-                'text' => $this->l('Send Venipak labels'),
-                'icon' => 'icon-cloud-upload'
-            ));
-
             $is_bulk_send_labels = Tools::isSubmit('submitBulkmjvp_send_labelsorder');
+            $is_bulk_print_labels = Tools::isSubmit('submitBulkmjvp_print_labelsorder');
 
             try {
-                if (!isset($params['select']) && $is_bulk_send_labels) {
+                if (!isset($params['select']) && ($is_bulk_send_labels || $is_bulk_print_labels)) {
                     $orders = Tools::getValue('orderBox');
 
                     if (empty($orders)) {
@@ -1529,6 +1580,10 @@ class MijoraVenipak extends CarrierModule
 
                     if ($is_bulk_send_labels) {
                         $this->bulkActionSendLabels($orders);
+                    }
+
+                    if ($is_bulk_print_labels) {
+                        $this->bulkActionPrintLabels($orders);
                     }
                 }
             } catch (Exception $e) {
@@ -1615,7 +1670,7 @@ class MijoraVenipak extends CarrierModule
                         $shipment_pack[$i] = array(
                             'serial_number' => $pack_no,
                             'document_number' => '',
-                            'weight' => $order_info['order_weight'],
+                            'weight' => Tools::ps_round($order_info['order_weight'] / $packages, 2),
                             'volume' => 0,
                         );
                         foreach ($order_products as $key => $product) {
@@ -1624,7 +1679,7 @@ class MijoraVenipak extends CarrierModule
                                 $product_volume = $product['width'] * $product['height'] * $product['depth'];
                             elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm')
                                 $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
-                            $shipment_pack[$i]['volume'] += (float)$product_volume;
+                            $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
                         }
                         Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                     }
@@ -1637,6 +1692,8 @@ class MijoraVenipak extends CarrierModule
                     $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
                     $consignee = [];
+                    $currency = new Currency($order->id_currency);
+                    $currency_iso = strtoupper($currency->iso_code);
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
                         $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
@@ -1658,6 +1715,7 @@ class MijoraVenipak extends CarrierModule
                             'warehouse_number' => $warehouse_number,
                             'carrier_call' => $carrier_call,
                             'delivery_time' => $delivery_time,
+                            'return_doc' => isset($other_info->return_doc) ? $other_info->return_doc : 0,
                             'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
@@ -1696,10 +1754,6 @@ class MijoraVenipak extends CarrierModule
                         ];
                     }
 
-
-
-                    $currency = new Currency($order->id_currency);
-                    $currency_iso = strtoupper($currency->iso_code);
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
@@ -1733,6 +1787,16 @@ class MijoraVenipak extends CarrierModule
                         {
                             $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $order_labels = array_slice($status['text'], $offset, $mapping);
+
+                            // Add first label number to OrderCarrier as tracking number.
+                            $id_order_carrier = (int) Db::getInstance()->getValue('
+                                SELECT `id_order_carrier`
+                                FROM `' . _DB_PREFIX_ . 'order_carrier`
+                                WHERE `id_order` = ' . (int) $order_id);
+                            $order_carrier = new OrderCarrier($id_order_carrier);
+                            $order_carrier->tracking_number = $order_labels[0];
+                            $order_carrier->save();
+
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
                                 'manifest_id' => $manifest_number,
@@ -1744,13 +1808,22 @@ class MijoraVenipak extends CarrierModule
                     }
                     elseif(isset($status['text']))
                     {
+                        $id_order = array_key_first($order_packages_mapping);
+                        $id_order_carrier = (int) Db::getInstance()->getValue('
+                                SELECT `id_order_carrier`
+                                FROM `' . _DB_PREFIX_ . 'order_carrier`
+                                WHERE `id_order` = ' . (int) $order_id);
+                        $order_carrier = new OrderCarrier($id_order_carrier);
+                        $order_carrier->tracking_number = $status['text'];
+                        $order_carrier->save();
+
                         $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
                             'labels_numbers' => json_encode([$manifest_id => $status['text']]),
                             'manifest_id' => $manifest_number,
                             'status' => 'registered',
                             'labels_date' => date('Y-m-d h:i:s')],
-                            ['id_order' => array_key_first($order_packages_mapping)]);
+                            ['id_order' => $id_order]);
                     }
 
                 }
@@ -1782,6 +1855,25 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
             }
         }
+    }
+
+    /**
+     * Mass label printing
+     */
+    public function bulkActionPrintLabels($orders_ids)
+    {
+        // Get all tracking numbers and invoke print_list
+        MijoraVenipak::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        $labels_numbers_db = Db::getInstance()->executeS('SELECT `labels_numbers` FROM ' . _DB_PREFIX_ . "mjvp_orders
+            WHERE `id_order` IN (" . implode(',', $orders_ids) . ')');
+        $labels_numbers = [];
+        foreach ($labels_numbers_db as $labels_numbers_row)
+        {
+            if($labels_numbers_row['labels_numbers'])
+                $labels_numbers = array_merge($labels_numbers, json_decode($labels_numbers_row['labels_numbers'], true));
+        }
+        $cApi->printLabel($labels_numbers);
     }
 
     private function showErrors($errors)
@@ -1830,7 +1922,7 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionAdminControllerSetMedia()
     {
-        if (get_class($this->context->controller) == 'AdminOrdersController') {
+        if (get_class($this->context->controller) == 'AdminOrdersController' || get_class($this->context->controller) == 'AdminLegacyLayoutControllerCore') {
             {
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
@@ -1840,8 +1932,9 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
         }
-        if(isset($this->context->controller->module) && $this->context->controller->module = $this)
+        if((isset($this->context->controller->module) && $this->context->controller->module = $this) || Tools::getValue('configure') == $this->name)
         {
+            $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
             $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
         }
     }
@@ -1857,6 +1950,59 @@ class MijoraVenipak extends CarrierModule
         return $terminals;
     }
 
+    public function getFilteredTerminals($filter = '')
+    {
+        $cart = $this->context->cart;
+        $address = new Address($cart->id_address_delivery);
+        $country = new Country();
+        $country_code = $country->getIsoById($address->id_country);
+        self::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+        $all_terminals_info = $cApi->getTerminals($country_code);
+        $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
+
+        $filtered_terminals = array_values($filtered_terminals);
+        if(!$filter)
+            return $filtered_terminals;
+
+        $terminals = $filtered_terminals;
+        $terminal_field = 'type';
+        $value = 0;
+        if($filter == 'pickup')
+        {
+            $value = 1;
+        }
+        elseif($filter == 'locker')
+        {
+            $value = 3;
+        }
+        elseif ($filter == 'cod')
+        {
+            $terminal_field = 'cod_enabled';
+            $value = 1;
+        }
+
+        foreach ($terminals as $key => $terminal)
+        {
+            if(isset($terminal->$terminal_field) && $terminal->$terminal_field != $value)
+                unset($terminals[$key]);
+        }
+        $terminals = array_values($terminals);
+        return $terminals;
+
+    }
+
+    private function getEnabledDeliveryTimes()
+    {
+        $delivery_times =  [];
+        foreach ($this->deliveryTimes as $key => $deliveryTime)
+        {
+            if(Configuration::get('MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key)))
+                $delivery_times[$key] = $deliveryTime;
+        }
+        return $delivery_times;
+    }
+
     public function changeOrderStatus($id_order, $status)
     {
         $order = new Order((int)$id_order);
@@ -1867,5 +2013,41 @@ class MijoraVenipak extends CarrierModule
             $history->id_employee = Context::getContext()->employee->id;
             $history->changeIdOrderState((int)$status, $order);
         }
+    }
+
+    public function hookDisplayAdminListBefore($params)
+    {
+        if (get_class($this->context->controller) == 'AdminOrdersController')
+        {
+            $smarty = $params['smarty'];
+            $bulk_actions = $smarty->getVariable('bulk_actions')->value;
+            $bulk_actions['mjvp_send_labels'] = [
+                'text' => $this->l('Send Venipak labels'),
+                'icon' => 'icon-cloud-upload'
+            ];
+            $bulk_actions['mjvp_print_labels'] = [
+                'text' => $this->l('Print Venipak labels'),
+                'icon' => 'icon-print'
+            ];
+            $this->context->smarty->assign(
+                array(
+                    'bulk_actions' => $bulk_actions,
+                )
+            );
+        }
+    }
+
+    /**
+     * Use hook to add Bulk action for printing and generating labels on Orders page.
+     */
+    public function hookActionOrderGridDefinitionModifier($params)
+    {
+        $params['definition']->getBulkActions()->add(
+            (new SubmitBulkAction('mjvp_bulk_generate_labels'))
+                ->setName('Venipak generate labels')
+                ->setOptions([
+                    'submit_route' => 'admin_venipak_generate_bulk',
+                ])
+        );
     }
 }

@@ -223,13 +223,19 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
                lat: terminal.lat,
                lng: terminal.lng
              };
-             terminal['identifier'] = 'venipak';
+             // Pickup type
+             if(terminal.type == 1)
+                terminal['identifier'] = 'venipak-pickup';
+             // Locker type
+             else if(terminal.type == 3)
+                terminal['identifier'] = 'venipak-locker';
              terminals.push(terminal);
            }
         });
 
           _this2.setTerminals(terminals);
-
+          if(!_this2.terminals_cache)
+            _this2.terminals_cache = terminals;
           _this2.dom.renderTerminalList(_this2.map.locations);
 
           console.info(_this2.prefix + 'Terminals loaded');
@@ -494,6 +500,7 @@ var DOMManipulator = /*#__PURE__*/function () {
     this.prefix = TMJS.prefix;
     this._searchTimeoutId = null;
     this._lastSearchTerm = '';
+    this._lastRadius = '';
     this.containerParent = null;
     this.modalParent = null;
     this.isModal = true;
@@ -674,7 +681,7 @@ var DOMManipulator = /*#__PURE__*/function () {
     key: "addModal",
     value: function addModal(id, strings) {
       var close_button_class = this.isModal ? '' : 'tmjs-hidden';
-      var template = "\n      <div class=\"tmjs-modal-content\">\n\n        <div class=\"tmjs-modal-body\">\n          <div class=\"tmjs-map-container\"><div class=\"tmjs-map\"></div></div>\n          <div class=\"tmjs-terminal-sidebar\">\n            <div class=\"tmjs-terminal-finder\">\n              <h2 data-tmjs-string=\"modal_header\">".concat(strings.modal_header, "</h2>\n              <div class=\"tmjs-close-modal-btn ").concat(close_button_class, "\"></div>\n              <h3 class=\"tmjs-pt-2\" data-tmjs-string=\"seach_header\">").concat(strings.seach_header, "</h3>\n\n              <div class=\"tmjs-d-block\">\n                <input type=\"text\" class=\"tmjs-search-input\">\n                <a href=\"#search\" class=\"tmjs-search-btn\" ><img src=\"").concat(this.TMJS.imagePath, "search.svg\" width=\"18\"></a>\n              </div>\n\n              <div class=\"tmjs-d-block tmjs-pt-1\">\n                <a href=\"#useMyLocation\" class=\"tmjs-geolocation-btn\"><img src=\"").concat(this.TMJS.imagePath, "gps.svg\" width=\"15\"><span data-tmjs-string=\"geolocation_btn\">").concat(strings.geolocation_btn, "</span></a>\n              </div>\n              <div class=\"tmjs-search-result tmjs-d-block tmjs-pt-2\"></div>\n            </div>\n\n            <div class=\"tmjs-terminal-block\">\n              <h3 data-tmjs-string=\"terminal_list_header\">").concat(strings.terminal_list_header, "</h3>\n              <ul class=\"tmjs-terminal-list\"></ul>\n            </div>\n          </div>\n        </div>\n      </div>\n    ");
+      var template = mjvp_map_template;
       var modal = this.createElement('div', {
         classList: [this.isModal ? 'tmjs-modal' : 'tmjs-modal-flat', this.isModal ? 'tmjs-hidden' : ''],
         innerHTML: template
@@ -716,6 +723,12 @@ var DOMManipulator = /*#__PURE__*/function () {
 
         _this2.searchNearestDebounce(e.target.value, e.keyCode == '13');
       });
+      this.UI.modal.querySelector('#terminal-search-radius').addEventListener('keyup', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var search_term = (_this2._lastSearchTerm !== undefined ? _this2._lastSearchTerm : '');
+        _this2.searchNearestDebounce(search_term, e.keyCode == '13');
+      });
       this.UI.modal.querySelector('.tmjs-search-btn').addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -739,6 +752,11 @@ var DOMManipulator = /*#__PURE__*/function () {
       this.UI.modal.classList.remove('tmjs-hidden');
       this.TMJS.map.zoomMap();
       this.TMJS.publish('modal-opened', true);
+      if(!this.TMJS.dom._lastSearchTerm || this.TMJS.dom._lastSearchTerm == address_query)
+      {
+        this.TMJS.dom.resetSearch();
+        this.TMJS.dom.searchNearest(address_query);
+      }
       return this;
     }
   }, {
@@ -781,7 +799,7 @@ var DOMManipulator = /*#__PURE__*/function () {
   }, {
     key: "geoLocationSuccess",
     value: function geoLocationSuccess(position) {
-      this._lastSearchTerm = '';
+      this._lastSearchTerm = this._lastRadius = '';
       var referencePoint = {
         lat: position.coords.latitude,
         lng: position.coords.longitude
@@ -896,7 +914,6 @@ var DOMManipulator = /*#__PURE__*/function () {
 
           this.scrollIntoView(_location._li);
         }
-
         return;
       }
 
@@ -948,7 +965,7 @@ var DOMManipulator = /*#__PURE__*/function () {
   }, {
     key: "resetSearch",
     value: function resetSearch() {
-      this._lastSearchTerm = '';
+      this._lastSearchTerm = this._lastRadius = '';
       this.renderTerminalList(this.TMJS.map.resetDistance(), true);
       this.TMJS.map.removeReferencePosition();
       this.TMJS.publish('reset-search-result');
@@ -965,14 +982,15 @@ var DOMManipulator = /*#__PURE__*/function () {
         this.resetSearch();
         return;
       }
-
-      if (search === this._lastSearchTerm) {
+      var radius = parseFloat($('#terminal-search-radius').val());
+      if (search === this._lastSearchTerm && radius === this._lastRadius) {
         console.log('Search term hasnt changed');
         return;
       }
 
       this.TMJS.publish('add-search-loader');
       this._lastSearchTerm = search;
+      this._lastRadius = radius;
       var queryParams = {
         sourceCountry: this.TMJS.country_code ? this.TMJS.country_code : false,
         singleLine: search,
@@ -987,12 +1005,22 @@ var DOMManipulator = /*#__PURE__*/function () {
         if (!response.ok) throw new Error(response.status);
         return response.json();
       }).then(function (json) {
-        return _this4.updateDistanceByCandidate(json);
+        _this4.TMJS.setTerminals(_this4.TMJS.terminals_cache);
+        _this4.updateDistanceByCandidate(json);
+        if(!isNaN(radius))
+          _this4.filterLocationsByRadius(radius);
       })["catch"](function (error) {
         return _this4.candidateError(error);
       });
     }
   }, {
+      key: "filterLocationsByRadius",
+      value: function filterLocationsByRadius(radius) {
+        this.TMJS.map.locations = this.TMJS.map.locations.filter((location) => location.distance <= radius);
+        this.TMJS.dom.renderTerminalList(this.TMJS.map.locations);
+        this.TMJS.map.updateMapMarkers();
+      }
+    }, {
     key: "candidateError",
     value: function candidateError(error) {
       console.log(error);
@@ -1125,8 +1153,11 @@ var Map = /*#__PURE__*/function () {
           iconSize: [80, 144]
         }
       });
-      _this._icons['venipak'] = new Icon({
-            iconUrl: mjvp_imgs_url + "/venipak.svg"
+      _this._icons['venipak-pickup'] = new Icon({
+            iconUrl: mjvp_imgs_url + "/venipak-main.svg"
+      });
+      _this._icons['venipak-locker'] = new Icon({
+        iconUrl: mjvp_imgs_url + "/venipak-alt.svg"
       });
 
       if (_this._markerLayer.getLayers().length > 0) {

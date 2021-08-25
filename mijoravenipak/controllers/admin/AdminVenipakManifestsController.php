@@ -389,6 +389,15 @@ class AdminVenipakManifestsController extends ModuleAdminController
         {
             $errors[] = $this->module->l('Minutes should be indicated quarterly: 15, 30, 45, 00.');
         }
+
+        $arrival_from_obj->setTime(0,0,0);
+        $arrival_to_obj->setTime(0,0,0);
+        $arrival_diff = $arrival_from_obj->diff($arrival_to_obj);
+        if($arrival_diff->d > 0)
+        {
+            $errors[] = $this->module->l('Both times must be on the same day.');
+        }
+
         $data['errors'] = $errors;
 
         return $data;

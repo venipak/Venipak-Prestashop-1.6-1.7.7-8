@@ -92,9 +92,11 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $field_cabinet_number = isset($extra_fields['cabinet_number']) ? $extra_fields['cabinet_number'] : '';
                 $field_warehouse_number = isset($extra_fields['warehouse_number']) ? $extra_fields['warehouse_number'] : '';
                 $field_delivery_time = isset($extra_fields['delivery_time']) ? $extra_fields['delivery_time'] : 'nwd';
-                $field_carrier_call = 0;
+                $field_carrier_call = $field_return_doc = 0;
                 if(Tools::isSubmit('mjvp_carrier_call'))
                     $field_carrier_call = 1;
+                if(Tools::isSubmit('mjvp_return_doc'))
+                    $field_return_doc = 1;
                 if(strlen($field_door_code) > MijoraVenipak::EXTRA_FIELDS_SIZE)
                     $result['errors'][] = $this->module->l('The door code is too long.');
                 if(strlen($field_cabinet_number) > MijoraVenipak::EXTRA_FIELDS_SIZE)
@@ -110,6 +112,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $order_extra_info['warehouse_number'] = $field_warehouse_number;
                 $order_extra_info['delivery_time'] = $field_delivery_time;
                 $order_extra_info['carrier_call'] = $field_carrier_call;
+                $order_extra_info['return_doc'] = $field_return_doc;
                 $data['other_info'] = json_encode($order_extra_info);
             }
 
@@ -161,6 +164,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
         $label_number = Tools::getValue('label_number');
+        if(!is_array($label_number))
+            $label_number = (array) $label_number;
         $cApi->printLabel($label_number);
     }
 }

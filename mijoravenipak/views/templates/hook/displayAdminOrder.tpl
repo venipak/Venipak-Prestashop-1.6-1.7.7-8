@@ -1,12 +1,13 @@
 <script type="text/javascript">
     var pickup_reference = '{$pickup_reference}';
     var order_id = '{$order_id}';
+    var terminal_warning = '{l s="Pickup point not selected" mod='venipakshipping'}';
 </script>
 <div class="row venipak">
     <div class="col-lg-6 col-md-6 col-xs-12 panel">
 
         <div class="panel-heading">
-            <img src="{$module_dir}/views/images/venipak.svg" class="venipak-logo" alt="Smartpost Logo">
+            <img src="{$module_dir}/views/images/venipak-main.svg" class="venipak-logo" alt="Smartpost Logo">
             {l s='Venipak Shipping' mod='venipakshipping'}
         </div>
 
@@ -144,6 +145,12 @@
                         <div class="field-row">
                             <input name="mjvp_carrier_call" type="checkbox" {if isset($venipak_other_info.carrier_call) && $venipak_other_info.carrier_call}checked{/if}>
                             {l s='Select this option if you want carrier to call you before delivery' mod='mijoravenipak'}
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xs-12">
+                        <div class="field-row">
+                            <input name="mjvp_return_doc" type="checkbox" {if isset($venipak_other_info.return_doc) && $venipak_other_info.return_doc}checked{/if}>
+                            {l s='Select if You want a courier to return a signed document which leads a shipment' mod='mijoravenipak'}
                         </div>
                     </div>
                 </div>

@@ -8,7 +8,7 @@ var venipak_custom_modal = function() {
         tmjs.setTranslation(mjvp_terminal_select_translates);
 
         tmjs.dom.setContainerParent(document.getElementById('mjvp-pickup-select-modal'));
-
+        tmjs.terminals_cache = null;
         tmjs.init({
             country_code: mjvp_country_code,
             identifier: '',

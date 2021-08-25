@@ -70,12 +70,15 @@ class MjvpVenipak
         $params = array(
             'user' => $username,
             'pass' => $password,
-            'format' => $this->getParamValue($data, 'page_size', array('a4', 'other'), 'other'),
+            'format' => $this->getParamValue($data, 'format', array('a4', 'other'), 'other'),
             'carrier' => $this->getParamValue($data, 'carrier', array('venipak', 'global', 'all'), 'all'),
         );
 
         if (isset($data['packages'])) {
-            $params['pack_no[]'] = $data['packages'];
+            foreach ($data['packages'] as $key => $package)
+            {
+                $params['pack_no[' . $key . ']'] = $package;
+            }
         }
 
         return $this->executeRequest('ws/print_label', 'POST', $params);
