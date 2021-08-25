@@ -1,0 +1,7 @@
+admin_venipak_generate_bulk:
+  path: /mijora-venipak/bulk-generate
+  methods: [POST]
+  defaults:
+    _controller: 'MijoraVenipak\Controller\Admin\VenipakBulkActionController::bulkGenerateLabels'
+    _legacy_controller: AdminBulkAction
+    _legacy_link: AdminBulkAction

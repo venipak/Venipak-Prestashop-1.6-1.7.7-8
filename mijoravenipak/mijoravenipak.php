@@ -1,5 +1,7 @@
 <?php
 
+use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
+
 if (!defined('_PS_VERSION_')) {
     exit;
 }
@@ -230,7 +232,7 @@ class MijoraVenipak extends CarrierModule
         $this->version = '0.1.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.6');
+        $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
         $this->bootstrap = true;
 
         parent::__construct();
@@ -260,7 +262,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function install()
     {
-        $this->registerTabs();
 
         if (extension_loaded('curl') == false) {
             $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
@@ -299,7 +300,7 @@ class MijoraVenipak extends CarrierModule
             $this->_errors[] = $this->l('Failed to create other database records.');
             return false;
         }
-
+        $this->registerTabs();
         $this->getVenipakTerminals();
 
         return true;
@@ -1379,7 +1380,10 @@ class MijoraVenipak extends CarrierModule
             'venipak_print_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=printLabel',
         ));
 
-        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
+        if(version_compare(_PS_VERSION_, '1.7.7', '<'))
+            return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder.tpl');
+        return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/hook/displayAdminOrder177.tpl');
+
     }
 
     public function hookActionValidateStepComplete($params)
@@ -1918,7 +1922,7 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionAdminControllerSetMedia()
     {
-        if (get_class($this->context->controller) == 'AdminOrdersController') {
+        if (get_class($this->context->controller) == 'AdminOrdersController' || get_class($this->context->controller) == 'AdminLegacyLayoutControllerCore') {
             {
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
@@ -2031,5 +2035,19 @@ class MijoraVenipak extends CarrierModule
                 )
             );
         }
+    }
+
+    /**
+     * Use hook to add Bulk action for printing and generating labels on Orders page.
+     */
+    public function hookActionOrderGridDefinitionModifier($params)
+    {
+        $params['definition']->getBulkActions()->add(
+            (new SubmitBulkAction('mjvp_bulk_generate_labels'))
+                ->setName('Venipak generate labels')
+                ->setOptions([
+                    'submit_route' => 'admin_venipak_generate_bulk',
+                ])
+        );
     }
 }
