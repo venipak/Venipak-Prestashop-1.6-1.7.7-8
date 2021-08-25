@@ -8,7 +8,7 @@
 
         <div class="card-header">
             <img src="{$module_dir}/views/images/venipak-main.svg" class="venipak-logo" alt="Smartpost Logo">
-            {l s='Venipak Shipping 1.7.7' mod='venipakshipping'}
+            {l s='Venipak Shipping' mod='venipakshipping'}
         </div>
 
         <div class="card-body">
@@ -182,6 +182,5 @@
                     {/foreach}
             </div>
         </div>
-
     </div>
 </div>

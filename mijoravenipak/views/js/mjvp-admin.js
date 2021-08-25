@@ -77,7 +77,7 @@ $(document).ready(function () {
         function saveVenipakCart(form_data) {
             form_data.set('ajax', 1);
             form_data.set('id_order', order_id);
-
+            $response.html('');
             disableButtons();
             $.ajax({
                 type: "POST",
@@ -93,7 +93,7 @@ $(document).ready(function () {
                     if (typeof res.errors != 'undefined') {
                         showResponse(res.errors, 'danger');
                     } else {
-                        showResponse([res.success], 'success');
+                        showResponse(res.success[0], 'success');
                         window.location.href = location.href;
                     }
                 },
@@ -106,7 +106,7 @@ $(document).ready(function () {
         function generateVenipakLabel(form_data) {
             form_data.set('ajax', 1);
             form_data.set('id_order', order_id);
-
+            $response.html('');
             disableButtons();
             $.ajax({
                 type: "POST",
@@ -120,8 +120,16 @@ $(document).ready(function () {
                     console.log(res);
                     res = JSON.parse(res);
                     if (typeof res.errors != 'undefined') {
-                        showResponse(res.errors, 'danger');
-                        console.log(res);
+                        if(Array.isArray(res.errors))
+                        {
+                            res.errors.forEach((error) => {
+                                showResponse(error, 'danger');
+                            });
+                        }
+                        else
+                        {
+                            showResponse(res.errors, 'danger');
+                        }
                         return false;
                     } else {
                         console.log(res);
@@ -168,12 +176,13 @@ $(document).ready(function () {
         function showResponse(msg, type) {
             $response.removeClass('alert-danger alert-success');
             $response.addClass('alert-' + type);
-            $response.html('');
-            var ol = document.createElement('ol');
-            var li = document.createElement('li');
-            li.innerText = msg;
-            ol.appendChild(li);
-            $response.append(ol);
+
+            if($response.find('ol').length == 0)
+                $response.append('<ol></ol>');
+
+            // Clean html tags
+            msg = msg.replace(/<\/?[^>]+(>|$)/g, "");
+            $response.find('ol').addClass('mb-0').append(`<li>${msg}</li>`);
             $response.show();
         }
     }
