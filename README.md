@@ -1,5 +1,5 @@
 # Venipak-Prestashop-1.7
-Venipak module for Prestashop 1.7.0-1.7.6
+Venipak module for Prestashop 1.7.0-1.7.7
 
 ### Minimum requirements
 - Prestashop 1.7.0
