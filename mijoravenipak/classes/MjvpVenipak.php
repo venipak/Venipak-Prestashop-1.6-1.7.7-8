@@ -100,8 +100,14 @@ class MjvpVenipak
         $params = array(
             'user' => $username,
             'pass' => $password,
-            'pack_no[]' => $packages,
         );
+
+        if (is_array($packages) && !empty($packages)) {
+            foreach ($packages as $key => $package)
+            {
+                $params['pack_no[' . $key . ']'] = $package;
+            }
+        }
 
         return $this->executeRequest('ws/print_link', 'POST', $params);
     }

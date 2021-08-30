@@ -45,12 +45,31 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             }
             else
             {
+                // Get selected terminal data.
+                $order = new Order($id_order);
+                $terminals = $this->module->getFilteredTerminals(false, $order);
+                $selected_terminal = $this->module->getTerminalById($terminals, $terminal_id);
+                $terminal_info = [];
+                if(is_object($selected_terminal) && !empty($selected_terminal))
+                {
+                    $terminal_info = [
+                        'name' => $selected_terminal->name,
+                        'company_code' => $selected_terminal->code,
+                        'country' => $selected_terminal->country,
+                        'city' => $selected_terminal->city,
+                        'address' => $selected_terminal->address,
+                        'post_code' => $selected_terminal->zip,
+                    ];
+                }
+
+
                 $data = [
                     'packages' => Tools::getValue('packs', 1),
                     'order_weight' => Tools::getValue('weight', 0),
                     'is_cod' => Tools::getValue('is_cod', 0),
                     'id_carrier_ref' => Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name'])),
                     'terminal_id' => Tools::getValue('id_pickup_point'),
+                    'terminal_info' => json_encode($terminal_info),
                 ];
 
                 // If cod is disabled, cod ammount will not be submitted at all.
@@ -151,7 +170,15 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     public function generateLabel()
     {
         $order = (int) Tools::getValue('id_order');
-        $this->module->bulkActionSendLabels((array) $order);
+        $response = $this->module->bulkActionSendLabels((array) $order);
+
+        // 1.7.7 and above
+        if(is_array($response) && isset($response['success']))
+            $result['success'] = $response['success'];
+        if(is_array($response) && isset($response['errors']))
+            $result['errors'] = $response['errors'];
+
+        // Below 1.7.7
         if(!empty($this->context->controller->confirmations))
             $result['success'] = $this->context->controller->confirmations;
         if(!empty($this->context->controller->errors))

@@ -266,6 +266,32 @@ class MjvpApi
         $this->getPdfEntity('manifest', $labels);
     }
 
+    public function getPrintLink($labels_numbers)
+    {
+        MijoraVenipak::checkForClass('MjvpModuleConfig');
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
+        $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+
+         return $this->cVenipak->getLabelLink($username, $password, $labels_numbers);
+    }
+
+    function fileGetContentsCurl($url) {
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+
+        $data = curl_exec($ch);
+        curl_close($ch);
+
+        return $data;
+    }
+
     public function printLabel($label_number)
     {
         $this->getPdfEntity('label', $label_number);

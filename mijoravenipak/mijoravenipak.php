@@ -229,7 +229,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.1.0';
+        $this->version = '0.6.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1685,15 +1685,25 @@ class MijoraVenipak extends CarrierModule
                     }
 
                     // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
-                    $door_code = '';
-                    $cabinet_number = '';
-                    $warehouse_number = '';
-                    $delivery_time = '';
-                    $carrier_call = '';
                     $carrier_reference = $carrier->id_reference;
                     $consignee = [];
                     $currency = new Currency($order->id_currency);
                     $currency_iso = strtoupper($currency->iso_code);
+                    $contact_person = '';
+                    $contact_phone = '';
+                    $contact_email = '';
+                    $address = new Address($order->id_address_delivery);
+                    if(Validate::isLoadedObject($address))
+                    {
+                        $contact_person = $address->firstname . ' ' . $address->lastname;
+                        $contact_phone = $address->phone;
+                    }
+                    $customer = new Customer($order->id_customer);
+
+                    if(Validate::isLoadedObject($customer))
+                    {
+                        $contact_email = $customer->email;
+                    }
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
                         $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
@@ -1709,6 +1719,9 @@ class MijoraVenipak extends CarrierModule
                             'city' => $address->city,
                             'address' => $consignee_address,
                             'postcode' => $address->postcode,
+                            'person' => $contact_person,
+                            'phone' => $contact_phone,
+                            'email' => $contact_email,
                             'phone' => $consignee_phone,
                             'door_code' => $door_code,
                             'cabinet_number' => $cabinet_number,
@@ -1724,21 +1737,6 @@ class MijoraVenipak extends CarrierModule
                     if(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference)
                     {
                         $terminal_info = json_decode($cDb->getOrderValue('terminal_info', array('id_order' => $order_id)));
-                        $contact_person = '';
-                        $contact_phone = '';
-                        $contact_email = '';
-                        $address = new Address($order->id_address_delivery);
-                        if(Validate::isLoadedObject($address))
-                        {
-                            $contact_person = $address->firstname . ' ' . $address->lastname;
-                            $contact_phone = $address->phone;
-                        }
-                        $customer = new Customer($order->id_customer);
-
-                        if(Validate::isLoadedObject($customer))
-                        {
-                            $contact_email = $customer->email;
-                        }
                         $consignee = [
                             'name' => $terminal_info->name,
                             'code' => $terminal_info->company_code,
@@ -1766,7 +1764,7 @@ class MijoraVenipak extends CarrierModule
                 }
             }
             $manifest_xml = $cApi->buildManifestXml($manifest);
-            if ($cHelper->isXMLContentValid($manifest_xml)) {
+            if ($cHelper->isXMLContentValid($manifest_xml) && $found) {
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
@@ -1828,9 +1826,18 @@ class MijoraVenipak extends CarrierModule
 
                 }
                 if (isset($status['error'])) {
+                    // Nullify successful orders array. If one order in manifest is incorrect, entire manifest fails.
+                    $success_orders = [];
                     if (isset($status['error']['text'])) {
                         $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];
-                    } else {
+                    }
+                    elseif (is_array($status['error'])) {
+                        foreach ($status['error'] as $error)
+                        {
+                            $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $error['text'];
+                        }
+                    }
+                    else {
                        $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
                 } else {
@@ -1847,12 +1854,34 @@ class MijoraVenipak extends CarrierModule
             $errors[] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
         }
 
-        if (empty($errors)) {
-            $this->context->controller->confirmations[] = $this->l('Successfully created label for the shipment.');
-        } else {
-            $this->showErrors($errors);
-            if (!empty($success_orders)) {
-                $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
+        if(version_compare(_PS_VERSION_, '1.7.7', '<'))
+        {
+            if (empty($errors))
+            {
+                $this->context->controller->confirmations[] = $this->l('Successfully created label(s) for the shipment.');
+            }
+            else
+            {
+                $this->showErrors($errors);
+                if (!empty($success_orders)) {
+                    $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
+                }
+            }
+            return true;
+        }
+        else
+        {
+            if (empty($errors))
+            {
+                return  ['success' => $this->l('Successfully created label(s) for the shipment.')];
+            }
+            else
+            {
+                $return = ['errors' => $errors];
+                if (!empty($success_orders)) {
+                    $return['success'] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders);
+                }
+                return $return;
             }
         }
     }
@@ -1939,57 +1968,76 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
-    private function filterTerminalsByCartWeight($terminals)
+    private function filterTerminalsByWeight($terminals, $entity)
     {
-        $cart_weight = $this->context->cart->getTotalWeight();
-        foreach ($terminals as $key => $terminal)
+        if($entity instanceof Order || $entity instanceof Cart)
         {
-            if(isset($terminal->size_limit) && $terminal->size_limit < $cart_weight)
-                unset($terminals[$key]);
+            $weight = $entity->getTotalWeight();
+            foreach ($terminals as $key => $terminal)
+            {
+                if(isset($terminal->size_limit) && $terminal->size_limit < $weight)
+                    unset($terminals[$key]);
+            }
+            return $terminals;
         }
-        return $terminals;
+        else
+        {
+            return [];
+        }
     }
 
-    public function getFilteredTerminals($filter = '')
+    public function getFilteredTerminals($filter = '', $entity = null)
     {
-        $cart = $this->context->cart;
-        $address = new Address($cart->id_address_delivery);
-        $country = new Country();
-        $country_code = $country->getIsoById($address->id_country);
-        self::checkForClass('MjvpApi');
-        $cApi = new MjvpApi();
-        $all_terminals_info = $cApi->getTerminals($country_code);
-        $filtered_terminals = $this->filterTerminalsByCartWeight($all_terminals_info);
+        if(!$entity && isset($this->context->cart))
+            $entity = $this->context->cart;
+        if($entity instanceof Order || $entity instanceof Cart) {
+            $address = new Address($entity->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
+            self::checkForClass('MjvpApi');
+            $cApi = new MjvpApi();
+            $all_terminals_info = $cApi->getTerminals($country_code);
+            $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
 
-        $filtered_terminals = array_values($filtered_terminals);
-        if(!$filter)
-            return $filtered_terminals;
+            $filtered_terminals = array_values($filtered_terminals);
+            if (!$filter)
+                return $filtered_terminals;
 
-        $terminals = $filtered_terminals;
-        $terminal_field = 'type';
-        $value = 0;
-        if($filter == 'pickup')
-        {
-            $value = 1;
-        }
-        elseif($filter == 'locker')
-        {
-            $value = 3;
-        }
-        elseif ($filter == 'cod')
-        {
-            $terminal_field = 'cod_enabled';
-            $value = 1;
-        }
+            $terminals = $filtered_terminals;
+            $terminal_field = 'type';
+            $value = 0;
+            if ($filter == 'pickup') {
+                $value = 1;
+            } elseif ($filter == 'locker') {
+                $value = 3;
+            } elseif ($filter == 'cod') {
+                $terminal_field = 'cod_enabled';
+                $value = 1;
+            }
 
-        foreach ($terminals as $key => $terminal)
-        {
-            if(isset($terminal->$terminal_field) && $terminal->$terminal_field != $value)
-                unset($terminals[$key]);
+            foreach ($terminals as $key => $terminal) {
+                if (isset($terminal->$terminal_field) && $terminal->$terminal_field != $value)
+                    unset($terminals[$key]);
+            }
+            $terminals = array_values($terminals);
+            return $terminals;
         }
-        $terminals = array_values($terminals);
-        return $terminals;
+        else
+        {
+            return [];
+        }
+    }
 
+    public function getTerminalById($terminals, $terminal_id)
+    {
+        foreach ($terminals as $terminal)
+        {
+            if ($terminal->id == $terminal_id)
+            {
+                return $terminal;
+            }
+        }
+        return false;
     }
 
     private function getEnabledDeliveryTimes()
@@ -2022,7 +2070,7 @@ class MijoraVenipak extends CarrierModule
             $smarty = $params['smarty'];
             $bulk_actions = $smarty->getVariable('bulk_actions')->value;
             $bulk_actions['mjvp_send_labels'] = [
-                'text' => $this->l('Send Venipak labels'),
+                'text' => $this->l('Generate Venipak labels'),
                 'icon' => 'icon-cloud-upload'
             ];
             $bulk_actions['mjvp_print_labels'] = [
@@ -2038,7 +2086,7 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
-     * Use hook to add Bulk action for printing and generating labels on Orders page.
+     * Use hook to add Bulk actions for printing and generating labels on Orders page (1.7.7)
      */
     public function hookActionOrderGridDefinitionModifier($params)
     {
@@ -2047,6 +2095,13 @@ class MijoraVenipak extends CarrierModule
                 ->setName('Venipak generate labels')
                 ->setOptions([
                     'submit_route' => 'admin_venipak_generate_bulk',
+                ])
+        );
+        $params['definition']->getBulkActions()->add(
+            (new SubmitBulkAction('mjvp_bulk_print_labels'))
+                ->setName('Venipak print labels')
+                ->setOptions([
+                    'submit_route' => 'admin_venipak_print_bulk',
                 ])
         );
     }

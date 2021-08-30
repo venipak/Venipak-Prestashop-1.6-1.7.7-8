@@ -17,7 +17,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             $ps_carrier = new Carrier((int)$carrierId);
 
             if (!Validate::isLoadedObject($ps_carrier)) {
-                die(Tools::jsonEncode('FAILED TO GET CARRIER'));
+                die(json_encode('FAILED TO GET CARRIER'));
             }
 
             $pickups_references = array();
@@ -44,7 +44,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 
             if (in_array($ps_carrier->id_reference, $pickups_references)) {
                 if (empty($selected_terminal)) {
-                    die(Tools::jsonEncode('TERMINAL NOT SELECTED'));
+                    die(json_encode('TERMINAL NOT SELECTED'));
                 }
                 $terminal = Tools::getValue('terminal');
                 $sql_values['terminal_id'] = $selected_terminal;
@@ -74,10 +74,10 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                     $result = $cDb->updateOrderInfo($this->context->cart->id, $sql_values);
                 }
             } catch (Exception $e) {
-                die(Tools::jsonEncode('FAILED TO SAVE VENIPAK ORDER'));
+                die(json_encode('FAILED TO SAVE VENIPAK ORDER'));
             }
 
-            die(Tools::jsonEncode(array(
+            die(json_encode(array(
                 'msg' => 'OK',
                 'savedCarrier' => $ps_carrier->id,
                 'result' => $result,
