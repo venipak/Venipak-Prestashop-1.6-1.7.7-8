@@ -1358,8 +1358,8 @@ class MijoraVenipak extends CarrierModule
             $venipak_cart_info['is_pickup'] = true;
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
-
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
+
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,

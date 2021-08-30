@@ -1,5 +1,14 @@
 $(document).ready(function () {
 
+    // venipak_modal.modal({ show: false });
+    // venipak_modal.find('#id_venipak_warehouse').trigger('change');
+    $(document).on('click', '.change-shipment-modal', function(e) {
+        e.preventDefault();
+        var confirmModal, venipak_buttons, venipak_modal;
+        create_venipak_modal();
+        venipak_manifest_id = this.dataset.manifest || 0;
+    });
+
     // Configuration page
     if($('#MJVP_COURIER_DELIVERY_TIME_on').is(':checked'))
         $('.delivery-checkbox').removeClass('hide');
@@ -21,11 +30,6 @@ $(document).ready(function () {
         var $pickup_points = $('.venipak select[name="id_pickup_point"]');
         var $extra_services = $('.venipak .extra-services-container');
         var $response = $('.venipak .response');
-        var venipak_buttons = {
-            print: document.getElementById('venipak_print_label_btn'),
-            save: document.getElementById('venipak_save_cart_info_btn'),
-            generate: document.getElementById('venipak_generate_label_btn')
-        }
 
         cod_amount.disabled = is_cod.value == '0';
         togglePickupPoints();
@@ -89,7 +93,6 @@ $(document).ready(function () {
                 dataType: "json",
                 data: form_data,
                 success: function (res) {
-                    console.log(res);
                     if (typeof res.errors != 'undefined') {
                         showResponse(res.errors, 'danger');
                     } else {
@@ -117,7 +120,6 @@ $(document).ready(function () {
                 cache: false,
                 data: form_data,
                 success: function (res) {
-                    console.log(res);
                     res = JSON.parse(res);
                     if (typeof res.errors != 'undefined') {
                         if(Array.isArray(res.errors))
@@ -132,7 +134,6 @@ $(document).ready(function () {
                         }
                         return false;
                     } else {
-                        console.log(res);
                         showResponse(res.success, 'success');
                         location.reload();
                     }
@@ -146,11 +147,6 @@ $(document).ready(function () {
         function disableButtons() {
             venipak_buttons.save.disabled = true;
             venipak_buttons.generate.disabled = true;
-        }
-
-        function enableButtons() {
-            venipak_buttons.save.disabled = false;
-            venipak_buttons.generate.disabled = false;
         }
 
         window.venipak_disable = disableButtons;
@@ -172,20 +168,87 @@ $(document).ready(function () {
                 alert(text);
             }
         }
+    }
 
-        function showResponse(msg, type) {
-            $response.removeClass('alert-danger alert-success');
-            $response.addClass('alert-' + type);
+    function create_venipak_modal() {
 
-            if($response.find('ol').length == 0)
-                $response.append('<ol></ol>');
-
-            // Clean html tags
-            if(Array.isArray(msg))
-                msg = msg[0];
-            msg = msg.replace(/<\/?[^>]+(>|$)/g, "");
-            $response.find('ol').addClass('mb-0').append(`<li>${msg}</li>`);
-            $response.show();
+        // confirmModal.find('#confirm_modal_left_button').click(function () {
+        //     cleanErrors();
+        //     if (!venipak_manifest_id) {
+        //         showErrorMessage(call_errors.manifest);
+        //     }
+        //     if($('#call-modal-errors li').length == 0)
+        //     {
+        //         cleanErrors();
+        //         sendCall();
+        //     }
+        // });
+        // confirmModal.find('#confirm_modal_right_button').click(function () {
+        //     cleanErrors();
+        //     confirmModal.modal('hide');
+        // });
+        var link = null;
+        if(event.target.tagName == 'I')
+        {
+            link = $(event.target.parentElement);
         }
+        else
+        {
+            link = $(event.target);
+        }
+        $.ajax({
+            type: "POST",
+            url: venipak_prepare_modal_url,
+            data: {
+                'id_order' : link.data('order')
+            },
+            success: function (res) {
+                res = JSON.parse(res);
+                if (typeof res.errors != 'undefined') {
+                    if(Array.isArray(res.errors))
+                    {
+                        res.errors.forEach((error) => {
+                            showResponse(error, 'danger');
+                        });
+                    }
+                    else
+                    {
+                        showResponse(res.errors, 'danger');
+                    }
+                    return false;
+                } else if(res.modal){
+                    $('#form-order').append(res.modal);
+                    venipak_buttons = {
+                        print: document.getElementById('venipak_print_label_btn'),
+                        save: document.getElementById('venipak_save_cart_info_btn'),
+                        generate: document.getElementById('venipak_generate_label_btn')
+                    }
+                    $('#venipka-modal').modal('show');
+                }
+            },
+            complete: function(jqXHR, status) {
+                enableButtons(venipak_buttons);
+            }
+        });
     }
 });
+
+function showResponse(msg, type) {
+    $response.removeClass('alert-danger alert-success');
+    $response.addClass('alert-' + type);
+
+    if($response.find('ol').length == 0)
+        $response.append('<ol></ol>');
+
+    // Clean html tags
+    if(Array.isArray(msg))
+        msg = msg[0];
+    msg = msg.replace(/<\/?[^>]+(>|$)/g, "");
+    $response.find('ol').addClass('mb-0').append(`<li>${msg}</li>`);
+    $response.show();
+}
+
+function enableButtons(buttons) {
+    buttons.save.disabled = false;
+    buttons.generate.disabled = false;
+}

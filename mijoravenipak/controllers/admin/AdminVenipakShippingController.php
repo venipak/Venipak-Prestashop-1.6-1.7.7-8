@@ -139,6 +139,14 @@ class AdminVenipakShippingController extends ModuleAdminController
         return parent::renderList();
     }
 
+    public function setMedia($isNewTheme = false)
+    {
+        parent::setMedia($isNewTheme);
+        Media::addJsDef([
+            'venipak_prepare_modal_url' =>  $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=prepareModal',
+        ]);
+    }
+
     public function getShopNameById($id)
     {
         $shop = new Shop($id);
@@ -147,13 +155,12 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id)
     {
-
         MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
         $content = '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" id="change-shipment-modal" href="#"><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
+                          <a class="btn btn-default change-shipment-modal" href="&token=' . $this->token . '" data-order="' . $id . '" ><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
                           </a>
                         </span>
                     </span>';

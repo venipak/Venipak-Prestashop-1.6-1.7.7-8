@@ -99,3 +99,7 @@
 #venipak-order-card .venipak-logo {
     height: 75%;
 }
+
+.bootstrap .btn-group-action .btn-group>a:first-child {
+    margin-right: 0;
+}

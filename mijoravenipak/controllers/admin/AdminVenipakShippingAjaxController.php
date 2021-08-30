@@ -25,6 +25,9 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             case 'generateLabel':
                 $this->generateLabel();
                 break;
+            case 'prepareModal':
+                $this->prepareOrderModal();
+                break;
         }
     }
 
@@ -194,5 +197,80 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         if(!is_array($label_number))
             $label_number = (array) $label_number;
         $cApi->printLabel($label_number);
+    }
+
+    public function prepareOrderModal()
+    {
+        $id_order = Tools::getValue('id_order');
+        $order = new Order($id_order);
+
+        if (!Validate::isLoadedObject($order) || !isset($order->id_cart)) {
+            die(json_encode(['error' => $this->module->l('Could not get a valid order object.')]));
+        }
+
+        MijoraVenipak::checkForClass('MjvpDb');
+        $cDb = new MjvpDb();
+
+        MijoraVenipak::checkForClass('MjvpHelper');
+        $cHelper = new MjvpHelper();
+
+        try {
+            $carrier = new Carrier($order->id_carrier);
+            if (!$cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
+                return '';
+            }
+
+            $status = $cDb->getOrderValue('status', array('id_cart' => $order->id_cart));
+            $error = $cDb->getOrderValue('error', array('id_cart' => $order->id_cart));
+            $tracking_numbers = $cDb->getOrderValue('labels_numbers', array('id_cart' => $order->id_cart));
+        } catch (Exception $e) {
+            die(json_encode(['error' => $this->displayName . " error:<br/>" . $e->getMessage()]));
+        }
+
+        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+
+        MijoraVenipak::checkForClass('MjvpApi');
+        $cApi = new MjvpApi();
+
+        $order_country_code = $venipak_cart_info['country_code'];
+        $pickup_points = $cApi->getTerminals($order_country_code);
+        $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
+        $venipak_carriers = [];
+        foreach (MijoraVenipak::$_carriers as $carrier)
+        {
+            $reference = Configuration::get($carrier['reference_name']);
+            $carrier = Carrier::getCarrierByReference($reference);
+            $venipak_carriers[$reference] = $carrier->name;
+        }
+
+        $order_carrier_reference = $venipak_cart_info['id_carrier_ref'];
+        if($order_carrier_reference == Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']))
+            $venipak_cart_info['is_pickup'] = true;
+
+        $other_info = json_decode($venipak_cart_info['other_info'], true);
+        $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
+
+        $this->context->smarty->assign(array(
+            'block_title' => $this->module->displayName,
+            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
+            'label_status' => $status,
+            'label_error' => $error,
+            'order_id' => $order->id,
+            'order_terminal_id' => $order_terminal_id,
+            'venipak_pickup_points' => $pickup_points,
+            'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->module->displayError($venipak_cart_info['error']) : false),
+            'label_tracking_numbers' => json_decode($tracking_numbers),
+            'orderVenipakCartInfo' => $venipak_cart_info,
+            'venipak_carriers' => $venipak_carriers,
+            'venipak_other_info' => $other_info,
+            'shipment_labels' => $shipment_labels,
+            'delivery_times' => $this->module->deliveryTimes,
+            'carrier_reference' => $order_carrier_reference,
+            'pickup_reference' => Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']),
+            'venipak_print_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=printLabel',
+        ));
+
+        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/change_order_info_modal.tpl')]));
+
     }
 }
