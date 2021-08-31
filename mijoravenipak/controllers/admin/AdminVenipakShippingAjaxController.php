@@ -252,7 +252,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
         $this->context->smarty->assign(array(
             'block_title' => $this->module->displayName,
-            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
+            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
             'label_status' => $status,
             'label_error' => $error,
             'order_id' => $order->id,
