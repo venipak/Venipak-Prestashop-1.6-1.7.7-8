@@ -97,7 +97,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         );
 
         $this->fields_list['id_label_print'] = array(
-            'title' => $this->l('PDF'),
+            'title' => $this->l('Actions'),
             'align' => 'text-center',
             'search' => false,
             'orderby' => false,
@@ -139,6 +139,14 @@ class AdminVenipakShippingController extends ModuleAdminController
         return parent::renderList();
     }
 
+    public function setMedia($isNewTheme = false)
+    {
+        parent::setMedia($isNewTheme);
+        Media::addJsDef([
+            'venipak_prepare_modal_url' =>  $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=prepareModal',
+        ]);
+    }
+
     public function getShopNameById($id)
     {
         $shop = new Shop($id);
@@ -147,13 +155,12 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id)
     {
-
         MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
         $content = '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" id="change-shipment-modal" href="#"><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
+                          <a class="btn btn-default change-shipment-modal" href="#" data-order="' . $id . '" ><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
                           </a>
                         </span>
                     </span>';
@@ -168,7 +175,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         }
         $content .= '<span class="btn-group-action">
                     <span class="btn-group">
-                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label') . '
+                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
                         </a>
                     </span>
                 </span>';

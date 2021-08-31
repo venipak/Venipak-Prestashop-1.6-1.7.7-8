@@ -1358,8 +1358,8 @@ class MijoraVenipak extends CarrierModule
             $venipak_cart_info['is_pickup'] = true;
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
-
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
+
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
@@ -1951,7 +1951,8 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionAdminControllerSetMedia()
     {
-        if (get_class($this->context->controller) == 'AdminOrdersController' || get_class($this->context->controller) == 'AdminLegacyLayoutControllerCore') {
+        if (get_class($this->context->controller) == 'AdminOrdersController' || get_class($this->context->controller) == 'AdminLegacyLayoutControllerCore'
+            || (isset($this->context->controller->module) && $this->context->controller->module = $this)) {
             {
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
@@ -1961,7 +1962,7 @@ class MijoraVenipak extends CarrierModule
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
             }
         }
-        if((isset($this->context->controller->module) && $this->context->controller->module = $this) || Tools::getValue('configure') == $this->name)
+        if(Tools::getValue('configure') == $this->name)
         {
             $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
             $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');

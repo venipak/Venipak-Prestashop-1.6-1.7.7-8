@@ -29,7 +29,7 @@ $(document).ready(function () {
 
 function create_venipak_modal() {
 
-    var confirmModal = $('#venipak_modal');
+    var confirmModal = $('#venipak-modal');
     confirmModal.find('#confirm_modal_left_button').click(function () {
         cleanErrors();
         if (!venipak_manifest_id) {
@@ -84,7 +84,7 @@ function sendCall() {
                 return false;
             }
             showSuccessMessage(res['success']);
-            $('#venipak_modal').modal('hide');
+            $('#venipak-modal').modal('hide');
             location.reload();
         },
         error: function (res) {

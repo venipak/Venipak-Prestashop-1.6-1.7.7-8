@@ -1,4 +1,4 @@
-<div class="bootstrap modal fade" id="venipak_modal">
+<div class="bootstrap modal fade" id="venipak-modal">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

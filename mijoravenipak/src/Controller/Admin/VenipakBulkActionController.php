@@ -1,9 +1,6 @@
 <?php
 
 namespace MijoraVenipak\Controller\Admin;
-
-use PrestaShop\Module\LinkList\Core\Grid\LinkBlockGridFactory;
-use PrestaShop\Module\LinkList\Repository\LinkBlockRepository;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
