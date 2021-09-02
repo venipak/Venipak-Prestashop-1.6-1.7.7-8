@@ -4,6 +4,8 @@ if (!defined('_PS_VERSION_')) {
     return;
 }
 
+use MijoraVenipak\MjvpDb;
+
 class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 {
     public function initContent()
@@ -32,7 +34,6 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                 }
             }
 
-            MijoraVenipak::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
 
             $sql_values = array(

@@ -1,6 +1,8 @@
 <?php
 
-class MjvpManifest extends ObjectModel
+namespace MijoraVenipak;
+
+class MjvpManifest extends \ObjectModel
 {
     public $id;
 

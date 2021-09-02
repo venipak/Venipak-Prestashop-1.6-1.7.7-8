@@ -1,5 +1,9 @@
 <?php
 
+namespace MijoraVenipak;
+
+use MijoraVenipak;
+
 class MjvpModuleConfig
 {
     /**

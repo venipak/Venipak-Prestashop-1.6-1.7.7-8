@@ -1,6 +1,6 @@
 <?php
 
-namespace MijoraVenipak\Controller\Admin;
+namespace MijoraVenipakSrc\Controller\Admin;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

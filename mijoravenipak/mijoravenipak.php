@@ -1,6 +1,15 @@
 <?php
 
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpCart;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpFiles;
+use MijoraVenipak\MjvpHelper;
+use MijoraVenipak\MjvpManifest;
+use MijoraVenipak\MjvpModuleConfig;
+use MijoraVenipak\MjvpVenipak;
+use MijoraVenipak\MjvpWarehouse;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -172,7 +181,6 @@ class MijoraVenipak extends CarrierModule
      */
     private function getConfigField($section_id, $config_key)
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         if ($section_id == 'SHOP') {
@@ -441,7 +449,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function uninstall()
     {
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
         $cDb->deleteTables();
@@ -480,7 +487,6 @@ class MijoraVenipak extends CarrierModule
      */
     private function checkCarrierDisablePassphrase($cart)
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
         $carrier_disable_passphrase = Configuration::get($cModuleConfig->getConfigKey('carrier_disable_passphrase', 'ADVANCED'));
         if($carrier_disable_passphrase)
@@ -617,7 +623,6 @@ class MijoraVenipak extends CarrierModule
      */
     private function updateDefaultCarrier()
     {
-        self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
         $carriers = $cHelper->getAllCarriers();
@@ -649,7 +654,6 @@ class MijoraVenipak extends CarrierModule
      */
     private function getVenipakTerminals()
     {
-        self::checkForClass('MjvpFiles');
         $cFiles = new MjvpFiles();
         $cFiles->updateCountriesList();
         $cFiles->updateTerminalsList();
@@ -684,29 +688,11 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
-     * Add module classes files
-     */
-    public static function checkForClass($className)
-    {
-        if (!class_exists($className)) {
-            if (isset(self::$_classMap[$className])) {
-                require_once self::$_moduleDir . self::$_classMap[$className];
-                if (!class_exists($className)) {
-                    throw new Exception('Class "' . $className . '" not found.');
-                }
-            } else {
-                throw new Exception('Class "' . $className . '" not exists in classes map.');
-            }
-        }
-    }
-
-    /**
      * Create module database tables
      */
     public function createDbTables()
     {
         try {
-            self::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
 
             $result = $cDb->createTables();
@@ -775,7 +761,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigApi()
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = 'API';
@@ -812,7 +797,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigShop()
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = 'SHOP';
@@ -905,7 +889,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigCourier()
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = 'COURIER';
@@ -1003,7 +986,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigAdvancedSettings()
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = 'ADVANCED';
@@ -1025,7 +1007,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfigLabel()
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = 'LABEL';
@@ -1084,9 +1065,6 @@ class MijoraVenipak extends CarrierModule
      */
     public function displayConfig($section_id, $section_title, $form_fields = array(), $submit_title = '')
     {
-        /*self::checkForClass('MjvpModuleConfig');
-        $cModuleConfig = new MjvpModuleConfig();*/
-
         $fieldsForm[0]['form'] = array(
             'legend' => array(
                 'title' => $section_title,
@@ -1174,7 +1152,6 @@ class MijoraVenipak extends CarrierModule
      */
     protected function validateConfig($section_id)
     {
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $section_id = strtoupper($section_id);
@@ -1317,10 +1294,7 @@ class MijoraVenipak extends CarrierModule
             return '';
         }
 
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
-        
-        self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
         try {
@@ -1338,8 +1312,6 @@ class MijoraVenipak extends CarrierModule
         }
 
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
-
-        self::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
 
         $order_country_code = $venipak_cart_info['country_code'];
@@ -1359,7 +1331,7 @@ class MijoraVenipak extends CarrierModule
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
-        MijoraVenipak::checkForClass('MjvpWarehouse');
+
         $warehouses = MjvpWarehouse::getWarehouses();
         $order_warehouse = $cDb->getOrderValue('warehouse_id', array('id_order' => $order->id));
         if(!$order_warehouse)
@@ -1395,11 +1367,7 @@ class MijoraVenipak extends CarrierModule
 
     public function hookActionValidateStepComplete($params)
     {
-        self::checkForClass('MjvpCart');
-
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
-
         $errors = array();
 
         if($params['step_name'] != 'delivery')
@@ -1472,22 +1440,13 @@ class MijoraVenipak extends CarrierModule
      */
     public function hookDisplayCarrierExtraContent($params)
     {
-        self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
-
-        self::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
-        
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
-
-        self::checkForClass('MjvpModuleConfig');
         $cModuleConfig = new MjvpModuleConfig();
 
         $carrier_id_reference = $params['carrier']['id_reference'];
-
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
-
         $delivery_times = $this->getEnabledDeliveryTimes();
 
         if ($carrier_type == 'courier') {
@@ -1604,14 +1563,8 @@ class MijoraVenipak extends CarrierModule
      */
     public function bulkActionSendLabels($orders_ids)
     {
-
-        self::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
-
-        self::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
-
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
         $errors = array();
@@ -1776,7 +1729,6 @@ class MijoraVenipak extends CarrierModule
                 if(!isset($status['error']) && $status['text'])
                 {
                     $manifest_number = Configuration::get($this->_configKeysOther['last_manifest_id']['key']);
-                    self::checkForClass('MjvpManifest');
                     $mjvp_manifest = new MjvpManifest();
                     $mjvp_manifest->manifest_id = $manifest_number;
                     $mjvp_manifest->id_shop = $this->context->shop->id;
@@ -1899,7 +1851,6 @@ class MijoraVenipak extends CarrierModule
     public function bulkActionPrintLabels($orders_ids)
     {
         // Get all tracking numbers and invoke print_list
-        MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
         $labels_numbers_db = Db::getInstance()->executeS('SELECT `labels_numbers` FROM ' . _DB_PREFIX_ . "mjvp_orders
             WHERE `id_order` IN (" . implode(',', $orders_ids) . ')');
@@ -1931,7 +1882,6 @@ class MijoraVenipak extends CarrierModule
         if(!in_array($carrier_reference, Configuration::getMultiple([self::$_carriers['courier']['reference_name'], self::$_carriers['pickup']['reference_name']])))
             return;
 
-        self::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $check_order_id = $cDb->getOrderIdByCartId($id_cart);
 
@@ -2002,7 +1952,7 @@ class MijoraVenipak extends CarrierModule
             $address = new Address($entity->id_address_delivery);
             $country = new Country();
             $country_code = $country->getIsoById($address->id_country);
-            self::checkForClass('MjvpApi');
+
             $cApi = new MjvpApi();
             $all_terminals_info = $cApi->getTerminals($country_code);
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);

@@ -1,6 +1,10 @@
 <?php
 
-class MjvpWarehouse extends ObjectModel
+namespace MijoraVenipak;
+
+use Db, Context;
+
+class MjvpWarehouse extends \ObjectModel
 {
     public $id;
 

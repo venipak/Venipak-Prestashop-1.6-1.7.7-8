@@ -1,10 +1,13 @@
 <?php
 
+
+namespace MijoraVenipak;
+
+use Configuration, Exception, MijoraVenipak;
+
 if (!defined('_PS_VERSION_')) {
     return;
 }
-
-include MijoraVenipak::$_moduleDir . 'classes/MjvpVenipak.php';
 
 class MjvpApi
 {
@@ -63,7 +66,7 @@ class MjvpApi
      */
     public function buildManifestXml($params)
     {
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
+
         $cModuleConfig = new MjvpModuleConfig();
 
         $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
@@ -97,7 +100,7 @@ class MjvpApi
      */
     public function buildCourierInvitationXml($params)
     {
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
+
         $cModuleConfig = new MjvpModuleConfig();
 
         $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
@@ -238,7 +241,7 @@ class MjvpApi
      */
     public function sendXml($xml)
     {
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
+
         $cModuleConfig = new MjvpModuleConfig();
 
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
@@ -268,7 +271,7 @@ class MjvpApi
 
     public function getPrintLink($labels_numbers)
     {
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
+
         $cModuleConfig = new MjvpModuleConfig();
 
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
@@ -299,7 +302,7 @@ class MjvpApi
 
     private function getPdfEntity($type, $label_numbers)
     {
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
+
         $cModuleConfig = new MjvpModuleConfig();
 
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));

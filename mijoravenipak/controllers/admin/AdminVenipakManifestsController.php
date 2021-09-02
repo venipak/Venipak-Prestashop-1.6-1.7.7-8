@@ -1,5 +1,12 @@
 <?php
 
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpHelper;
+use MijoraVenipak\MjvpManifest;
+use MijoraVenipak\MjvpModuleConfig;
+use MijoraVenipak\MjvpWarehouse;
+
 class AdminVenipakManifestsController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -19,7 +26,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->identifier = 'id';
         parent::__construct();
 
-        MijoraVenipak::checkForClass('MjvpManifest');
         $this->_select = ' (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total,
             CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival ';
@@ -93,7 +99,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
             )
         );
 
-        MijoraVenipak::checkForClass('MjvpWarehouse');
         $warehouses = MjvpWarehouse::getWarehouses();
 
         $this->context->smarty->assign(array(
@@ -162,7 +167,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function printBtn($id)
     {
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
@@ -187,9 +191,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function postProcess()
     {
-        MijoraVenipak::checkForClass('MjvpApi');
         if (Tools::isSubmit('printmjvp_manifest')) {
-            MijoraVenipak::checkForClass('MjvpDb');
             $cApi = new MjvpApi();
             $cDb = new MjvpDb();
             $id_manifest = Tools::getValue('id');
@@ -203,10 +205,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function processCarrierCall()
     {
-        MijoraVenipak::checkForClass('MjvpManifest');
-        MijoraVenipak::checkForClass('MjvpWarehouse');
-        MijoraVenipak::checkForClass('MjvpHelper');
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
         $cHelper = new MjvpHelper();
         $cConfig = new MjvpModuleConfig();
         $cApi = new MjvpApi();

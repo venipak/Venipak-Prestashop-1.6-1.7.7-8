@@ -1,5 +1,9 @@
 <?php
 
+namespace MijoraVenipak;
+
+use DOMDocument, Exception;
+
 if (!defined('_PS_VERSION_')) {
     return;
 }

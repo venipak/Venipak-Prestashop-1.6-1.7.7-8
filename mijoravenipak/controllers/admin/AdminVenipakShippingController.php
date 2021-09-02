@@ -1,5 +1,9 @@
 <?php
 
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpWarehouse;
+
 class AdminVenipakShippingController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -155,7 +159,6 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id)
     {
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
         $content = '<span class="btn-group-action">
@@ -196,10 +199,10 @@ class AdminVenipakShippingController extends ModuleAdminController
         }
         if(Tools::isSubmit('submitLabelorder'))
         {
-            MijoraVenipak::checkForClass('MjvpApi');
+
             $cApi = new MjvpApi();
             $id_order = Tools::getValue('id_order');
-            MijoraVenipak::checkForClass('MjvpDb');
+
             $cDb = new MjvpDb();
             $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
             $cApi->printLabel($labels_numbers);
@@ -234,7 +237,6 @@ class AdminVenipakShippingController extends ModuleAdminController
             )
         );
 
-        MijoraVenipak::checkForClass('MjvpWarehouse');
         $warehouses = MjvpWarehouse::getWarehouses();
 
         $this->context->smarty->assign(array(

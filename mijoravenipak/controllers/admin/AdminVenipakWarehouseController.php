@@ -1,7 +1,5 @@
 <?php
 
-include __DIR__ . "/../../classes/MjvpWarehouse.php";
-
 class AdminVenipakWarehouseController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -17,7 +15,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         $this->list_no_link = true;
         $this->_orderBy = 'id';
-        $this->className = 'MjvpWarehouse';
+        $this->className = 'MijoraVenipak\MjvpWarehouse';
         $this->table = 'mjvp_warehouse';
         $this->list_id = 'mjvp_warehouse';
         $this->identifier = 'id';
