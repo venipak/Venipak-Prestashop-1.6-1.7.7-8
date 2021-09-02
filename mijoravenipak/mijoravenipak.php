@@ -1563,6 +1563,8 @@ class MijoraVenipak extends CarrierModule
      */
     public function bulkActionSendLabels($orders_ids)
     {
+//        $warehouse_id = $params['warehouse_id'];
+//        $orders_ids = $params['orders'];
         $cApi = new MjvpApi();
         $cHelper = new MjvpHelper();
         $cDb = new MjvpDb();
@@ -1656,7 +1658,6 @@ class MijoraVenipak extends CarrierModule
                     if(Validate::isLoadedObject($address))
                     {
                         $contact_person = $address->firstname . ' ' . $address->lastname;
-                        $contact_phone = $address->phone;
                     }
                     $customer = new Customer($order->id_customer);
 
@@ -1680,7 +1681,6 @@ class MijoraVenipak extends CarrierModule
                             'address' => $consignee_address,
                             'postcode' => $address->postcode,
                             'person' => $contact_person,
-                            'phone' => $contact_phone,
                             'email' => $contact_email,
                             'phone' => $consignee_phone,
                             'door_code' => $door_code,
@@ -1705,7 +1705,7 @@ class MijoraVenipak extends CarrierModule
                             'address' => $terminal_info->address,
                             'postcode' => $terminal_info->post_code,
                             'person' => $contact_person,
-                            'phone' => $contact_phone,
+                            'phone' => $consignee_phone,
                             'email' => $contact_email,
                             'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
@@ -2007,6 +2007,18 @@ class MijoraVenipak extends CarrierModule
                 $delivery_times[$key] = $deliveryTime;
         }
         return $delivery_times;
+    }
+
+    public function formatWarehousesOrderGroups($orders)
+    {
+        $cDb = new MjvpDb();
+        $warehouse_groups = [];
+        foreach ($orders as $order)
+        {
+            $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
+            $warehouse_groups[$warehouse_id][] = $order;
+        }
+        return $warehouse_groups;
     }
 
     public function changeOrderStatus($id_order, $status)

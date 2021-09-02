@@ -68,7 +68,6 @@ class MjvpApi
     {
 
         $cModuleConfig = new MjvpModuleConfig();
-
         $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
 
         if (empty($api_id)) {

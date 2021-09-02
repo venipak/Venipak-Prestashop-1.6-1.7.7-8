@@ -143,14 +143,21 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             }
 
             // Order warehouse
-            $order_warehouse = (int) Tools::getValue('warehouse');
-            $warehouse = new MjvpWarehouse($order_warehouse);
-            if(!Validate::isLoadedObject($warehouse))
+            if(empty(MjvpWarehouse::getWarehouses()))
             {
-                $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                $data['warehouse_id'] = 0;
             }
             else
-                $data['warehouse_id'] = $order_warehouse;
+            {
+                $order_warehouse = (int) Tools::getValue('warehouse');
+                $warehouse = new MjvpWarehouse($order_warehouse);
+                if(!Validate::isLoadedObject($warehouse))
+                {
+                    $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                }
+                else
+                    $data['warehouse_id'] = $order_warehouse;
+            }
 
             if (!isset($result['errors'])) {
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
