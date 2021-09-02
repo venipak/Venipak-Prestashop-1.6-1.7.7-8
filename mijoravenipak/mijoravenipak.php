@@ -1359,6 +1359,11 @@ class MijoraVenipak extends CarrierModule
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
+        MijoraVenipak::checkForClass('MjvpWarehouse');
+        $warehouses = MjvpWarehouse::getWarehouses();
+        $order_warehouse = $cDb->getOrderValue('warehouse_id', array('id_order' => $order->id));
+        if(!$order_warehouse)
+            $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
 
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
@@ -1373,6 +1378,8 @@ class MijoraVenipak extends CarrierModule
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
             'venipak_other_info' => $other_info,
+            'warehouses' => $warehouses,
+            'order_warehouse' => $order_warehouse,
             'shipment_labels' => $shipment_labels,
             'delivery_times' => $this->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,

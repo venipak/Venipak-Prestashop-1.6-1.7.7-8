@@ -208,13 +208,10 @@ function create_venipak_modal() {
     });
 }
 
-function bindOrderFormEvents(order_id)
+function bindOrderFormEvents()
 {
-    let order_prefix = '';
-    if(order_id)
-        order_prefix = `-${order_id}`;
-    var cod_amount = document.getElementById(`venipak-cod-amount${order_prefix}`);
-    var $pickup_points = $(`.venipak select[name="id_pickup_point${order_prefix}"]`);
+    var cod_amount = document.getElementById(`venipak-cod-amount`);
+    var $pickup_points = $(`.venipak select[name="id_pickup_point"]`);
     var cod = $('#venipak-cod');
 
     cod_amount.disabled = cod.val() == '0';

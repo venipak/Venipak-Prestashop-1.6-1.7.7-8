@@ -44,6 +44,7 @@ class MjvpDb
                 `id_carrier_ref` int(10) COMMENT "Carrier reference ID",
                 `country_code` varchar(5) NOT NULL COMMENT "Country code used for terminals list",
                 `terminal_id` int(10) COMMENT "Terminal ID",
+                `warehouse_id` int(10) COMMENT "Warehouse ID from which order will be shipped",
                 `terminal_info` text COLLATE utf8_unicode_ci NULL COMMENT "Selected terminal\'s name, company_code, country, city, address, post_code",
                 `last_select` datetime NOT NULL COMMENT "Date when last time terminal/courier changed",
                 `status` varchar(30) COMMENT "Status for module of current order",
@@ -78,6 +79,7 @@ class MjvpDb
                 `call_comment` varchar(255) DEFAULT NULL,
                 `arrival_date_from` datetime DEFAULT NULL,
                 `arrival_date_to` datetime DEFAULT NULL,
+                `closed` tinyint(1) COMMENT "Specifies if manifest is closed" DEFAULT 0,
                 `date_add` datetime NOT NULL,
                 PRIMARY KEY (`id`)
               ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;',

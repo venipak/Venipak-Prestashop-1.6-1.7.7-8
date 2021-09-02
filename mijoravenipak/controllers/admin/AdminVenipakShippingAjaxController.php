@@ -35,6 +35,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     protected function saveCart()
     {
         MijoraVenipak::checkForClass('MjvpDb');
+        MijoraVenipak::checkForClass('MjvpWarehouse');
         $cDb = new MjvpDb();
         $selected_carrier_reference = (int) Tools::getValue('is_pickup');
         $id_order = Tools::getValue('id_order');
@@ -137,6 +138,16 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $order_extra_info['return_doc'] = $field_return_doc;
                 $data['other_info'] = json_encode($order_extra_info);
             }
+
+            // Order warehouse
+            $order_warehouse = (int) Tools::getValue('warehouse');
+            $warehouse = new MjvpWarehouse($order_warehouse);
+            if(!Validate::isLoadedObject($warehouse))
+            {
+                $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+            }
+            else
+                $data['warehouse_id'] = $order_warehouse;
 
             if (!isset($result['errors'])) {
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
@@ -249,6 +260,11 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
         $other_info = json_decode($venipak_cart_info['other_info'], true);
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
+        MijoraVenipak::checkForClass('MjvpWarehouse');
+        $warehouses = MjvpWarehouse::getWarehouses();
+        $order_warehouse = $cDb->getOrderValue('warehouse_id', array('id_order' => $order->id));
+        if(!$order_warehouse)
+            $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
 
         $this->context->smarty->assign(array(
             'block_title' => $this->module->displayName,
@@ -264,6 +280,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             'venipak_carriers' => $venipak_carriers,
             'venipak_other_info' => $other_info,
             'shipment_labels' => $shipment_labels,
+            'warehouses' => $warehouses,
+            'order_warehouse' => $order_warehouse,
             'delivery_times' => $this->module->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
             'pickup_reference' => Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']),

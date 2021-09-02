@@ -59,4 +59,11 @@ class MjvpWarehouse extends ObjectModel
         return parent::add($auto_date, $null_values);
     }
 
+    public static function getDefaultWarehouse()
+    {
+        return Db::getInstance()->getValue('SELECT `id`
+                  FROM `' . _DB_PREFIX_ . pSQL(self::$definition['table']) . '`
+                  WHERE default_on = 1');
+    }
+
 }
