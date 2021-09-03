@@ -19,14 +19,31 @@ class VenipakBulkActionController extends FrameworkBundleAdminController
         $moduleRepository = $this->get('prestashop.core.admin.module.repository');
         $module = $moduleRepository->getModule('mijoravenipak');
         $module_legacy = $module->getInstance();
-        $response = $module_legacy->bulkActionSendLabels($orders);
-        if(isset($response['errors']))
+
+        $warehouse_groups = $module_legacy->formatWarehousesOrderGroups($orders);
+        if(!empty($warehouse_groups))
         {
-            $this->flashErrors($response['errors']);
+            foreach ($warehouse_groups as $warehouse_id => $orders)
+            {
+                $response = $module_legacy->bulkActionSendLabels(
+                    [
+                        'warehouse_id' => $warehouse_id,
+                        'orders' => $orders
+                    ]
+                );
+                if(isset($response['errors']))
+                {
+                    $this->flashErrors($response['errors']);
+                }
+                if(isset($response['success']))
+                {
+                    $this->addFlash('success', $response['success']);
+                }
+            }
         }
-        if(isset($response['success']))
+        else
         {
-            $this->addFlash('success', $response['success']);
+            $this->flashErrors("Could not group orders by warehouses.");
         }
         return $this->redirectToRoute('admin_orders_index');
     }

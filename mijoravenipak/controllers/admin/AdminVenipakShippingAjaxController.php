@@ -85,6 +85,23 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     $data['cod_amount'] = Tools::getValue('cod_amount', 0);
                 }
 
+                // Order warehouse
+                if(empty(MjvpWarehouse::getWarehouses()))
+                {
+                    $data['warehouse_id'] = 0;
+                }
+                else
+                {
+                    $order_warehouse = (int) Tools::getValue('warehouse');
+                    $warehouse = new MjvpWarehouse($order_warehouse);
+                    if(!Validate::isLoadedObject($warehouse))
+                    {
+                        $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                    }
+                    else
+                        $data['warehouse_id'] = $order_warehouse;
+                }
+
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if($res)
                 {
@@ -194,7 +211,14 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     public function generateLabel()
     {
         $order = (int) Tools::getValue('id_order');
-        $response = $this->module->bulkActionSendLabels((array) $order);
+        $cDb = new MjvpDb();
+        $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
+        $response = $this->module->bulkActionSendLabels(
+            [
+                'warehouse_id' => $warehouse_id,
+                'orders' => (array) $order,
+            ]
+        );
 
         // 1.7.7 and above
         if(is_array($response) && isset($response['success']))

@@ -173,11 +173,6 @@ class MjvpVenipak
         return 'V' . $login_id . 'E' . sprintf('%07d', (int)$serial_number);
     }
 
-    public function buildManifestNumber($login_id, $serial_number)
-    {
-        return $login_id . date('ymd') . sprintf('%03d', (int)$serial_number);
-    }
-
     private function getParamValue($params, $param_name, $allowed_values, $default_value)
     {
         if (!isset($params[$param_name])) {

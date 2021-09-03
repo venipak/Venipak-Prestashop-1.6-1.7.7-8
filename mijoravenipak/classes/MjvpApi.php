@@ -79,12 +79,9 @@ class MjvpApi
         }
 
         $params['desc_type'] = (isset($params['desc_type'])) ? $params['desc_type'] : 1;
-        $params['manifest_id'] = (isset($params['manifest_id'])) ? $params['manifest_id'] : '';
         $params['manifest_name'] = (isset($params['manifest_name'])) ? $params['manifest_name'] : '';
-        $manifest_title = $this->cVenipak->buildManifestNumber($api_id, $params['manifest_id']);
-        Configuration::updateValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
 
-        $xml_code = '<manifest title="' . $manifest_title . '" name="' . $params['manifest_name'] . '">';
+        $xml_code = '<manifest title="' . $params['manifest_title'] . '" name="' . $params['manifest_name'] . '">';
         foreach ($params['shipments'] as $shipment) {
             $shipment['api_id'] = $api_id;
             $xml_code .= $this->buildShipmentXml($shipment);
@@ -111,6 +108,11 @@ class MjvpApi
         $xml_code = $this->buildInvitationXml($params);
 
         return $this->buildXml($xml_code, $params['desc_type']);
+    }
+
+    public function buildManifestNumber($login_id, $serial_number)
+    {
+        return $login_id . date('ymd') . sprintf('%03d', (int)$serial_number);
     }
 
     /**

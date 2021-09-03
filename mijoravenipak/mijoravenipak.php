@@ -1545,7 +1545,19 @@ class MijoraVenipak extends CarrierModule
                     }
 
                     if ($is_bulk_send_labels) {
-                        $this->bulkActionSendLabels($orders);
+                        $warehouse_groups = $this->formatWarehousesOrderGroups($orders);
+                        if(!empty($warehouse_groups))
+                        {
+                            foreach ($warehouse_groups as $warehouse_id => $orders)
+                            {
+                                $this->bulkActionSendLabels(
+                                    [
+                                        'warehouse_id' => $warehouse_id,
+                                        'orders' => $orders
+                                    ]
+                                );
+                            }
+                        }
                     }
 
                     if ($is_bulk_print_labels) {
@@ -1561,26 +1573,54 @@ class MijoraVenipak extends CarrierModule
     /**
      * Hook to send labels when launch bulk action
      */
-    public function bulkActionSendLabels($orders_ids)
+    public function bulkActionSendLabels($warehouse_group)
     {
-//        $warehouse_id = $params['warehouse_id'];
-//        $orders_ids = $params['orders'];
+        $warehouse_id = $warehouse_group['warehouse_id'];
+        $orders_ids = $warehouse_group['orders'];
         $cApi = new MjvpApi();
         $cHelper = new MjvpHelper();
         $cDb = new MjvpDb();
+        $cModuleConfig = new MjvpModuleConfig();
 
         $errors = array();
         $success_orders = array();
         $found = false;
         $notfound_ids = array();
-        $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
 
-        $current_date = date('ymd');
-        $manifest_id = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
+        /* Determine the manifest ID. If there exist manifest, which:
+                1. Was generated today;
+                2. Is assigned to a warehouse @$warehouse_id;
+                3. Is not closed;
+            we include @$orders_ids in that manifest. */
+        $manifest_data = Db::getInstance()->getRow((new DbQuery())
+            ->select('id, manifest_id')
+            ->from('mjvp_manifest')
+            ->where('id_warehouse = ' . $warehouse_id . ' AND closed IS NULL AND DATE(date_add) = DATE(NOW())')
+        );
+
+        $manifest_title = '';
+        $manifest_id = 0;
+        if($manifest_data)
+        {
+            $manifest_title = $manifest_data['manifest_id'];
+            $manifest_id = $manifest_data['id'];
+        }
+
+        // If not found, build new one.
+        if(!$manifest_title)
+        {
+            $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
+            $current_date = date('ymd');
+            $manifest_counter = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
+            $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
+            $manifest_title = $cApi->buildManifestNumber($api_id, $manifest_counter);
+        }
+
+        Configuration::updateValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
         $manifest = array(
-            'manifest_id' => $manifest_id,
             'manifest_name' => Configuration::get('PS_SHOP_NAME'),
             'shipments' => array(),
+            'manifest_title' => $manifest_title
         );
 
         try {
@@ -1728,9 +1768,15 @@ class MijoraVenipak extends CarrierModule
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text'])
                 {
-                    $manifest_number = Configuration::get($this->_configKeysOther['last_manifest_id']['key']);
-                    $mjvp_manifest = new MjvpManifest();
-                    $mjvp_manifest->manifest_id = $manifest_number;
+                    if($manifest_id)
+                    {
+                        $mjvp_manifest = new MjvpManifest($manifest_id);
+                    }
+                    else
+                        $mjvp_manifest = new MjvpManifest();
+
+                    $mjvp_manifest->manifest_id = $manifest_title;
+                    $mjvp_manifest->id_warehouse = $warehouse_id;
                     $mjvp_manifest->id_shop = $this->context->shop->id;
                     $mjvp_manifest->arrival_date_from = null;
                     $mjvp_manifest->arrival_date_to = null;
@@ -1756,7 +1802,7 @@ class MijoraVenipak extends CarrierModule
 
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
-                                'manifest_id' => $manifest_number,
+                                'manifest_id' => $manifest_title,
                                 'status' => 'registered',
                                 'labels_date' => date('Y-m-d h:i:s')],
                                 ['id_order' => $order_id]);
@@ -1776,8 +1822,8 @@ class MijoraVenipak extends CarrierModule
 
                         $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
-                            'labels_numbers' => json_encode([$manifest_id => $status['text']]),
-                            'manifest_id' => $manifest_number,
+                            'labels_numbers' => json_encode([$status['text']]),
+                            'manifest_id' => $manifest_title,
                             'status' => 'registered',
                             'labels_date' => date('Y-m-d h:i:s')],
                             ['id_order' => $id_order]);
@@ -1799,8 +1845,8 @@ class MijoraVenipak extends CarrierModule
                     else {
                        $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
-                } else {
-                    Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_id, 'date' => $current_date)));
+                } else if(!$manifest_id) {
+                    Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
                 }
             }
         } catch (Exception $e) {
@@ -1899,6 +1945,7 @@ class MijoraVenipak extends CarrierModule
 
              $cDb->updateOrderInfo($id_cart, array(
                  'id_order' => $id_order,
+                 'warehouse_id' => MjvpWarehouse::getDefaultWarehouse(),
                  'order_weight' => $order_weight,
                  'cod_amount' => $order->total_paid_tax_incl,
                  'is_cod' => $is_cod
@@ -2016,7 +2063,10 @@ class MijoraVenipak extends CarrierModule
         foreach ($orders as $order)
         {
             $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
-            $warehouse_groups[$warehouse_id][] = $order;
+            if(!$warehouse_id)
+                $warehouse_groups[0][] = $order;
+            else
+                $warehouse_groups[$warehouse_id][] = $order;
         }
         return $warehouse_groups;
     }

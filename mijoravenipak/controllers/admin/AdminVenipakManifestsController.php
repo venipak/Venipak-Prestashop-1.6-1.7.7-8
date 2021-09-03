@@ -28,7 +28,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $this->_select = ' (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total,
-            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival ';
+            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name';
+        $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)';
         $this->_where = ' AND (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE a.manifest_id = o.manifest_id) != 0';
     }
@@ -144,6 +145,11 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('Carrier arrival'),
                 'align' => 'center',
                 'type' => 'text',
+                'search' => false,
+            ),
+            'warehouse_name' => array(
+                'title' => $this->l('Warehouse'),
+                'align' => 'text-center',
                 'search' => false,
             ),
         );

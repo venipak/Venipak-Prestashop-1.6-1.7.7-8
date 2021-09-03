@@ -85,20 +85,22 @@
                                     </div>
                                 </div>
 
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <div class="field-row">
-                                            <span>{l s="Warehouse" mod='venipakshipping'}:</span>
-                                            <span>
-                                          <select name="warehouse" id="venipak-warehouse" class="chosen">
-                                              {foreach from=$warehouses key=reference item=warehouse}
-                                                  <option value="{$warehouse.id}" {if $order_warehouse == $warehouse.id} selected {/if}>{$warehouse.name}</option>
-                                              {/foreach}
-                                          </select>
-                                        </span>
+                                {if isset($warehouses) && !empty($warehouses)}
+                                    <div class="row">
+                                        <div class="col-xs-12">
+                                            <div class="field-row">
+                                                <span>{l s="Warehouse" mod='venipakshipping'}:</span>
+                                                <span>
+                                              <select name="warehouse" id="venipak-warehouse" class="chosen">
+                                                  {foreach from=$warehouses key=reference item=warehouse}
+                                                      <option value="{$warehouse.id}" {if $order_warehouse == $warehouse.id} selected {/if}>{$warehouse.name}</option>
+                                                  {/foreach}
+                                              </select>
+                                            </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                {/if}
 
                                 <div class="row pickup-point-container">
                                     <div class="col-xs-12">

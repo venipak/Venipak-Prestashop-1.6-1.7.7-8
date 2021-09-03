@@ -2,6 +2,8 @@
 
 namespace MijoraVenipak;
 
+use MijoraVenipak, Configuration;
+
 class MjvpFiles
 {
     /**

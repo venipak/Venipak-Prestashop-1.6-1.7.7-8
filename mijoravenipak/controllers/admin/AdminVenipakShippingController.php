@@ -111,7 +111,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->actions = array('none');
 
         $this->bulk_actions = array(
-            'generateVenipak' => array(
+            'generateLabels' => array(
                 'text' => $this->l('Generate Labels'),
                 'icon' => 'icon-save'
             ),
@@ -170,7 +170,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (!$tracking_number) {
             $content .= '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitGenerateLabel' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
                           </a>
                         </span>
                     </span>';
@@ -188,14 +188,22 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function postProcess()
     {
-        if(Tools::isSubmit('submitBulkgenerateVenipakLabelorder') || Tools::isSubmit('submitBulkgenerateVenipakorder'))
+        if(Tools::isSubmit('submitGenerateLabel') || Tools::isSubmit('submitBulkgenerateLabelsorder'))
         {
             $orders = Tools::getValue('orderBox');
-            $order = Tools::getValue('id_order');
-            if($orders)
-                $this->module->bulkActionSendLabels($orders);
-            elseif ($order)
-                $this->module->bulkActionSendLabels((array)$order);
+            $warehouse_groups = $this->module->formatWarehousesOrderGroups($orders);
+            if(!empty($warehouse_groups))
+            {
+                foreach ($warehouse_groups as $warehouse_id => $orders)
+                {
+                    $this->module->bulkActionSendLabels(
+                        [
+                            'warehouse_id' => $warehouse_id,
+                            'orders' => $orders
+                        ]
+                    );
+                }
+            }
         }
         if(Tools::isSubmit('submitLabelorder'))
         {
