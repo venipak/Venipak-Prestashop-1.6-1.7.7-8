@@ -21,17 +21,21 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function __construct()
     {
         $this->list_no_link = true;
-        $this->className = 'MjvpManifest';
+        $this->className = 'MijoraVenipak\MjvpManifest';
         $this->table = 'mjvp_manifest';
         $this->identifier = 'id';
         parent::__construct();
 
-        $this->_select = ' (SELECT COUNT(*) FROM `'
-            . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total,
-            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name';
-        $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)';
+        $this->_select = '
+            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name,
+            s.`name` AS `shop_name`, COUNT(*) as manifest_total';
+        $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)
+                        LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (a.`manifest_id` = mo.`manifest_id`)
+                        LEFT JOIN `' . _DB_PREFIX_ . 'shop` s ON (a.`id_shop` = s.`id_shop`)';
         $this->_where = ' AND (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE a.manifest_id = o.manifest_id) != 0';
+        $this->_group = 'GROUP BY manifest_id';
+//        $this->_having = ' manifest_total < 3';
     }
 
     public function init()
@@ -117,40 +121,35 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
-                'search' => false,
                 'orderby' => false
             ),
-            'id_shop' => array(
+            'shop_name' => array(
                 'type' => 'text',
                 'title' => $this->l('Shop'),
                 'align' => 'center',
-                'search' => false,
-                'havingFilter' => false,
-                'orderby' => false,
-                'callback' => 'getShopNameById',
+                'filter_key' => 's!name',
+                'order_key' => 's!name',
             ),
             'date_add' => array(
                 'title' => $this->l('Creation Date'),
                 'align' => 'center',
                 'type' => 'datetime',
-                'search' => false,
+                'filter_key' => 'a!date_add',
             ),
             'manifest_total' => array(
                 'title' => $this->l('Orders in manifest'),
                 'align' => 'text-center',
-                'search' => false,
-                'class' => 'fixed-width-xs',
             ),
             'date_arrival' => array(
                 'title' => $this->l('Carrier arrival'),
                 'align' => 'center',
-                'type' => 'text',
-                'search' => false,
+                'type' => 'datetime',
+                'filter_key' => 'a!arrival_date_from',
             ),
             'warehouse_name' => array(
                 'title' => $this->l('Warehouse'),
                 'align' => 'text-center',
-                'search' => false,
+                'filter_key' => 'mw!name',
             ),
         );
 
@@ -163,12 +162,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
         );
 
         $this->actions = array('none');
-    }
-
-    public function getShopNameById($id)
-    {
-        $shop = new Shop($id);
-        return $shop->name;
     }
 
     public function printBtn($id)
@@ -197,6 +190,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function postProcess()
     {
+        parent::postProcess();
         if (Tools::isSubmit('printmjvp_manifest')) {
             $cApi = new MjvpApi();
             $cDb = new MjvpDb();

@@ -28,10 +28,12 @@ class AdminVenipakShippingController extends ModuleAdminController
             osl.`name` AS `osname`,
             os.`color`,
             a.id_order AS id_print,
-            a.id_order AS id_label_print
+            a.id_order AS id_label_print,
+            s.`name` AS `shop_name`
 		';
         $this->_join = '
             LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (mo.`id_order` = a.`id_order`)
+            LEFT JOIN `' . _DB_PREFIX_ . 'shop` s ON (a.`id_shop` = s.`id_shop`)
             LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
             LEFT JOIN `' . _DB_PREFIX_ . 'carrier` carrier ON (carrier.`id_carrier` = a.`id_carrier`)
             LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
@@ -65,16 +67,13 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
-                'search' => false,
             ),
-            'id_shop' => array(
+            'shop_name' => array(
                 'type' => 'text',
                 'title' => $this->l('Shop'),
                 'align' => 'center',
-                'search' => false,
-                'havingFilter' => false,
-                'orderby' => false,
-                'callback' => 'getShopNameById',
+                'filter_key' => 's!name',
+                'order_key' => 's!name',
             ),
             'osname' => array(
                 'title' => $this->l('Status'),
@@ -84,19 +83,16 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'filter_key' => 'os!id_order_state',
                 'filter_type' => 'int',
                 'order_key' => 'osname',
-                'search' => false,
             ),
             'customer' => array(
                 'title' => $this->l('Customer'),
                 'havingFilter' => true,
-                'search' => false,
             ),
             'label_number' => array(
                 'type' => 'text',
                 'title' => $this->l('Tracking number(s)'),
                 'havingFilter' => false,
                 'callback' => 'parseLabelNumbers',
-                'search' => false,
             )
         );
 
@@ -151,12 +147,6 @@ class AdminVenipakShippingController extends ModuleAdminController
         ]);
     }
 
-    public function getShopNameById($id)
-    {
-        $shop = new Shop($id);
-        return $shop->name;
-    }
-
     public function labelBtn($id)
     {
         $cDb = new MjvpDb();
@@ -188,6 +178,8 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function postProcess()
     {
+//        $this->processResetFilters();
+        parent::postProcess();
         if(Tools::isSubmit('submitGenerateLabel') || Tools::isSubmit('submitBulkgenerateLabelsorder'))
         {
             $orders = Tools::getValue('orderBox');
