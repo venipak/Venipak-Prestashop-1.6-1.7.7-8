@@ -4,6 +4,7 @@ use MijoraVenipak\MjvpApi;
 use MijoraVenipak\MjvpDb;
 use MijoraVenipak\MjvpHelper;
 use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\MjvpVenipak;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
@@ -32,6 +33,9 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 break;
             case 'prepareModal':
                 $this->prepareOrderModal();
+                break;
+            case 'trackOrders':
+                $this->getOrderTrackingModal();
                 break;
         }
     }
@@ -318,5 +322,25 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
         die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/change_order_info_modal.tpl')]));
 
+    }
+
+    public function getOrderTrackingModal()
+    {
+        // Get all undelivered Venipak orders
+        $orders = Db::getInstance()->executeS('SELECT mo.* FROM ' . _DB_PREFIX_ . 'mjvp_orders mo
+        LEFT JOIN ' ._DB_PREFIX_ . 'orders o ON o.`id_order` = mo.`id_order`
+        LEFT JOIN ' ._DB_PREFIX_ . 'order_state_lang osl ON osl.`id_order_state` = o.`current_state`
+        WHERE mo.`id_order` IS NOT NULL 
+            AND mo.`labels_numbers` IS NOT NULL 
+            AND mo.`manifest_id` IS NOT NULL 
+            AND osl.`name` != "Delivered"'
+        );
+
+        $new = new MjvpVenipak();
+        $content = $new->getTrackingShipment('V17417E0001211', 'track_single');
+        $this->context->smarty->assign(array(
+            'tracking_output' => $content,
+        ));
+        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking.tpl')]));
     }
 }

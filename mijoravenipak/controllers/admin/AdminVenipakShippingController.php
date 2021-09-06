@@ -3,6 +3,7 @@
 use MijoraVenipak\MjvpApi;
 use MijoraVenipak\MjvpDb;
 use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\MjvpVenipak;
 
 class AdminVenipakShippingController extends ModuleAdminController
 {
@@ -136,7 +137,14 @@ class AdminVenipakShippingController extends ModuleAdminController
 
         unset($this->toolbar_btn['new']);
 
-        return parent::renderList();
+        $content = parent::renderList();
+        $content .= '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a id="track-orders" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track orders') . '
+                          </a>
+                        </span>
+                    </span>';
+        return $content;
     }
 
     public function setMedia($isNewTheme = false)
@@ -178,7 +186,6 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function postProcess()
     {
-//        $this->processResetFilters();
         parent::postProcess();
         if(Tools::isSubmit('submitGenerateLabel') || Tools::isSubmit('submitBulkgenerateLabelsorder'))
         {

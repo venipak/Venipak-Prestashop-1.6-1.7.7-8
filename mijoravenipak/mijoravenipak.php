@@ -1981,6 +1981,7 @@ class MijoraVenipak extends CarrierModule
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
                     'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=saveOrder',
+                    'venipak_tracking_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=trackOrders',
                 ]);
                 $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');

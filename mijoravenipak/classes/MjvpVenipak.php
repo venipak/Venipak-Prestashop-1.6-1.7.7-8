@@ -25,7 +25,7 @@ class MjvpVenipak
         $types = array(
             'track_single' => 1,
             'track_all' => 2,
-            'track_last' => 5,
+            'track_last_status' => 5,
             'track_shipment' => 7,
         );
         if (!isset($types[$tracking_type])) {
