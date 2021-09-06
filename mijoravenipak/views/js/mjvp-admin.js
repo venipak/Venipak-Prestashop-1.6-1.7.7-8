@@ -21,6 +21,23 @@ $(document).ready(function () {
     {
         bindOrderFormEvents();
     }
+
+    // Manifest close modal.
+    $('.close-manifest').on('click', () => {
+        event.preventDefault();
+        var target = $(event.target);
+        confirm_modal(
+            "Close manifest",
+            "Do you want to close and print this manifest?",
+            "Yes",
+            "Cancel",
+            () => {
+                document.location = $(target).attr('href');
+            },
+            () => {}
+        );
+
+    });
 });
 
 function showResponse(msg, type) {

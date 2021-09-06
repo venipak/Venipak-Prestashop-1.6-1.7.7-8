@@ -35,7 +35,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->_where = ' AND (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE a.manifest_id = o.manifest_id) != 0';
         $this->_group = 'GROUP BY manifest_id';
-//        $this->_having = ' manifest_total < 3';
     }
 
     public function init()
@@ -121,7 +120,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
-                'orderby' => false
+                'filter_key' => 'a!manifest_id',
+                'order_key' => 'a!manifest_id',
             ),
             'shop_name' => array(
                 'type' => 'text',
@@ -139,6 +139,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
             'manifest_total' => array(
                 'title' => $this->l('Orders in manifest'),
                 'align' => 'text-center',
+                'orderby' => false,
+                'search' => false,
             ),
             'date_arrival' => array(
                 'title' => $this->l('Carrier arrival'),
@@ -150,6 +152,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('Warehouse'),
                 'align' => 'text-center',
                 'filter_key' => 'mw!name',
+            ),
+            'closed' => array(
+                'type' => 'bool',
+                'title' => $this->module->l('Closed'),
             ),
         );
 
@@ -170,12 +176,26 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
         $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
-        $content = '<span class="btn-group-action">
+        $closed = $cDb->getManifestValue('closed', ['id' => $id]);
+
+        if($closed)
+        {
+            $content = '<span class="btn-group-action">
                         <span class="btn-group">
-                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone&ajax=1' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
+                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
                             </a>
                         </span>
                     </span>';
+        }
+        else
+        {
+            $content = '<span class="btn-group-action">
+                        <span class="btn-group">
+                            <a target="_blank" class="btn btn-default close-manifest" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print and close Manifest') . '
+                            </a>
+                        </span>
+                    </span>';
+        }
         if(!$arrival_time_from || !$arrival_time_to)
         {
             $content .= '<span class="btn-group-action">
@@ -195,8 +215,18 @@ class AdminVenipakManifestsController extends ModuleAdminController
             $cApi = new MjvpApi();
             $cDb = new MjvpDb();
             $id_manifest = Tools::getValue('id');
-            $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
-            $cApi->printList($manifest_number);
+            $manifest = new MjvpManifest($id_manifest);
+            if(!Validate::isLoadedObject($manifest))
+            {
+                $this->errors[] = $this->module->l("Could not find the specified manifest.");
+            }
+            else
+            {
+                $manifest->closed = 1;
+                $manifest->update();
+                $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
+                $cApi->printList($manifest_number);
+            }
         }
         if(Tools::isSubmit('submitCallCarrier')) {
             $this->processCarrierCall();

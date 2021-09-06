@@ -1780,6 +1780,7 @@ class MijoraVenipak extends CarrierModule
                     $mjvp_manifest->id_shop = $this->context->shop->id;
                     $mjvp_manifest->arrival_date_from = null;
                     $mjvp_manifest->arrival_date_to = null;
+                    $mjvp_manifest->closed = 0;
                     $mjvp_manifest->save(true);
 
                     // Multiple labels - $status['text'] is array
