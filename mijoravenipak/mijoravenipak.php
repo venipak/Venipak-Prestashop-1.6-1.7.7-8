@@ -131,7 +131,7 @@ class MijoraVenipak extends CarrierModule
             'id' => 'MJVP_API_ID',
         ),
         'SHOP' => array(
-            'shop_name' => 'MJVP_SHOP_NAME',
+            'sender_name' => 'MJVP_SENDER_NAME',
             'shop_contact' => 'MJVP_SHOP_CONTACT',
             'company_code' => 'MJVP_SHOP_COMPANY_CODE',
             'shop_country_code' => 'MJVP_SHOP_COUNTRY_CODE',
@@ -140,6 +140,7 @@ class MijoraVenipak extends CarrierModule
             'shop_postcode' => 'MJVP_SHOP_POSTCODE',
             'shop_phone' => 'MJVP_SHOP_PHONE',
             'shop_email' => 'MJVP_SHOP_EMAIL',
+            'sender_address' => 'MJVP_SENDER_ADDRESS',
         ),
         'COURIER' => array(
             'door_code' => 'MJVP_COURIER_DOOR_CODE',
@@ -184,6 +185,8 @@ class MijoraVenipak extends CarrierModule
         $cModuleConfig = new MjvpModuleConfig();
 
         if ($section_id == 'SHOP') {
+            if($config_key == 'sender_address')
+                return array('name' => str_replace('_', ' ', $config_key), 'required' => false);
             return array('name' => str_replace('_', ' ', $config_key), 'required' => true);
         }
 
@@ -814,8 +817,8 @@ class MijoraVenipak extends CarrierModule
         $form_fields = array(
             array(
                 'type' => 'text',
-                'label' => $this->l('Shop Name'),
-                'name' => $cModuleConfig->getConfigKey('shop_name', $section_id),
+                'label' => $this->l('Sender Name'),
+                'name' => $cModuleConfig->getConfigKey('sender_name', $section_id),
                 'size' => 20,
                 'required' => true
             ),
@@ -878,6 +881,22 @@ class MijoraVenipak extends CarrierModule
                 'name' => $cModuleConfig->getConfigKey('shop_email', $section_id),
                 'size' => 20,
                 'required' => true
+            ),
+            array(
+                'type' => 'checkbox',
+                'label' => $this->l('Use shop settings as sender\'s address.'),
+                'name' => $cModuleConfig->getConfigKey('sender_address', $section_id),
+                'values' => [
+                    'query' => [
+                        [
+                            'id' => 'ON',
+                            'val' => '1',
+                            'name' => ''
+                        ],
+                    ],
+                    'id' => 'id',
+                    'name' => 'name',
+                ],
             ),
         );
 
@@ -1106,7 +1125,7 @@ class MijoraVenipak extends CarrierModule
         if (isset($this->_configKeys[strtoupper($section_id)])) {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
                 $prefix = '';
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strpos($key, 'MJVP_SENDER_ADDRESS') !== false)
                     $prefix = '_ON';
 
                 $value = Configuration::get($key);
@@ -1130,7 +1149,7 @@ class MijoraVenipak extends CarrierModule
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
 
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strrpos($key, 'MJVP_SENDER_ADDRESS') !== false)
                     $value = Tools::getValue($key . '_ON');
                 else
                     $value = Tools::getValue($key);
@@ -2006,7 +2025,8 @@ class MijoraVenipak extends CarrierModule
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = array_values($filtered_terminals);
 
-            if (!$filters && !is_array($filters) && $this->context->controller->module == $this)
+            if (!$filters && !is_array($filters) && isset($this->context->controller->module)
+                && $this->context->controller->module == $this && $this->context->controller->controller_type != 'moduleadmin')
                 return [];
             elseif (!$filters && !is_array($filters))
                 return $filtered_terminals;

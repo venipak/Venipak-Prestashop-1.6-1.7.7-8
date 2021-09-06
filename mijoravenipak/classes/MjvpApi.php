@@ -169,6 +169,26 @@ class MjvpApi
     }
 
     /**
+     * Build consignor XML structure
+     */
+    public function buildConsignorXml()
+    {
+        $cModuleConfig = new MjvpModuleConfig();
+        $xml_code = '<consignor>';
+        $xml_code .= '<name>' . Configuration::get($cModuleConfig->getConfigKey('sender_name', 'SHOP')) . '</name>';
+        $xml_code .= '<company_code>' . Configuration::get($cModuleConfig->getConfigKey('company_code', 'SHOP'))  . '</company_code>';
+        $xml_code .= '<country>' . Configuration::get($cModuleConfig->getConfigKey('shop_country_code', 'SHOP'))  . '</country>';
+        $xml_code .= '<city>' . Configuration::get($cModuleConfig->getConfigKey('shop_city', 'SHOP')) . '</city>';
+        $xml_code .= '<address>' . Configuration::get($cModuleConfig->getConfigKey('shop_address', 'SHOP'))  . '</address>';
+        $xml_code .= '<post_code>' . Configuration::get($cModuleConfig->getConfigKey('shop_postcode', 'SHOP'))  . '</post_code>';
+        $xml_code .= '<contact_person>' . Configuration::get($cModuleConfig->getConfigKey('shop_name', 'SHOP'))  . '</contact_person>';
+        $xml_code .= '<contact_tel>' . Configuration::get($cModuleConfig->getConfigKey('shop_phone', 'SHOP')) . '</contact_tel>';
+        $xml_code .= '<contact_email>' . Configuration::get($cModuleConfig->getConfigKey('shop_email', 'SHOP'))  . '</contact_email>';
+        $xml_code .= '</consignor>';
+        return $xml_code;
+    }
+
+    /**
      * Build shipment XML structure
      */
     public function buildShipmentXml($params)
@@ -186,6 +206,11 @@ class MjvpApi
         $params['packs'] = (isset($params['packs'])) ? $params['packs'] : array();
 
         $xml_code = '<shipment>';
+        $cModuleConfig = new MjvpModuleConfig();
+        if(Configuration::get($cModuleConfig->getConfigKey('sender_address', 'SHOP')))
+        {
+            $xml_code .= $this->buildConsignorXml();
+        }
         $xml_code .= '<consignee>';
         $xml_code .= '<name>' . $params['consignee']['name'] . '</name>';
         if (!empty($params['consignee']['code'])) {
