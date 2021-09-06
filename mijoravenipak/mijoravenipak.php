@@ -1992,7 +1992,7 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
-    public function getFilteredTerminals($filter = '', $entity = null)
+    public function getFilteredTerminals($filters = '', $entity = null)
     {
         if(!$entity && isset($this->context->cart))
             $entity = $this->context->cart;
@@ -2004,25 +2004,33 @@ class MijoraVenipak extends CarrierModule
             $cApi = new MjvpApi();
             $all_terminals_info = $cApi->getTerminals($country_code);
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
-
             $filtered_terminals = array_values($filtered_terminals);
-            if (!$filter)
+
+            if (!$filters && !is_array($filters) && $this->context->controller->module == $this)
+                return [];
+            elseif (!$filters && !is_array($filters))
                 return $filtered_terminals;
 
             $terminals = $filtered_terminals;
             $terminal_field = 'type';
-            $value = 0;
-            if ($filter == 'pickup') {
-                $value = 1;
-            } elseif ($filter == 'locker') {
-                $value = 3;
-            } elseif ($filter == 'cod') {
-                $terminal_field = 'cod_enabled';
-                $value = 1;
+            $allowed_values = [];
+
+            foreach ($filters as $filter)
+            {
+                if ($filter == 'pickup') {
+                    $allowed_values[] = 1;
+                }
+                elseif ($filter == 'locker') {
+                    $allowed_values[] = 3;
+                }
+                elseif ($filter == 'cod') {
+                    $terminal_field = 'cod_enabled';
+                    $allowed_values[] = 1;
+                }
             }
 
             foreach ($terminals as $key => $terminal) {
-                if (isset($terminal->$terminal_field) && $terminal->$terminal_field != $value)
+                if (isset($terminal->$terminal_field) && !in_array($terminal->$terminal_field, $allowed_values))
                     unset($terminals[$key]);
             }
             $terminals = array_values($terminals);
