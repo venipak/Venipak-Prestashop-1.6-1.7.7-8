@@ -4,6 +4,8 @@ if (!defined('_PS_VERSION_')) {
     return;
 }
 
+use MijoraVenipak\MjvpDb;
+
 class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 {
     public function initContent()
@@ -32,7 +34,6 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                 }
             }
 
-            MijoraVenipak::checkForClass('MjvpDb');
             $cDb = new MjvpDb();
 
             $sql_values = array(
@@ -85,8 +86,8 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
         }
         elseif (Tools::isSubmit('submitFilterTerminals'))
         {
-            $filter_key = Tools::getValue('filter_key');
-            $filtered_terminals = $this->module->getFilteredTerminals($filter_key);
+            $filter_keys = Tools::getValue('filter_keys');
+            $filtered_terminals = $this->module->getFilteredTerminals($filter_keys);
             die(json_encode(['mjvp_terminals' => $filtered_terminals]));
         }
     }

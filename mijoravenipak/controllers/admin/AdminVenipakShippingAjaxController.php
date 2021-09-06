@@ -1,5 +1,10 @@
 <?php
 
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpHelper;
+use MijoraVenipak\MjvpWarehouse;
+
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
     public function __construct()
@@ -34,7 +39,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     protected function saveCart()
     {
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $selected_carrier_reference = (int) Tools::getValue('is_pickup');
         $id_order = Tools::getValue('id_order');
@@ -79,6 +83,23 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 if(Tools::isSubmit('cod_amount'))
                 {
                     $data['cod_amount'] = Tools::getValue('cod_amount', 0);
+                }
+
+                // Order warehouse
+                if(empty(MjvpWarehouse::getWarehouses()))
+                {
+                    $data['warehouse_id'] = 0;
+                }
+                else
+                {
+                    $order_warehouse = (int) Tools::getValue('warehouse');
+                    $warehouse = new MjvpWarehouse($order_warehouse);
+                    if(!Validate::isLoadedObject($warehouse))
+                    {
+                        $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                    }
+                    else
+                        $data['warehouse_id'] = $order_warehouse;
                 }
 
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
@@ -138,6 +159,23 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $data['other_info'] = json_encode($order_extra_info);
             }
 
+            // Order warehouse
+            if(empty(MjvpWarehouse::getWarehouses()))
+            {
+                $data['warehouse_id'] = 0;
+            }
+            else
+            {
+                $order_warehouse = (int) Tools::getValue('warehouse');
+                $warehouse = new MjvpWarehouse($order_warehouse);
+                if(!Validate::isLoadedObject($warehouse))
+                {
+                    $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                }
+                else
+                    $data['warehouse_id'] = $order_warehouse;
+            }
+
             if (!isset($result['errors'])) {
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if ($res) {
@@ -173,7 +211,14 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     public function generateLabel()
     {
         $order = (int) Tools::getValue('id_order');
-        $response = $this->module->bulkActionSendLabels((array) $order);
+        $cDb = new MjvpDb();
+        $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
+        $response = $this->module->bulkActionSendLabels(
+            [
+                'warehouse_id' => $warehouse_id,
+                'orders' => (array) $order,
+            ]
+        );
 
         // 1.7.7 and above
         if(is_array($response) && isset($response['success']))
@@ -191,7 +236,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     public function printLabel()
     {
-        MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
         $label_number = Tools::getValue('label_number');
         if(!is_array($label_number))
@@ -208,10 +252,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             die(json_encode(['error' => $this->module->l('Could not get a valid order object.')]));
         }
 
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
-
-        MijoraVenipak::checkForClass('MjvpHelper');
         $cHelper = new MjvpHelper();
 
         try {
@@ -228,8 +269,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
 
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
-
-        MijoraVenipak::checkForClass('MjvpApi');
         $cApi = new MjvpApi();
 
         $order_country_code = $venipak_cart_info['country_code'];
@@ -250,6 +289,11 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         $other_info = json_decode($venipak_cart_info['other_info'], true);
         $shipment_labels = json_decode($venipak_cart_info['labels_numbers'], true);
 
+        $warehouses = MjvpWarehouse::getWarehouses();
+        $order_warehouse = $cDb->getOrderValue('warehouse_id', array('id_order' => $order->id));
+        if(!$order_warehouse)
+            $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
+
         $this->context->smarty->assign(array(
             'block_title' => $this->module->displayName,
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
@@ -264,6 +308,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             'venipak_carriers' => $venipak_carriers,
             'venipak_other_info' => $other_info,
             'shipment_labels' => $shipment_labels,
+            'warehouses' => $warehouses,
+            'order_warehouse' => $order_warehouse,
             'delivery_times' => $this->module->deliveryTimes,
             'carrier_reference' => $order_carrier_reference,
             'pickup_reference' => Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']),

@@ -179,3 +179,7 @@ div#vp-loading-overlay {
         transform: translate(24px, 0);
     }
 }
+
+.date_range .input-group {
+    margin: auto;
+}

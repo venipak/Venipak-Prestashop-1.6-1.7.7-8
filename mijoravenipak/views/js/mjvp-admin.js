@@ -21,6 +21,23 @@ $(document).ready(function () {
     {
         bindOrderFormEvents();
     }
+
+    // Manifest close modal.
+    $('.close-manifest').on('click', () => {
+        event.preventDefault();
+        var target = $(event.target);
+        confirm_modal(
+            "Close manifest",
+            "Do you want to close and print this manifest?",
+            "Yes",
+            "Cancel",
+            () => {
+                document.location = $(target).attr('href');
+            },
+            () => {}
+        );
+
+    });
 });
 
 function showResponse(msg, type) {
@@ -208,13 +225,10 @@ function create_venipak_modal() {
     });
 }
 
-function bindOrderFormEvents(order_id)
+function bindOrderFormEvents()
 {
-    let order_prefix = '';
-    if(order_id)
-        order_prefix = `-${order_id}`;
-    var cod_amount = document.getElementById(`venipak-cod-amount${order_prefix}`);
-    var $pickup_points = $(`.venipak select[name="id_pickup_point${order_prefix}"]`);
+    var cod_amount = document.getElementById(`venipak-cod-amount`);
+    var $pickup_points = $(`.venipak select[name="id_pickup_point"]`);
     var cod = $('#venipak-cod');
 
     cod_amount.disabled = cod.val() == '0';

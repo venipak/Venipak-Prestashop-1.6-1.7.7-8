@@ -1,7 +1,8 @@
 {
   "autoload": {
     "psr-4": {
-      "MijoraVenipak\\": "src/"
+      "MijoraVenipakSrc\\": "src/",
+      "MijoraVenipak\\": "classes/"
     }
   }
 }

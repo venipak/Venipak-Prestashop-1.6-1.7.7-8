@@ -93,6 +93,22 @@
                     </div>
                 </div>
 
+                {if isset($warehouses) && !empty($warehouses)}
+                    <div class="row mt-3 mb-3">
+                        <div class="col-xs-12 col-md-6">
+                            <label class="form-control-label"><span>{l s="Warehouse" mod='venipakshipping'}:</span>
+                            </label>
+                            <div class="field-row">
+                                <select name="warehouse" class="custom-select">
+                                    {foreach from=$warehouses key=reference item=warehouse}
+                                        <option value="{$warehouse.id}" {if $order_warehouse == $warehouse.id} selected {/if}>{$warehouse.name}</option>
+                                    {/foreach}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+
                 <div class="extra-services-container">
                     <div class="col-xs-12 card-block card-header">
                         <span>{l s="Extra carrier info" mod='venipakshipping'}:</span>

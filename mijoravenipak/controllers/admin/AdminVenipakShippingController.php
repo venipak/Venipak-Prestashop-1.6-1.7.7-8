@@ -1,5 +1,9 @@
 <?php
 
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpWarehouse;
+
 class AdminVenipakShippingController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -24,10 +28,12 @@ class AdminVenipakShippingController extends ModuleAdminController
             osl.`name` AS `osname`,
             os.`color`,
             a.id_order AS id_print,
-            a.id_order AS id_label_print
+            a.id_order AS id_label_print,
+            s.`name` AS `shop_name`
 		';
         $this->_join = '
             LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (mo.`id_order` = a.`id_order`)
+            LEFT JOIN `' . _DB_PREFIX_ . 'shop` s ON (a.`id_shop` = s.`id_shop`)
             LEFT JOIN `' . _DB_PREFIX_ . 'customer` c ON (c.`id_customer` = a.`id_customer`)
             LEFT JOIN `' . _DB_PREFIX_ . 'carrier` carrier ON (carrier.`id_carrier` = a.`id_carrier`)
             LEFT JOIN `' . _DB_PREFIX_ . 'order_state` os ON (os.`id_order_state` = a.`current_state`)
@@ -61,16 +67,13 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
-                'search' => false,
             ),
-            'id_shop' => array(
+            'shop_name' => array(
                 'type' => 'text',
                 'title' => $this->l('Shop'),
                 'align' => 'center',
-                'search' => false,
-                'havingFilter' => false,
-                'orderby' => false,
-                'callback' => 'getShopNameById',
+                'filter_key' => 's!name',
+                'order_key' => 's!name',
             ),
             'osname' => array(
                 'title' => $this->l('Status'),
@@ -80,19 +83,16 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'filter_key' => 'os!id_order_state',
                 'filter_type' => 'int',
                 'order_key' => 'osname',
-                'search' => false,
             ),
             'customer' => array(
                 'title' => $this->l('Customer'),
                 'havingFilter' => true,
-                'search' => false,
             ),
             'label_number' => array(
                 'type' => 'text',
                 'title' => $this->l('Tracking number(s)'),
                 'havingFilter' => false,
                 'callback' => 'parseLabelNumbers',
-                'search' => false,
             )
         );
 
@@ -107,7 +107,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->actions = array('none');
 
         $this->bulk_actions = array(
-            'generateVenipak' => array(
+            'generateLabels' => array(
                 'text' => $this->l('Generate Labels'),
                 'icon' => 'icon-save'
             ),
@@ -147,15 +147,8 @@ class AdminVenipakShippingController extends ModuleAdminController
         ]);
     }
 
-    public function getShopNameById($id)
-    {
-        $shop = new Shop($id);
-        return $shop->name;
-    }
-
     public function labelBtn($id)
     {
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
         $content = '<span class="btn-group-action">
@@ -167,7 +160,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         if (!$tracking_number) {
             $content .= '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitBulkgenerateVenipakLabelorder' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitGenerateLabel' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
                           </a>
                         </span>
                     </span>';
@@ -185,21 +178,31 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function postProcess()
     {
-        if(Tools::isSubmit('submitBulkgenerateVenipakLabelorder') || Tools::isSubmit('submitBulkgenerateVenipakorder'))
+//        $this->processResetFilters();
+        parent::postProcess();
+        if(Tools::isSubmit('submitGenerateLabel') || Tools::isSubmit('submitBulkgenerateLabelsorder'))
         {
             $orders = Tools::getValue('orderBox');
-            $order = Tools::getValue('id_order');
-            if($orders)
-                $this->module->bulkActionSendLabels($orders);
-            elseif ($order)
-                $this->module->bulkActionSendLabels((array)$order);
+            $warehouse_groups = $this->module->formatWarehousesOrderGroups($orders);
+            if(!empty($warehouse_groups))
+            {
+                foreach ($warehouse_groups as $warehouse_id => $orders)
+                {
+                    $this->module->bulkActionSendLabels(
+                        [
+                            'warehouse_id' => $warehouse_id,
+                            'orders' => $orders
+                        ]
+                    );
+                }
+            }
         }
         if(Tools::isSubmit('submitLabelorder'))
         {
-            MijoraVenipak::checkForClass('MjvpApi');
+
             $cApi = new MjvpApi();
             $id_order = Tools::getValue('id_order');
-            MijoraVenipak::checkForClass('MjvpDb');
+
             $cDb = new MjvpDb();
             $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
             $cApi->printLabel($labels_numbers);
@@ -234,7 +237,6 @@ class AdminVenipakShippingController extends ModuleAdminController
             )
         );
 
-        MijoraVenipak::checkForClass('MjvpWarehouse');
         $warehouses = MjvpWarehouse::getWarehouses();
 
         $this->context->smarty->assign(array(

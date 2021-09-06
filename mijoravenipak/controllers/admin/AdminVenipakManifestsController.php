@@ -1,5 +1,12 @@
 <?php
 
+use MijoraVenipak\MjvpApi;
+use MijoraVenipak\MjvpDb;
+use MijoraVenipak\MjvpHelper;
+use MijoraVenipak\MjvpManifest;
+use MijoraVenipak\MjvpModuleConfig;
+use MijoraVenipak\MjvpWarehouse;
+
 class AdminVenipakManifestsController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -14,17 +21,20 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function __construct()
     {
         $this->list_no_link = true;
-        $this->className = 'MjvpManifest';
+        $this->className = 'MijoraVenipak\MjvpManifest';
         $this->table = 'mjvp_manifest';
         $this->identifier = 'id';
         parent::__construct();
 
-        MijoraVenipak::checkForClass('MjvpManifest');
-        $this->_select = ' (SELECT COUNT(*) FROM `'
-            . _DB_PREFIX_ . 'mjvp_orders` o WHERE o.manifest_id = a.manifest_id) as manifest_total,
-            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival ';
+        $this->_select = '
+            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name,
+            s.`name` AS `shop_name`, COUNT(*) as manifest_total';
+        $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)
+                        LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (a.`manifest_id` = mo.`manifest_id`)
+                        LEFT JOIN `' . _DB_PREFIX_ . 'shop` s ON (a.`id_shop` = s.`id_shop`)';
         $this->_where = ' AND (SELECT COUNT(*) FROM `'
             . _DB_PREFIX_ . 'mjvp_orders` o WHERE a.manifest_id = o.manifest_id) != 0';
+        $this->_group = 'GROUP BY manifest_id';
     }
 
     public function init()
@@ -93,7 +103,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
             )
         );
 
-        MijoraVenipak::checkForClass('MjvpWarehouse');
         $warehouses = MjvpWarehouse::getWarehouses();
 
         $this->context->smarty->assign(array(
@@ -111,35 +120,42 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'title' => $this->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
-                'search' => false,
-                'orderby' => false
+                'filter_key' => 'a!manifest_id',
+                'order_key' => 'a!manifest_id',
             ),
-            'id_shop' => array(
+            'shop_name' => array(
                 'type' => 'text',
                 'title' => $this->l('Shop'),
                 'align' => 'center',
-                'search' => false,
-                'havingFilter' => false,
-                'orderby' => false,
-                'callback' => 'getShopNameById',
+                'filter_key' => 's!name',
+                'order_key' => 's!name',
             ),
             'date_add' => array(
                 'title' => $this->l('Creation Date'),
                 'align' => 'center',
                 'type' => 'datetime',
-                'search' => false,
+                'filter_key' => 'a!date_add',
             ),
             'manifest_total' => array(
                 'title' => $this->l('Orders in manifest'),
                 'align' => 'text-center',
+                'orderby' => false,
                 'search' => false,
-                'class' => 'fixed-width-xs',
             ),
             'date_arrival' => array(
                 'title' => $this->l('Carrier arrival'),
                 'align' => 'center',
-                'type' => 'text',
-                'search' => false,
+                'type' => 'datetime',
+                'filter_key' => 'a!arrival_date_from',
+            ),
+            'warehouse_name' => array(
+                'title' => $this->l('Warehouse'),
+                'align' => 'text-center',
+                'filter_key' => 'mw!name',
+            ),
+            'closed' => array(
+                'type' => 'bool',
+                'title' => $this->module->l('Closed'),
             ),
         );
 
@@ -154,25 +170,32 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->actions = array('none');
     }
 
-    public function getShopNameById($id)
-    {
-        $shop = new Shop($id);
-        return $shop->name;
-    }
-
     public function printBtn($id)
     {
-        MijoraVenipak::checkForClass('MjvpDb');
         $cDb = new MjvpDb();
 
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
         $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
-        $content = '<span class="btn-group-action">
+        $closed = $cDb->getManifestValue('closed', ['id' => $id]);
+
+        if($closed)
+        {
+            $content = '<span class="btn-group-action">
                         <span class="btn-group">
-                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone&ajax=1' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
+                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
                             </a>
                         </span>
                     </span>';
+        }
+        else
+        {
+            $content = '<span class="btn-group-action">
+                        <span class="btn-group">
+                            <a target="_blank" class="btn btn-default close-manifest" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print and close Manifest') . '
+                            </a>
+                        </span>
+                    </span>';
+        }
         if(!$arrival_time_from || !$arrival_time_to)
         {
             $content .= '<span class="btn-group-action">
@@ -187,14 +210,23 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function postProcess()
     {
-        MijoraVenipak::checkForClass('MjvpApi');
+        parent::postProcess();
         if (Tools::isSubmit('printmjvp_manifest')) {
-            MijoraVenipak::checkForClass('MjvpDb');
             $cApi = new MjvpApi();
             $cDb = new MjvpDb();
             $id_manifest = Tools::getValue('id');
-            $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
-            $cApi->printList($manifest_number);
+            $manifest = new MjvpManifest($id_manifest);
+            if(!Validate::isLoadedObject($manifest))
+            {
+                $this->errors[] = $this->module->l("Could not find the specified manifest.");
+            }
+            else
+            {
+                $manifest->closed = 1;
+                $manifest->update();
+                $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
+                $cApi->printList($manifest_number);
+            }
         }
         if(Tools::isSubmit('submitCallCarrier')) {
             $this->processCarrierCall();
@@ -203,10 +235,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function processCarrierCall()
     {
-        MijoraVenipak::checkForClass('MjvpManifest');
-        MijoraVenipak::checkForClass('MjvpWarehouse');
-        MijoraVenipak::checkForClass('MjvpHelper');
-        MijoraVenipak::checkForClass('MjvpModuleConfig');
         $cHelper = new MjvpHelper();
         $cConfig = new MjvpModuleConfig();
         $cApi = new MjvpApi();

@@ -7,25 +7,36 @@ $( document ).ready(function() {
 
     $(".mjvp-pickup-filter").on('click', e => {
         venipak_custom_modal.tmjs.dom.addOverlay();
-        e.preventDefault();
-        let clickedLink = $(e.target);
-        if(clickedLink[0].nodeName == 'SPAN')
-            clickedLink = $(clickedLink[0].parentElement);
+        const clickTarget = $(e.target);
+        if(clickTarget.hasClass('reset'))
+        {
+            $("#filter-container input[type='checkbox']").each((i, el) => {
+                $(el).prop('checked', true);
+            });
+        }
+
+        var selectedFilters = {};
+        $("#filter-container input[type='checkbox']").each((i, el) => {
+            if($(el).is(':checked'))
+            {
+                selectedFilters[i] = $(el).data('filter');
+            }
+        });
+
         $('.mjvp-pickup-filter').removeClass('active');
         $.ajax({
             type: "POST",
             url: mjvp_front_controller_url + "?ajax=1&submitFilterTerminals=1&action=filter",
             dataType: "json",
             data: {
-                'filter_key' : clickedLink.data('filter'),
+                'filter_keys' : selectedFilters
             },
             success: function (res) {
-                $('.tmjs-search-input').val('');
-                $('#terminal-search-radius').val('');
+                // $('.tmjs-search-input').val('');
+                // $('#terminal-search-radius').val('');
                 venipak_custom_modal.tmjs.dom.removeOverlay();
                 if(typeof res.mjvp_terminals != "undefined")
                 {
-                    clickedLink.addClass('active');
                     var terminals = [];
                     mjvp_terminals = res.mjvp_terminals;
                     mjvp_terminals.forEach((terminal) => {
@@ -44,9 +55,16 @@ $( document ).ready(function() {
                             terminals.push(terminal);
                         }
                     });
-                    venipak_custom_modal.tmjs.terminals_cache = terminals;
-                    venipak_custom_modal.tmjs.setTerminals(terminals);
-                    venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
+                    // venipak_custom_modal.tmjs.terminals_cache = terminals;
+                    if(terminals.length == 0)
+                    {
+                        venipak_custom_modal.tmjs.map._markerLayer.clearLayers();
+                    }
+                    else
+                    {
+                        venipak_custom_modal.tmjs.setTerminals(terminals);
+                        venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
+                    }
                 }
             },
         });

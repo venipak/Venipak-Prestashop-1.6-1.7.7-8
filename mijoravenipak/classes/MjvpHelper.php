@@ -1,5 +1,9 @@
 <?php
 
+namespace MijoraVenipak;
+
+use Carrier, Context, Configuration, MijoraVenipak, DOMDocument;
+
 class MjvpHelper
 {
     /**

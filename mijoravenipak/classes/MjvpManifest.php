@@ -1,6 +1,8 @@
 <?php
 
-class MjvpManifest extends ObjectModel
+namespace MijoraVenipak;
+
+class MjvpManifest extends \ObjectModel
 {
     public $id;
 
@@ -18,6 +20,8 @@ class MjvpManifest extends ObjectModel
 
     public $arrival_date_to;
 
+    public $closed;
+
     public $date_add;
 
     /** @var array Class variables and their validation types */
@@ -32,6 +36,7 @@ class MjvpManifest extends ObjectModel
             'call_comment' => array('type' => self::TYPE_STRING, 'size' => 255, 'validate' => 'isGenericName'),
             'arrival_date_from' => array('type' => self::TYPE_DATE, 'validate' => 'isDate',  'allow_null' => true),
             'arrival_date_to' => array('type' => self::TYPE_DATE, 'validate' => 'isDate', 'allow_null' => true),
+            'closed' => array('type' => self::TYPE_INT, 'validate' => 'isInt', 'allow_null' => true),
             'date_add' => array('type' => self::TYPE_DATE, 'validate' => 'isDate'),
         )
     );

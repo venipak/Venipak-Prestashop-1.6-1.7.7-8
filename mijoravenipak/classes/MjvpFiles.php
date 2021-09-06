@@ -1,5 +1,9 @@
 <?php
 
+namespace MijoraVenipak;
+
+use MijoraVenipak, Configuration;
+
 class MjvpFiles
 {
     /**
@@ -61,7 +65,7 @@ class MjvpFiles
             || ($last_update + $this->_updateEvery) < time()
             || $forced
         ) {
-            MijoraVenipak::checkForClass('MjvpHelper');
+
             $cHelper = new MjvpHelper();
             Configuration::updateGlobalValue(MijoraVenipak::$_globalConstants['last_upd_countries'], time());
 
@@ -93,10 +97,10 @@ class MjvpFiles
      */
     public function updateTerminalsList($forced = false)
     {
-        MijoraVenipak::checkForClass('MjvpHelper');
+
         $cHelper = new MjvpHelper();
 
-        MijoraVenipak::checkForClass('MjvpApi');
+
         $cApi = new MjvpApi();
 
         $last_update = Configuration::getGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals']);
