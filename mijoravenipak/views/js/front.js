@@ -20,8 +20,8 @@ $( document ).ready(function() {
                 'filter_key' : clickedLink.data('filter'),
             },
             success: function (res) {
-                $('.tmjs-search-input').val('');
-                $('#terminal-search-radius').val('');
+                // $('.tmjs-search-input').val('');
+                // $('#terminal-search-radius').val('');
                 venipak_custom_modal.tmjs.dom.removeOverlay();
                 if(typeof res.mjvp_terminals != "undefined")
                 {
@@ -44,7 +44,7 @@ $( document ).ready(function() {
                             terminals.push(terminal);
                         }
                     });
-                    venipak_custom_modal.tmjs.terminals_cache = terminals;
+                    // venipak_custom_modal.tmjs.terminals_cache = terminals;
                     venipak_custom_modal.tmjs.setTerminals(terminals);
                     venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
                 }
