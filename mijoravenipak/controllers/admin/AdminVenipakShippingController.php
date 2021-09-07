@@ -137,14 +137,7 @@ class AdminVenipakShippingController extends ModuleAdminController
 
         unset($this->toolbar_btn['new']);
 
-        $content = parent::renderList();
-        $content .= '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a id="track-orders" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track orders') . '
-                          </a>
-                        </span>
-                    </span>';
-        return $content;
+        return parent::renderList();
     }
 
     public function setMedia($isNewTheme = false)
@@ -174,6 +167,12 @@ class AdminVenipakShippingController extends ModuleAdminController
                     </span>';
             return $content;
         }
+        $content .= '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a class="btn btn-default track-orders" data-id-order="' . $id . '" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track shipment') . '
+                          </a>
+                        </span>
+                    </span>';
         $content .= '<span class="btn-group-action">
                     <span class="btn-group">
                         <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
@@ -241,6 +240,13 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'label' => $this->l('Generated Manifests'),
                 'url' => $this->context->link->getAdminLink('AdminVenipakManifests'),
                 'active' => false
+            ),
+            array(
+                'label' => $this->l('Track orders'),
+                'url' => $this->context->link->getAdminLink($this->controller_name),
+                'icon' => 'icon-truck',
+                'active' => false,
+                'class' => 'track-orders'
             )
         );
 

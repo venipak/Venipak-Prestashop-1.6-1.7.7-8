@@ -183,3 +183,58 @@ div#vp-loading-overlay {
 .date_range .input-group {
     margin: auto;
 }
+
+@media (min-width: 768px) {
+    #vp-tracking-modal-wrapper .modal-dialog {
+        width: 666px;
+    }
+}
+#vp-tracking-modal-wrapper td, #vp-tracking-modal-wrapper th {
+    padding: 5px;
+}
+
+.mb-0 {
+    margin-bottom: 0 !important;
+}
+
+#vp-tracking-modal-wrapper .tracking-status {
+    margin-top: 30px;
+}
+
+#vp-tracking-modal-wrapper .modal-body hr {
+    border-top: 2px solid #0c0c0c;
+}
+
+#vp-tracking-modal-wrapper .modal-body {
+    padding-top: 0;
+}
+
+#vp-tracking-modal-wrapper .modal-header {
+    border-bottom: none;
+    padding: 0;
+}
+
+#vp-tracking-modal-wrapper .tracking-order-heading {
+    border-bottom: none;
+    padding: 0;
+}
+
+#vp-tracking-modal-wrapper .tracking-order-heading + p {
+    margin-top: 15px;
+}
+
+#vp-tracking-modal-wrapper img {
+    width: 108px;
+    left: 4px;
+    position: relative;
+}
+
+#vp-tracking-modal-wrapper [id^="venipak-modal"] .modal-header .close {
+    right: 15px;
+    position: relative;
+    font-size: 30px;
+}
+
+.track-orders {
+    float: right;
+}

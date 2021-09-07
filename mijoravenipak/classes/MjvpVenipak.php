@@ -10,7 +10,7 @@ if (!defined('_PS_VERSION_')) {
 
 class MjvpVenipak
 {
-    //private $_curlUrl = 'https://go.venipak.lt/';
+    private $_liveCurlUrl = 'https://go.venipak.lt/';
     private $_curlUrl = 'https://venipak.uat.megodata.com/'; //DEMO
 
     /**
@@ -36,8 +36,9 @@ class MjvpVenipak
             'queryParams' => array(
                 'code' => $tracking_code,
                 'type' => $types[$tracking_type],
-                'output' => 'html',
+                'output' => 'csv',
             ),
+            'use_live_endpoint' => true,
         );
         
         return $this->executeRequest('ws/tracking', 'GET', $params);
@@ -229,8 +230,10 @@ class MjvpVenipak
 
         $curl = curl_init();
 
+        $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) ? $this->_liveCurlUrl : $this->_curlUrl;
+
         $curl_options = array(
-            CURLOPT_URL => $this->_curlUrl . $url_suffix . $url_query,
+            CURLOPT_URL => $endpoint . $url_suffix . $url_query,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,

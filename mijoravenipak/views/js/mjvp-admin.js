@@ -7,9 +7,15 @@ $(document).ready(function () {
     });
 
     // Venipak Orders page modal handling.
-    $(document).on('click', '#track-orders', function(e) {
+    $('.track-orders').on('click', function(e) {
         e.preventDefault();
-        create_tracking_modal();
+        let order = null;
+        let target = $(e.target);
+        if(target.data('id-order'))
+            order = target.data('id-order');
+        else if(target.parent().data('id-order'))
+            order = target.parent().data('id-order');
+        create_tracking_modal(order);
     });
 
     // Configuration page
@@ -231,11 +237,19 @@ function create_order_modal() {
     });
 }
 
-function create_tracking_modal() {
+function create_tracking_modal(order) {
     addOverlay();
+    if($('#vp-tracking-modal-wrapper').length != 0)
+    {
+        $('#venipak-modal-tracking').modal('hide');
+        $('#vp-tracking-modal-wrapper').remove();
+    }
     $.ajax({
         type: "POST",
         url: venipak_tracking_url,
+        data : {
+            'id_order' : order
+        },
         success: function (res) {
             res = JSON.parse(res);
             if (typeof res.errors != 'undefined') {
