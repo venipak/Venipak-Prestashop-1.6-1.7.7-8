@@ -240,7 +240,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.7.0';
+        $this->version = '0.7.1';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1614,7 +1614,7 @@ class MijoraVenipak extends CarrierModule
         $manifest_data = Db::getInstance()->getRow((new DbQuery())
             ->select('id, manifest_id')
             ->from('mjvp_manifest')
-            ->where('id_warehouse = ' . $warehouse_id . ' AND closed IS NULL AND DATE(date_add) = DATE(NOW())')
+            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())')
         );
 
         $manifest_title = '';

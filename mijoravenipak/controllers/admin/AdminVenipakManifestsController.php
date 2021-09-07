@@ -28,7 +28,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         $this->_select = '
             CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name,
-            s.`name` AS `shop_name`, COUNT(*) as manifest_total';
+            s.`name` AS `shop_name`, 
+            (SELECT GROUP_CONCAT(o.id_order SEPARATOR ", ") FROM `' . _DB_PREFIX_ .'mjvp_orders` o WHERE o.`manifest_id` = a.`manifest_id`) as orders';
         $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)
                         LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (a.`manifest_id` = mo.`manifest_id`)
                         LEFT JOIN `' . _DB_PREFIX_ . 'shop` s ON (a.`id_shop` = s.`id_shop`)';
@@ -90,6 +91,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
      */
     private function displayMenu()
     {
+//        $this->processResetFilters();
+
         $menu = array(
             array(
                 'label' => $this->l('Ready Orders'),
@@ -136,11 +139,11 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 'type' => 'datetime',
                 'filter_key' => 'a!date_add',
             ),
-            'manifest_total' => array(
+            'orders' => array(
                 'title' => $this->l('Orders in manifest'),
                 'align' => 'text-center',
-                'orderby' => false,
-                'search' => false,
+                'callback' => 'formatOrders',
+                'havingFilter' => true,
             ),
             'date_arrival' => array(
                 'title' => $this->l('Carrier arrival'),
@@ -206,6 +209,18 @@ class AdminVenipakManifestsController extends ModuleAdminController
                         </span>';
         }
         return $content;
+    }
+
+    public function formatOrders($orders)
+    {
+        if(count($orders) <= 1)
+        {
+            return $orders;
+        }
+        else
+        {
+            return implode(', ', $orders);
+        }
     }
 
     public function postProcess()
