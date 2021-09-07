@@ -4,7 +4,6 @@ use MijoraVenipak\MjvpApi;
 use MijoraVenipak\MjvpDb;
 use MijoraVenipak\MjvpHelper;
 use MijoraVenipak\MjvpWarehouse;
-use MijoraVenipak\MjvpVenipak;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
@@ -361,7 +360,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         {
             $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
         }
-        $new = new MjvpVenipak();
+        $cApi = new MjvpApi();
         $shipments = [];
         $csv_fields = [
             'pack_no', 'shipment_no', 'date', 'status', 'terminal'
@@ -374,7 +373,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             $shipment['heading'] = $this->module->l(sprintf("Order #%d (packets: %s)", $order_id, implode(', ', $tracking_numbers)));
             foreach ($tracking_numbers as $tracking_number)
             {
-                $csv = $new->getTrackingShipment($tracking_number);
+                $csv = $cApi->getTrackingShipment($tracking_number);
                 $count = 0;
                 $shipment_data = [];
                 if (($handle = fopen("data://text/csv," . $csv, "r")) !== false) {

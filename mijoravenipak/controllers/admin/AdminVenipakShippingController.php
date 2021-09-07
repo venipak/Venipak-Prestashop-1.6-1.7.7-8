@@ -3,7 +3,6 @@
 use MijoraVenipak\MjvpApi;
 use MijoraVenipak\MjvpDb;
 use MijoraVenipak\MjvpWarehouse;
-use MijoraVenipak\MjvpVenipak;
 
 class AdminVenipakShippingController extends ModuleAdminController
 {

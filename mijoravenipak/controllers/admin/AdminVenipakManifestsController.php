@@ -236,7 +236,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 $manifest->closed = 1;
                 $manifest->update();
                 $manifest_number = json_decode($cDb->getManifestValue('manifest_id', ['id' => $id_manifest]), true);
-                $cApi->printList($manifest_number);
+                $cApi->printManifest($manifest_number);
             }
         }
         if(Tools::isSubmit('submitCallCarrier')) {

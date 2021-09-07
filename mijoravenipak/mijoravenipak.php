@@ -8,7 +8,6 @@ use MijoraVenipak\MjvpFiles;
 use MijoraVenipak\MjvpHelper;
 use MijoraVenipak\MjvpManifest;
 use MijoraVenipak\MjvpModuleConfig;
-use MijoraVenipak\MjvpVenipak;
 use MijoraVenipak\MjvpWarehouse;
 
 if (!defined('_PS_VERSION_')) {
@@ -88,21 +87,6 @@ class MijoraVenipak extends CarrierModule
     public static $_globalConstants = array(
         'last_upd_countries' => 'MJVP_LAST_UPDATE_COUNTRIES',
         'last_upd_terminals' => 'MJVP_LAST_UPDATE_TERMINALS',
-    );
-
-    /**
-     * Classes use in the module
-     */
-    private static $_classMap = array(
-        'MjvpHelper' => 'classes/MjvpHelper.php',
-        'MjvpApi' => 'classes/MjvpApi.php',
-        'MjvpModuleConfig' => 'classes/MjvpModuleConfig.php',
-        'MjvpFiles' => 'classes/MjvpFiles.php',
-        'MjvpDb' => 'classes/MjvpDb.php',
-        'MjvpCart' => 'classes/MjvpCart.php',
-        'MjvpWarehouse' => 'classes/MjvpWarehouse.php',
-        'MjvpManifest' => 'classes/MjvpManifest.php',
-        'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
     );
 
     /**
@@ -240,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.7.2';
+        $this->version = '0.7.5';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
