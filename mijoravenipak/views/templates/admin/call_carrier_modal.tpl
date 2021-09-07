@@ -10,18 +10,9 @@
                 </ul>
             </div>
             <div class="modal-body">
-                {if isset($warehouses) && !empty($warehouses)}
-                    <p>
-                        {l s="Please select warehouse to call courier to:" mod="mijoravenipak"}
-                        <select id="id_venipak_warehouse" class="chosen">
-                            {foreach from=$warehouses item=warehouse}
-                                <option value="{$warehouse.id}" {if $warehouse.default_on}selected{/if}>{$warehouse.name}</option>
-                            {/foreach}
-                        </select>
-                    </p>
-                {else}
-                    <div class="alert alert-warning">
-                        {l s='Could not find any Venipak warehouse. Address from your Shop settings will be used, make sure you filled out all information.' mod="mijoravenipak"}
+                {if !isset($warehouse) || !$warehouse}
+                    <div class="alert alert-warning warehouse-warning">
+                        {l s='This manifest is not assigned to any warehouse. Address from your Shop settings will be used, make sure you filled out all information.' mod="mijoravenipak"}
                     </div>
                 {/if}
                 <p id="warehouse_info"></p>

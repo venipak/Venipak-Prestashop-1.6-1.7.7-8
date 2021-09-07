@@ -64,14 +64,11 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function setMedia($isNewTheme = false)
     {
         parent::setMedia($isNewTheme);
-        $warehouses = MjvpWarehouse::getWarehouses();
         $this->addJs('modules/' . $this->module->name . '/views/js/mjvp-manifest.js');
         Media::addJsDef([
-                'warehouses' => $warehouses,
                 'call_url' => $this->context->link->getAdminLink($this->controller_name, true, [], ['submitCallCarrier' => 1]),
                 'call_min_difference' => MijoraVenipak::CARRIER_CALL_MINIMUM_DIFFERENCE,
                 'call_errors' => [
-                    'warehouse' => $this->module->l('No warehouse selected'),
                     'manifest' => $this->module->l('No manifest selected'),
                     'arrival_times' => $this->module->l('Please select carrier arrival time interval.'),
                     'request' => $this->module->l('Failed to request Call courier'),
@@ -91,8 +88,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
      */
     private function displayMenu()
     {
-//        $this->processResetFilters();
-
         $menu = array(
             array(
                 'label' => $this->l('Ready Orders'),
@@ -180,6 +175,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
         $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
         $closed = $cDb->getManifestValue('closed', ['id' => $id]);
+        $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id]);
 
         if($closed)
         {
@@ -203,7 +199,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         {
             $content .= '<span class="btn-group-action">
                             <span class="btn-group">
-                                <a data-manifest="' . $id . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
+                                <a data-manifest="' . $id . '" data-warehouse="' . $id_warehouse . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
                                 </a>
                             </span>
                         </span>';
@@ -266,14 +262,13 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $sender = [];
 
         // If no warehouses are created, data from shop settings will be used for sender data.
-        if(isset($form_data['id_warehouse']))
+        $id_warehouse = $form_data['id_warehouse'];
+        if($id_warehouse > 0)
         {
-            $id_warehouse = $form_data['id_warehouse'];
             $warehouse = new MjvpWarehouse($id_warehouse);
         }
         else
         {
-            $id_warehouse = 0;
             $warehouse_data = $this->formTemporayWarehouse();
             if(!empty($warehouse_data['errors']))
             {
@@ -377,25 +372,23 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $data = [];
         $errors = [];
 
-        // Warehouse
-        if(Tools::isSubmit('id_warehouse'))
-        {
-            $id_warehouse = (int)Tools::getValue('id_warehouse');
-            $warehouse = new MjvpWarehouse($id_warehouse);
-            $data['id_warehouse'] = $id_warehouse;
-            if(!Validate::isLoadedObject($warehouse))
-            {
-                $errors[] = $this->module->l('Selected Warehouse does not exist');
-            }
-        }
-
-        // Manifest
         $id_manifest = (int)Tools::getValue('id_manifest');
         $manifest = new MjvpManifest($id_manifest);
+
+        // Manifest
         $data['id_manifest'] = $id_manifest;
         if(!Validate::isLoadedObject($manifest))
         {
             $errors[] = $this->module->l('Selected Manifest does not exist');
+        }
+
+        // Warehouse
+        $id_warehouse = $manifest->id_warehouse;
+        $warehouse = new MjvpWarehouse($id_warehouse);
+        $data['id_warehouse'] = $id_warehouse;
+        if(!Validate::isLoadedObject($warehouse) && $id_warehouse != 0)
+        {
+            $errors[] = $this->module->l('Selected Warehouse does not exist');
         }
 
         // Comment
@@ -452,9 +445,9 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $data = $errors = [];
         $cConfig = new MjvpModuleConfig();
         $warehouse = new MjvpWarehouse();
-        $shop_name = Configuration::get($cConfig->getConfigKey('shop_name', 'SHOP'));
+        $shop_name = Configuration::get($cConfig->getConfigKey('sender_name', 'SHOP'));
         if(!$shop_name)
-            $errors[] = $this->module->l('Shop name is required.');
+            $errors[] = $this->module->l('Sender name is required.');
         $warehouse->name = $shop_name;
 
         $company_code = Configuration::get($cConfig->getConfigKey('company_code', 'SHOP'));
