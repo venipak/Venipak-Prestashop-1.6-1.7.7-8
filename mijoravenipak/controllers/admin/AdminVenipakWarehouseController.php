@@ -15,7 +15,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         $this->list_no_link = true;
         $this->_orderBy = 'id';
-        $this->className = 'MijoraVenipak\MjvpWarehouse';
+        $this->className = 'MijoraVenipak\Classes\MjvpWarehouse';
         $this->table = 'mjvp_warehouse';
         $this->list_id = 'mjvp_warehouse';
         $this->identifier = 'id';

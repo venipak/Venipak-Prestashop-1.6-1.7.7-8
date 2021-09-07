@@ -1,11 +1,11 @@
 <?php
 
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpHelper;
-use MijoraVenipak\MjvpManifest;
-use MijoraVenipak\MjvpModuleConfig;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpManifest;
+use MijoraVenipak\Classes\MjvpModuleConfig;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakManifestsController extends ModuleAdminController
 {
@@ -21,7 +21,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function __construct()
     {
         $this->list_no_link = true;
-        $this->className = 'MijoraVenipak\MjvpManifest';
+        $this->className = 'MijoraVenipak\Classes\MjvpManifest';
         $this->table = 'mjvp_manifest';
         $this->identifier = 'id';
         parent::__construct();

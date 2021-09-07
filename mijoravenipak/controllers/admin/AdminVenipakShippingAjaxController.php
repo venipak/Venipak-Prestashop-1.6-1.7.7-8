@@ -1,9 +1,9 @@
 <?php
 
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpHelper;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace MijoraVenipak;
+namespace MijoraVenipak\Classes;
 
 class MjvpManifest extends \ObjectModel
 {

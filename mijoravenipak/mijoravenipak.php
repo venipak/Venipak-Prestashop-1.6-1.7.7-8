@@ -1,14 +1,14 @@
 <?php
 
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpCart;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpFiles;
-use MijoraVenipak\MjvpHelper;
-use MijoraVenipak\MjvpManifest;
-use MijoraVenipak\MjvpModuleConfig;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpCart;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpFiles;
+use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpManifest;
+use MijoraVenipak\Classes\MjvpModuleConfig;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -224,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.7.5';
+        $this->version = '0.7.6';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1863,11 +1863,12 @@ class MijoraVenipak extends CarrierModule
             $errors[] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
         }
 
-        if(version_compare(_PS_VERSION_, '1.7.7', '<'))
+        if(version_compare(_PS_VERSION_, '1.7.7', '<') ||
+            (isset($this->context->controller->module) && $this->context->controller->module))
         {
             if (empty($errors))
             {
-                $this->context->controller->confirmations[] = $this->l('Successfully created label(s) for the shipment.');
+                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title));
             }
             else
             {
@@ -1878,11 +1879,12 @@ class MijoraVenipak extends CarrierModule
             }
             return true;
         }
+        // for symfony controller
         else
         {
             if (empty($errors))
             {
-                return  ['success' => $this->l('Successfully created label(s) for the shipment.')];
+                return  ['success' => $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title))];
             }
             else
             {

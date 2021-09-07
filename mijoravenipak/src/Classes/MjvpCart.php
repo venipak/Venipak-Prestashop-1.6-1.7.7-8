@@ -1,6 +1,6 @@
 <?php
 
-namespace MijoraVenipak;
+namespace MijoraVenipak\Classes;
 
 class MjvpCart extends \ObjectModel
 {

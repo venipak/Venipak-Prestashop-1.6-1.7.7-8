@@ -1,8 +1,8 @@
 <?php
 
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakShippingController extends ModuleAdminController
 {

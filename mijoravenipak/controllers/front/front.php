@@ -4,7 +4,7 @@ if (!defined('_PS_VERSION_')) {
     return;
 }
 
-use MijoraVenipak\MjvpDb;
+use MijoraVenipak\Classes\MjvpDb;
 
 class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 {

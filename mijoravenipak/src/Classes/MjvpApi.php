@@ -1,7 +1,7 @@
 <?php
 
 
-namespace MijoraVenipak;
+namespace MijoraVenipak\Classes;
 
 use Configuration, Exception, MijoraVenipak, DOMDocument;
 if (!defined('_PS_VERSION_')) {
