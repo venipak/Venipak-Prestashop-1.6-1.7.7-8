@@ -1,15 +1,14 @@
 <?php
 
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpCart;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpFiles;
-use MijoraVenipak\MjvpHelper;
-use MijoraVenipak\MjvpManifest;
-use MijoraVenipak\MjvpModuleConfig;
-use MijoraVenipak\MjvpVenipak;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpCart;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpFiles;
+use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpManifest;
+use MijoraVenipak\Classes\MjvpModuleConfig;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -91,21 +90,6 @@ class MijoraVenipak extends CarrierModule
     );
 
     /**
-     * Classes use in the module
-     */
-    private static $_classMap = array(
-        'MjvpHelper' => 'classes/MjvpHelper.php',
-        'MjvpApi' => 'classes/MjvpApi.php',
-        'MjvpModuleConfig' => 'classes/MjvpModuleConfig.php',
-        'MjvpFiles' => 'classes/MjvpFiles.php',
-        'MjvpDb' => 'classes/MjvpDb.php',
-        'MjvpCart' => 'classes/MjvpCart.php',
-        'MjvpWarehouse' => 'classes/MjvpWarehouse.php',
-        'MjvpManifest' => 'classes/MjvpManifest.php',
-        'MjvpVenipak' => 'classes/MjvpVenipak.php', //Temporary
-    );
-
-    /**
      * List of hooks
      */
     protected $_hooks = array(
@@ -131,7 +115,7 @@ class MijoraVenipak extends CarrierModule
             'id' => 'MJVP_API_ID',
         ),
         'SHOP' => array(
-            'shop_name' => 'MJVP_SHOP_NAME',
+            'sender_name' => 'MJVP_SENDER_NAME',
             'shop_contact' => 'MJVP_SHOP_CONTACT',
             'company_code' => 'MJVP_SHOP_COMPANY_CODE',
             'shop_country_code' => 'MJVP_SHOP_COUNTRY_CODE',
@@ -140,6 +124,7 @@ class MijoraVenipak extends CarrierModule
             'shop_postcode' => 'MJVP_SHOP_POSTCODE',
             'shop_phone' => 'MJVP_SHOP_PHONE',
             'shop_email' => 'MJVP_SHOP_EMAIL',
+            'sender_address' => 'MJVP_SENDER_ADDRESS',
         ),
         'COURIER' => array(
             'door_code' => 'MJVP_COURIER_DOOR_CODE',
@@ -184,6 +169,8 @@ class MijoraVenipak extends CarrierModule
         $cModuleConfig = new MjvpModuleConfig();
 
         if ($section_id == 'SHOP') {
+            if($config_key == 'sender_address')
+                return array('name' => str_replace('_', ' ', $config_key), 'required' => false);
             return array('name' => str_replace('_', ' ', $config_key), 'required' => true);
         }
 
@@ -237,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.6.0';
+        $this->version = '0.7.6';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -814,8 +801,8 @@ class MijoraVenipak extends CarrierModule
         $form_fields = array(
             array(
                 'type' => 'text',
-                'label' => $this->l('Shop Name'),
-                'name' => $cModuleConfig->getConfigKey('shop_name', $section_id),
+                'label' => $this->l('Sender Name'),
+                'name' => $cModuleConfig->getConfigKey('sender_name', $section_id),
                 'size' => 20,
                 'required' => true
             ),
@@ -878,6 +865,22 @@ class MijoraVenipak extends CarrierModule
                 'name' => $cModuleConfig->getConfigKey('shop_email', $section_id),
                 'size' => 20,
                 'required' => true
+            ),
+            array(
+                'type' => 'checkbox',
+                'label' => $this->l('Use shop settings as sender\'s address.'),
+                'name' => $cModuleConfig->getConfigKey('sender_address', $section_id),
+                'values' => [
+                    'query' => [
+                        [
+                            'id' => 'ON',
+                            'val' => '1',
+                            'name' => ''
+                        ],
+                    ],
+                    'id' => 'id',
+                    'name' => 'name',
+                ],
             ),
         );
 
@@ -1106,7 +1109,7 @@ class MijoraVenipak extends CarrierModule
         if (isset($this->_configKeys[strtoupper($section_id)])) {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
                 $prefix = '';
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strpos($key, 'MJVP_SENDER_ADDRESS') !== false)
                     $prefix = '_ON';
 
                 $value = Configuration::get($key);
@@ -1130,7 +1133,7 @@ class MijoraVenipak extends CarrierModule
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
 
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strrpos($key, 'MJVP_SENDER_ADDRESS') !== false)
                     $value = Tools::getValue($key . '_ON');
                 else
                     $value = Tools::getValue($key);
@@ -1595,7 +1598,7 @@ class MijoraVenipak extends CarrierModule
         $manifest_data = Db::getInstance()->getRow((new DbQuery())
             ->select('id, manifest_id')
             ->from('mjvp_manifest')
-            ->where('id_warehouse = ' . $warehouse_id . ' AND closed IS NULL AND DATE(date_add) = DATE(NOW())')
+            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())')
         );
 
         $manifest_title = '';
@@ -1860,11 +1863,12 @@ class MijoraVenipak extends CarrierModule
             $errors[] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
         }
 
-        if(version_compare(_PS_VERSION_, '1.7.7', '<'))
+        if(version_compare(_PS_VERSION_, '1.7.7', '<') ||
+            (isset($this->context->controller->module) && $this->context->controller->module))
         {
             if (empty($errors))
             {
-                $this->context->controller->confirmations[] = $this->l('Successfully created label(s) for the shipment.');
+                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title));
             }
             else
             {
@@ -1875,11 +1879,12 @@ class MijoraVenipak extends CarrierModule
             }
             return true;
         }
+        // for symfony controller
         else
         {
             if (empty($errors))
             {
-                return  ['success' => $this->l('Successfully created label(s) for the shipment.')];
+                return  ['success' => $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title))];
             }
             else
             {
@@ -1962,6 +1967,7 @@ class MijoraVenipak extends CarrierModule
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
                     'venipak_save_order_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=saveOrder',
+                    'venipak_tracking_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=trackOrders',
                 ]);
                 $this->context->controller->addJs('modules/' . $this->name . '/views/js/mjvp-admin.js');
                 $this->context->controller->addCSS($this->_path . 'views/css/mjvp-admin.css');
@@ -2006,7 +2012,8 @@ class MijoraVenipak extends CarrierModule
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = array_values($filtered_terminals);
 
-            if (!$filters && !is_array($filters) && $this->context->controller->module == $this)
+            if (!$filters && !is_array($filters) && isset($this->context->controller->module)
+                && $this->context->controller->module == $this && $this->context->controller->controller_type != 'moduleadmin')
                 return [];
             elseif (!$filters && !is_array($filters))
                 return $filtered_terminals;

@@ -1,9 +1,9 @@
 <?php
 
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpHelper;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
@@ -32,6 +32,9 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 break;
             case 'prepareModal':
                 $this->prepareOrderModal();
+                break;
+            case 'trackOrders':
+                $this->getOrderTrackingModal();
                 break;
         }
     }
@@ -318,5 +321,84 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
         die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/change_order_info_modal.tpl')]));
 
+    }
+
+    public function getOrderTrackingModal()
+    {
+        $cDb = new MjvpDb();
+        $id_order = (int) Tools::getValue('id_order');
+        if(Validate::isLoadedObject(new Order($id_order)))
+        {
+            $labels_numbers = $cDb->getOrderValue('labels_numbers', array('id_order' => $id_order));
+            $orders[] = [
+                'id_order' => $id_order,
+                'labels_numbers' => $labels_numbers,
+            ];
+        }
+        else
+        {
+            // Get all undelivered Venipak orders
+            $orders = Db::getInstance()->executeS('SELECT mo.* FROM ' . _DB_PREFIX_ . 'mjvp_orders mo
+                LEFT JOIN ' ._DB_PREFIX_ . 'orders o ON o.`id_order` = mo.`id_order`
+                LEFT JOIN ' ._DB_PREFIX_ . 'order_state_lang osl ON osl.`id_order_state` = o.`current_state`
+                WHERE mo.`id_order` IS NOT NULL 
+                AND mo.`labels_numbers` IS NOT NULL 
+                AND mo.`manifest_id` IS NOT NULL 
+                AND osl.`name` != "Delivered"'
+            );
+        }
+
+
+        $demo_number = 'V00010E2521185';
+        $orders_tracking_numbers = [];
+
+        // Demo tracking number. To be removed in prod @todo
+        // Structure to match numbers mapping with orders.
+        // $orders_tracking_numbers[] = [0 => $demo_number];
+
+        foreach ($orders as $row)
+        {
+            $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
+        }
+        $cApi = new MjvpApi();
+        $shipments = [];
+        $csv_fields = [
+            'pack_no', 'shipment_no', 'date', 'status', 'terminal'
+        ];
+
+        foreach ($orders_tracking_numbers as $order_id => $tracking_numbers)
+        {
+            $shipment = [];
+            $shipment['order_id'] = $order_id;
+            $shipment['heading'] = $this->module->l(sprintf("Order #%d (packets: %s)", $order_id, implode(', ', $tracking_numbers)));
+            foreach ($tracking_numbers as $tracking_number)
+            {
+                $csv = $cApi->getTrackingShipment($tracking_number);
+                $count = 0;
+                $shipment_data = [];
+                if (($handle = fopen("data://text/csv," . $csv, "r")) !== false) {
+                    while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                        $count++;
+                        if($count == 1)
+                            continue;
+                        $row = [];
+                        $num = count($data);
+                        for ($c = 0; $c < $num; $c++) {
+                            $row[$csv_fields[$c]] = $data[$c];
+                        }
+                        $shipment_data[] = $row;
+                    }
+                    $shipment['data'] = $shipment_data;
+                    $shipments[$tracking_number] = $shipment;
+                    fclose($handle);
+                }
+            }
+        }
+
+        $this->context->smarty->assign(array(
+            'shipments' => $shipments,
+            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
+        ));
+        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking.tpl')]));
     }
 }

@@ -8,21 +8,16 @@ $(document).ready(function () {
     $('#arrival-time-to').datetimepicker({
             dateFormat: 'yy-mm-dd'
     });
+
     venipak_modal.modal({ show: false });
-    venipak_modal.find('#id_venipak_warehouse').on('change', function(e){
-        warehouse = findWarehouseInfo(this.value);
-        if (!warehouse) {
-            return false;
-        }
-        venipak_modal.find('#warehouse_info').html(
-            '<p>'+warehouse.contact + ' ' + warehouse.phone+ '</p>' +
-            '<p>'+warehouse.zip_code+' '+warehouse.city+', '+warehouse.country_code+'</p>'
-        );
-    });
-    venipak_modal.find('#id_venipak_warehouse').trigger('change');
     $(document).on('click', 'a[data-manifest]', function(e) {
+        $('.warehouse-warning').hide();
         e.preventDefault();
         venipak_manifest_id = this.dataset.manifest || 0;
+        if(this.dataset.warehouse == 0)
+        {
+            $('.warehouse-warning').show();
+        }
         venipak_modal.modal('show');
     });
 });
@@ -50,15 +45,6 @@ function create_venipak_modal() {
     venipak_modal = confirmModal;
 }
 
-function findWarehouseInfo(id_warehouse) {
-    for(var i=0; i < warehouses.length; i++) {
-        if (warehouses[i].id == id_warehouse) {
-            return warehouses[i];
-        }
-    }
-    return false;
-}
-
 function sendCall() {
     $.ajax({
         type: "POST",
@@ -66,7 +52,6 @@ function sendCall() {
         dataType: "json",
         data : {
             'id_manifest' : venipak_manifest_id,
-            'id_warehouse' : $('#id_venipak_warehouse').val(),
             'call_comment' : $('#call_comment').val(),
             'arrival_date_from' : $('#arrival-time-from').val(),
             'arrival_date_to' : $('#arrival-time-to').val(),

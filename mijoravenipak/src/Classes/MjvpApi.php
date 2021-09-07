@@ -1,25 +1,18 @@
 <?php
 
 
-namespace MijoraVenipak;
+namespace MijoraVenipak\Classes;
 
-use Configuration, Exception, MijoraVenipak;
-
+use Configuration, Exception, MijoraVenipak, DOMDocument;
 if (!defined('_PS_VERSION_')) {
     return;
 }
 
 class MjvpApi
 {
-    private $cVenipak;
 
-    /**
-     * Class constructor
-     */
-    public function __construct()
-    {
-        $this->cVenipak = new MjvpVenipak();
-    }
+    private $_liveCurlUrl = 'https://go.venipak.lt/';
+    private $_curlUrl = 'https://venipak.uat.megodata.com/'; //DEMO
 
     /**
      * Get terminals for country
@@ -27,25 +20,22 @@ class MjvpApi
     public function getTerminals($country_code, $postcode = '', $city = '', $show_for_sender = false)
     {
         try {
-            $params = array('country' => $country_code);
-            
+            $queryParams['country'] = $country_code;
             if (!empty($postcode)) {
                 preg_match('/\d+/', $postcode, $postcode_numbers);
-                $params['postcode'] = $postcode_numbers[0];
+                $queryParams['postcode'] = $postcode_numbers[0];
             }
             if (!empty($city)) {
-                $params['city'] = $city;
+                $queryParams['city'] = $city;
             }
             if ($show_for_sender) {
-                $params['pickup_enabled'] = 1;
+                $queryParams['pickup_enabled'] = 1;
             }
 
-            return $this->cVenipak->getPickupPoints($params);
+            return $this->executeRequest('ws/get_pickup_points', 'GET', array('queryParams' => $queryParams));
         } catch (Exception $e) {
             throw new Exception('Failed to get terminals. Error: ' . $e->getMessage());
         }
-
-        return false;
     }
 
     /**
@@ -169,6 +159,26 @@ class MjvpApi
     }
 
     /**
+     * Build consignor XML structure
+     */
+    public function buildConsignorXml()
+    {
+        $cModuleConfig = new MjvpModuleConfig();
+        $xml_code = '<consignor>';
+        $xml_code .= '<name>' . Configuration::get($cModuleConfig->getConfigKey('sender_name', 'SHOP')) . '</name>';
+        $xml_code .= '<company_code>' . Configuration::get($cModuleConfig->getConfigKey('company_code', 'SHOP'))  . '</company_code>';
+        $xml_code .= '<country>' . Configuration::get($cModuleConfig->getConfigKey('shop_country_code', 'SHOP'))  . '</country>';
+        $xml_code .= '<city>' . Configuration::get($cModuleConfig->getConfigKey('shop_city', 'SHOP')) . '</city>';
+        $xml_code .= '<address>' . Configuration::get($cModuleConfig->getConfigKey('shop_address', 'SHOP'))  . '</address>';
+        $xml_code .= '<post_code>' . Configuration::get($cModuleConfig->getConfigKey('shop_postcode', 'SHOP'))  . '</post_code>';
+        $xml_code .= '<contact_person>' . Configuration::get($cModuleConfig->getConfigKey('shop_name', 'SHOP'))  . '</contact_person>';
+        $xml_code .= '<contact_tel>' . Configuration::get($cModuleConfig->getConfigKey('shop_phone', 'SHOP')) . '</contact_tel>';
+        $xml_code .= '<contact_email>' . Configuration::get($cModuleConfig->getConfigKey('shop_email', 'SHOP'))  . '</contact_email>';
+        $xml_code .= '</consignor>';
+        return $xml_code;
+    }
+
+    /**
      * Build shipment XML structure
      */
     public function buildShipmentXml($params)
@@ -186,6 +196,11 @@ class MjvpApi
         $params['packs'] = (isset($params['packs'])) ? $params['packs'] : array();
 
         $xml_code = '<shipment>';
+        $cModuleConfig = new MjvpModuleConfig();
+        if(Configuration::get($cModuleConfig->getConfigKey('sender_address', 'SHOP')))
+        {
+            $xml_code .= $this->buildConsignorXml();
+        }
         $xml_code .= '<consignee>';
         $xml_code .= '<name>' . $params['consignee']['name'] . '</name>';
         if (!empty($params['consignee']['code'])) {
@@ -224,7 +239,7 @@ class MjvpApi
 
         foreach ($params['packs'] as $pack) {
             $xml_code .= '<pack>';
-            $xml_code .= '<pack_no>' . $this->cVenipak->buildTrackingNumber($params['api_id'], $pack['serial_number']) . '</pack_no>';
+            $xml_code .= '<pack_no>' . $this->buildTrackingNumber($params['api_id'], $pack['serial_number']) . '</pack_no>';
             if (!empty($pack['document_number'])) {
                 $xml_code .= '<doc_no>' . $pack['document_number'] . '</doc_no>';
             }
@@ -235,6 +250,11 @@ class MjvpApi
         $xml_code .= '</shipment>';
 
         return $xml_code;
+    }
+
+    public function buildTrackingNumber($login_id, $serial_number)
+    {
+        return 'V' . $login_id . 'E' . sprintf('%07d', (int)$serial_number);
     }
 
     /**
@@ -248,7 +268,16 @@ class MjvpApi
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
 
-        $response = $this->cVenipak->sendXml($username, $password, $xml);
+        if (!$this->validateXml($xml)) {
+            throw new Exception('Bad XML text.');
+            return false;
+        }
+        $params = [
+            'user' => $username,
+            'pass' => $password,
+            'xml_text' => $xml,
+        ];
+        $response = $this->executeRequest('import/send.php', 'POST', $params);
 
         return $this->convertXmlToArray($response);
     }
@@ -265,35 +294,29 @@ class MjvpApi
         return $array;
     }
 
-    public function printList($labels)
+    public function printManifest($manifest_number)
     {
-        $this->getPdfEntity('manifest', $labels);
+        $this->getPdfEntity('manifest', $manifest_number);
     }
 
-    public function getPrintLink($labels_numbers)
+    public function getLabelLink($labels_numbers)
     {
-
         $cModuleConfig = new MjvpModuleConfig();
-
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
+        $params = array(
+            'user' => $username,
+            'pass' => $password,
+        );
 
-         return $this->cVenipak->getLabelLink($username, $password, $labels_numbers);
-    }
+        if (is_array($labels_numbers) && !empty($labels_numbers)) {
+            foreach ($labels_numbers as $key => $package)
+            {
+                $params['pack_no[' . $key . ']'] = $package;
+            }
+        }
 
-    function fileGetContentsCurl($url) {
-        $ch = curl_init();
-
-        curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-
-        $data = curl_exec($ch);
-        curl_close($ch);
-
-        return $data;
+         return $this->executeRequest('ws/print_link', 'POST', $params);
     }
 
     public function printLabel($label_number)
@@ -313,7 +336,7 @@ class MjvpApi
         switch ($type) {
             case 'label':
                 $pdf_path = MijoraVenipak::$_labelPdfDir;
-                $apiFunction = 'printLabel';
+                $apiFunction = 'getLabel';
                 $params = [
                     'packages' => $label_numbers,
                     'format' => Configuration::get($cModuleConfig->getConfigKeyOther('label_size'))
@@ -321,7 +344,7 @@ class MjvpApi
                 break;
             case 'manifest':
                 $pdf_path = MijoraVenipak::$_manifestPdfDir;
-                $apiFunction = 'printList';
+                $apiFunction = 'getManifest';
                 $params = $label_numbers;
                 break;
             default:
@@ -334,8 +357,7 @@ class MjvpApi
             $filename = md5($label_numbers . $password);
         $pdf = $this->getPdf($pdf_path, $filename);
         if(!$pdf)
-            // todo: pass manifest ID instead, when getting list
-            $pdf = $this->cVenipak->$apiFunction($username, $password, $params);
+            $pdf = $this->$apiFunction($username, $password, $params);
         if ($pdf) { // check if its not empty
             $path = $pdf_path . $filename . '.pdf';
             $is_saved = file_put_contents($path, $pdf);
@@ -375,4 +397,188 @@ class MjvpApi
         readfile($path);
     }
 
+    public function getTrackingShipment($tracking_code, $tracking_type = 'track_single')
+    {
+        $types = array(
+            'track_single' => 1,
+            'track_all' => 2,
+            'track_last_status' => 5,
+            'track_shipment' => 7,
+        );
+        if (!isset($types[$tracking_type])) {
+            $tracking_type = 'track_single';
+        }
+
+        $params = array(
+            'queryParams' => array(
+                'code' => $tracking_code,
+                'type' => $types[$tracking_type],
+                'output' => 'csv',
+            ),
+            'use_live_endpoint' => true,
+        );
+
+        return $this->executeRequest('ws/tracking', 'GET', $params);
+    }
+
+    public function setTrackingShipment($username, $password, $package_code, $package_type)
+    {
+        $types = array(
+            'doc_code' => 3,
+            'bill' => 4,
+            'order' => 13,
+        );
+        if (!isset($types[$package_type])) {
+            $package_type = 'doc_code';
+        }
+
+        $params = array(
+            'user' => $username,
+            'pass' => $password,
+            'code' => $package_code,
+            'type' => $types[$package_type],
+        );
+
+        return $this->executeRequest('ws/tracking', 'POST', $params);
+    }
+
+    public function getLabel($username, $password, $data = array())
+    {
+        if (!isset($data['packages'])) {
+            throw new Exception('Not received package codes.');
+            return false;
+        }
+
+        $params = array(
+            'user' => $username,
+            'pass' => $password,
+            'format' => $this->getParamValue($data, 'format', array('a4', 'other'), 'other'),
+            'carrier' => $this->getParamValue($data, 'carrier', array('venipak', 'global', 'all'), 'all'),
+        );
+
+        if (isset($data['packages'])) {
+            foreach ($data['packages'] as $key => $package)
+            {
+                $params['pack_no[' . $key . ']'] = $package;
+            }
+        }
+
+        return $this->executeRequest('ws/print_label', 'POST', $params);
+    }
+
+    public function getManifest($username, $password, $manifest_id)
+    {
+        $params = array(
+            'user' => $username,
+            'pass' => $password,
+            'code' => $manifest_id,
+        );
+
+        return $this->executeRequest('ws/print_list', 'POST', $params);
+    }
+
+    public function getServices($country, $postcode, $params = array())
+    {
+        if (empty($country) || empty($postcode)) {
+            return 'Error: Country or postcode value is empty.';
+        }
+
+        $queryParams = array(
+            'country' => $country,
+            'code' => $postcode,
+            'type' => $this->getParamValue($params, 'type', array('route', 'zone', 'all'), 'all'),
+            'view' => $this->getParamValue($params, 'view', array('csv', 'json'), 'json'),
+        );
+
+        return $this->executeRequest('ws/get_route', 'GET', array('queryParams' => $queryParams));
+    }
+
+    private function getParamValue($params, $param_name, $allowed_values, $default_value)
+    {
+        if (!isset($params[$param_name])) {
+            return $default_value;
+        }
+        if (!is_string($params[$param_name])) {
+            return $default_value;
+        }
+        if (!in_array($params[$param_name], $allowed_values)) {
+            return $default_value;
+        }
+
+        return $params[$param_name];
+    }
+
+    private function validateXml($xml_text, $version = '1.0', $encoding = 'utf-8')
+    {
+        if (empty(trim($xml_text))) {
+            return false;
+        }
+
+        libxml_use_internal_errors(true);
+
+        $doc = new DOMDocument($version, $encoding);
+        $doc->loadXML($xml_text);
+
+        $errors = libxml_get_errors();
+        libxml_clear_errors();
+
+        return empty($errors);
+    }
+
+    private function executeRequest($url_suffix, $request_type, $params = array())
+    {
+        if (empty($url_suffix) || empty($request_type)) {
+            throw new Exception('URL suffix or request type is empty.');
+            return false;
+        }
+
+        $url_query = '';
+        if (isset($params['queryParams'])) {
+            if (is_array($params['queryParams'])) {
+                foreach ($params['queryParams'] as $qParam_key => $qParam_value) {
+                    if (empty($url_query)) {
+                        $url_query .= '?';
+                    } else {
+                        $url_query .= '&';
+                    }
+                    $url_query .= $qParam_key . '=' . $qParam_value;
+                }
+            }
+            unset($params['queryParams']);
+        }
+
+        $curl = curl_init();
+
+        $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) ? $this->_liveCurlUrl : $this->_curlUrl;
+
+        $curl_options = array(
+            CURLOPT_URL => $endpoint . $url_suffix . $url_query,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => $request_type,
+            CURLOPT_POSTFIELDS => $params,
+        );
+
+        curl_setopt_array($curl, $curl_options);
+
+        $response = curl_exec($curl);
+
+        if (curl_errno($curl)) {
+            return curl_error($curl);
+        }
+
+        curl_close($curl);
+
+        return $this->isJson($response) ? json_decode($response) : $response;
+    }
+
+    private function isJson($string)
+    {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
+    }
 }

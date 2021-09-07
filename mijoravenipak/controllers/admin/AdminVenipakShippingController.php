@@ -1,8 +1,8 @@
 <?php
 
-use MijoraVenipak\MjvpApi;
-use MijoraVenipak\MjvpDb;
-use MijoraVenipak\MjvpWarehouse;
+use MijoraVenipak\Classes\MjvpApi;
+use MijoraVenipak\Classes\MjvpDb;
+use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakShippingController extends ModuleAdminController
 {
@@ -167,6 +167,12 @@ class AdminVenipakShippingController extends ModuleAdminController
             return $content;
         }
         $content .= '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a class="btn btn-default track-orders" data-id-order="' . $id . '" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track shipment') . '
+                          </a>
+                        </span>
+                    </span>';
+        $content .= '<span class="btn-group-action">
                     <span class="btn-group">
                         <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
                         </a>
@@ -178,7 +184,6 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function postProcess()
     {
-//        $this->processResetFilters();
         parent::postProcess();
         if(Tools::isSubmit('submitGenerateLabel') || Tools::isSubmit('submitBulkgenerateLabelsorder'))
         {
@@ -234,6 +239,13 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'label' => $this->l('Generated Manifests'),
                 'url' => $this->context->link->getAdminLink('AdminVenipakManifests'),
                 'active' => false
+            ),
+            array(
+                'label' => $this->l('Track orders'),
+                'url' => $this->context->link->getAdminLink($this->controller_name),
+                'icon' => 'icon-truck',
+                'active' => false,
+                'class' => 'track-orders'
             )
         );
 

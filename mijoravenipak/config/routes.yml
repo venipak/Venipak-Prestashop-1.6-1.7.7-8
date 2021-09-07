@@ -2,10 +2,10 @@ admin_venipak_generate_bulk:
   path: /mijora-venipak/bulk-generate
   methods: [POST]
   defaults:
-    _controller: 'MijoraVenipakSrc\Controller\Admin\VenipakBulkActionController::bulkGenerateLabels'
+    _controller: 'MijoraVenipak\Controller\Admin\VenipakBulkActionController::bulkGenerateLabels'
 
 admin_venipak_print_bulk:
   path: /mijora-venipak/bulk-print
   methods: [POST]
   defaults:
-    _controller: 'MijoraVenipakSrc\Controller\Admin\VenipakBulkActionController::bulkPrintLabels'
+    _controller: 'MijoraVenipak\Controller\Admin\VenipakBulkActionController::bulkPrintLabels'

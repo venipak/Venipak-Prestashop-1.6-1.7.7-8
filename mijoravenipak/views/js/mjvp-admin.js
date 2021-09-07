@@ -3,7 +3,19 @@ $(document).ready(function () {
     // Venipak Orders page modal handling.
     $(document).on('click', '.change-shipment-modal', function(e) {
         e.preventDefault();
-        create_venipak_modal();
+        create_order_modal();
+    });
+
+    // Venipak Orders page modal handling.
+    $('.track-orders').on('click', function(e) {
+        e.preventDefault();
+        let order = null;
+        let target = $(e.target);
+        if(target.data('id-order'))
+            order = target.data('id-order');
+        else if(target.parent().data('id-order'))
+            order = target.parent().data('id-order');
+        create_tracking_modal(order);
     });
 
     // Configuration page
@@ -178,7 +190,7 @@ function warning(text) {
     }
 }
 
-function create_venipak_modal() {
+function create_order_modal() {
     var link;
     if(event.target.tagName == 'I')
         link = $(event.target.parentElement);
@@ -224,6 +236,46 @@ function create_venipak_modal() {
         }
     });
 }
+
+function create_tracking_modal(order) {
+    addOverlay();
+    if($('#vp-tracking-modal-wrapper').length != 0)
+    {
+        $('#venipak-modal-tracking').modal('hide');
+        $('#vp-tracking-modal-wrapper').remove();
+    }
+    $.ajax({
+        type: "POST",
+        url: venipak_tracking_url,
+        data : {
+            'id_order' : order
+        },
+        success: function (res) {
+            res = JSON.parse(res);
+            if (typeof res.errors != 'undefined') {
+                if(Array.isArray(res.errors))
+                {
+                    res.errors.forEach((error) => {
+                        showResponse(error, 'danger');
+                    });
+                }
+                else
+                {
+                    showResponse(res.errors, 'danger');
+                }
+                return false;
+            } else if(res.modal){
+                $('#form-order').append(res.modal);
+            }
+        },
+        complete: function(jqXHR, status) {
+            enableButtons();
+            $('#venipak-modal-tracking').modal('show');
+            removeOverlay();
+        }
+    });
+}
+
 
 function bindOrderFormEvents()
 {
