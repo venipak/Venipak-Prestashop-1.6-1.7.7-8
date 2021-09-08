@@ -224,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.7.9';
+        $this->version = '0.8.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1589,10 +1589,10 @@ class MijoraVenipak extends CarrierModule
         $cDb = new MjvpDb();
         $cModuleConfig = new MjvpModuleConfig();
 
-        $errors = array();
-        $success_orders = array();
+        $errors = [];
+        $success_orders = [];
         $found = false;
-        $notfound_ids = array();
+        $notfound_ids = [];
 
         /* Determine the manifest ID. If there exist manifest, which:
                 1. Was generated today;
@@ -1839,6 +1839,11 @@ class MijoraVenipak extends CarrierModule
 
                 }
                 if (isset($status['error'])) {
+                    // Each order in this manifest gets error status. There is no simple way do identify, which orders had API errors.
+                    foreach ($success_orders as $order)
+                    {
+                        $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
+                    }
                     // Nullify successful orders array. If one order in manifest is incorrect, entire manifest fails.
                     $success_orders = [];
                     if (isset($status['error']['text'])) {
@@ -2100,6 +2105,8 @@ class MijoraVenipak extends CarrierModule
             $history->id_order = (int)$id_order;
             $history->id_employee = Context::getContext()->employee->id;
             $history->changeIdOrderState((int)$status, $order);
+            $order->update();
+            $history->add();
         }
     }
 

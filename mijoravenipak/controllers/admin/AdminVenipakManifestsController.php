@@ -222,7 +222,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
                         'value' => $id_manifest,
                     ]
                 ],
-                'icon' => 'icon-file-pdf-o',
+                'icon' => 'icon-phone',
                 'title' => $this->module->l('Call Courier'),
                 'href' => '#'
             ]);

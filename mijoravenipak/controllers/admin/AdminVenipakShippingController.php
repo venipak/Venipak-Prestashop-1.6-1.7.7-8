@@ -180,7 +180,7 @@ class AdminVenipakShippingController extends ModuleAdminController
         }
         $this->context->smarty->assign('data_button', [
             'orders' => $id_order,
-            'icon' => 'icon-tag',
+            'icon' => 'icon-file-pdf-o',
             'action' => 'submitPrintLabel',
             'blank' => true,
             'title' => $this->module->l('Print label(s)')
@@ -198,7 +198,7 @@ class AdminVenipakShippingController extends ModuleAdminController
                 ],
             ],
             'data_order' => $id_order,
-            'icon' => 'icon-truck',
+            'icon' => 'icon-edit',
             'title' => $this->module->l('Change Shipment Info'),
             'class' => 'change-shipment-modal',
             'href' => '#'
@@ -220,7 +220,7 @@ class AdminVenipakShippingController extends ModuleAdminController
                     ]
                 ],
                 'icon' => 'icon-truck',
-                'title' => $this->module->l('Track shipment'),
+                'title' => $this->module->l('Shipment Tracking'),
                 'class' => 'track-orders',
                 'href' => '#'
             ]);
@@ -287,7 +287,7 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'active' => false
             ),
             array(
-                'label' => $this->module->l('Track orders'),
+                'label' => $this->module->l('Undelivered orders tracking'),
                 'url' => $this->context->link->getAdminLink($this->controller_name),
                 'icon' => 'icon-truck',
                 'active' => false,
