@@ -26,9 +26,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->identifier = 'id';
         parent::__construct();
 
-        $this->_select = '
-            CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name,
+        $this->_select = 'CONCAT(a.arrival_date_from, " - ", a.arrival_date_to) as date_arrival, mw.name as warehouse_name,
             s.`name` AS `shop_name`, 
+            a.`id` as id_1,
+            a.`id` as id_2,
             (SELECT GROUP_CONCAT(o.id_order SEPARATOR ", ") FROM `' . _DB_PREFIX_ .'mjvp_orders` o WHERE o.`manifest_id` = a.`manifest_id`) as orders';
         $this->_join = 'LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_warehouse` mw ON (a.`id_warehouse` = mw.`id`)
                         LEFT JOIN `' . _DB_PREFIX_ . 'mjvp_orders` mo ON (a.`manifest_id` = mo.`manifest_id`)
@@ -137,7 +138,6 @@ class AdminVenipakManifestsController extends ModuleAdminController
             'orders' => array(
                 'title' => $this->l('Orders in manifest'),
                 'align' => 'text-center',
-                'callback' => 'formatOrders',
                 'havingFilter' => true,
             ),
             'date_arrival' => array(
@@ -157,26 +157,29 @@ class AdminVenipakManifestsController extends ModuleAdminController
             ),
         );
 
-        $this->fields_list['id'] = array(
-            'title' => $this->l('Actions'),
-            'align' => 'text-right',
+        $this->fields_list['id_1'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
             'search' => false,
             'orderby' => false,
-            'callback' => 'printBtn',
+            'callback' => 'printManifestBtn',
         );
 
-        $this->actions = array('none');
+        $this->fields_list['id_2'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
+            'search' => false,
+            'orderby' => false,
+            'callback' => 'printCallCarrierBtn',
+        );
+
+        $this->actions = [];
     }
 
-    public function printBtn($id)
+    public function printManifestBtn($id)
     {
         $cDb = new MjvpDb();
-
-        $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
-        $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
         $closed = $cDb->getManifestValue('closed', ['id' => $id]);
-        $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id]);
-
         if($closed)
         {
             $content = '<span class="btn-group-action">
@@ -195,27 +198,25 @@ class AdminVenipakManifestsController extends ModuleAdminController
                         </span>
                     </span>';
         }
+        return $content;
+    }
+
+    public function printCallCarrierBtn($id)
+    {
+        $cDb = new MjvpDb();
+        $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
+        $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
+        $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id]);
+
         if(!$arrival_time_from || !$arrival_time_to)
         {
-            $content .= '<span class="btn-group-action">
+            $content = '<span class="btn-group-action">
                             <span class="btn-group">
                                 <a data-manifest="' . $id . '" data-warehouse="' . $id_warehouse . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
                                 </a>
                             </span>
                         </span>';
-        }
-        return $content;
-    }
-
-    public function formatOrders($orders)
-    {
-        if(count($orders) <= 1)
-        {
-            return $orders;
-        }
-        else
-        {
-            return implode(', ', $orders);
+            return $content;
         }
     }
 

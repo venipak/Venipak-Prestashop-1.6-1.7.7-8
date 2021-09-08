@@ -238,3 +238,7 @@ div#vp-loading-overlay {
 .track-orders {
     float: right;
 }
+
+.row_hover .remove-dashes {
+    font-size: 0;
+}

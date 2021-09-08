@@ -74,10 +74,10 @@ class MijoraVenipak extends CarrierModule
     public $deliveryTimes = [];
 
     public static $_order_additional_info = array(
-       'door_code' => '',
-       'cabinet_number' => '',
-       'warehouse_number' => '',
-       'delivery_time' => 0,
+        'door_code' => '',
+        'cabinet_number' => '',
+        'warehouse_number' => '',
+        'delivery_time' => 0,
         'carrier_call' => 0
     );
 
@@ -224,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.7.6';
+        $this->version = '0.7.7';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -798,6 +798,19 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
+        $swither_values = array(
+            array(
+                'id' => 'active_on',
+                'value' => 1,
+                'label' => $this->trans('Yes', array(), 'Admin.Global')
+            ),
+            array(
+                'id' => 'active_off',
+                'value' => 0,
+                'label' => $this->trans('No', array(), 'Admin.Global')
+            )
+        );
+
         $form_fields = array(
             array(
                 'type' => 'text',
@@ -867,20 +880,11 @@ class MijoraVenipak extends CarrierModule
                 'required' => true
             ),
             array(
-                'type' => 'checkbox',
-                'label' => $this->l('Use shop settings as sender\'s address.'),
+                'type' => 'switch',
+                'label' => $this->l('Use as sender\'s address.'),
                 'name' => $cModuleConfig->getConfigKey('sender_address', $section_id),
-                'values' => [
-                    'query' => [
-                        [
-                            'id' => 'ON',
-                            'val' => '1',
-                            'name' => ''
-                        ],
-                    ],
-                    'id' => 'id',
-                    'name' => 'name',
-                ],
+                'desc' => $this->l('Use shop settings as sender\'s address. Otherwise inforamtion from your Venipak account will be used.'),
+                'values' => $swither_values
             ),
         );
 
@@ -1109,7 +1113,7 @@ class MijoraVenipak extends CarrierModule
         if (isset($this->_configKeys[strtoupper($section_id)])) {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
                 $prefix = '';
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strpos($key, 'MJVP_SENDER_ADDRESS') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $prefix = '_ON';
 
                 $value = Configuration::get($key);
@@ -1133,7 +1137,7 @@ class MijoraVenipak extends CarrierModule
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
 
-                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false || strrpos($key, 'MJVP_SENDER_ADDRESS') !== false)
+                if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $value = Tools::getValue($key . '_ON');
                 else
                     $value = Tools::getValue($key);

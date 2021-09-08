@@ -28,7 +28,9 @@ class AdminVenipakShippingController extends ModuleAdminController
             osl.`name` AS `osname`,
             os.`color`,
             a.id_order AS id_print,
-            a.id_order AS id_label_print,
+            a.id_order AS id_order_1,
+            a.id_order AS id_order_2,
+            a.id_order AS id_order_3,
             s.`name` AS `shop_name`
 		';
         $this->_join = '
@@ -96,16 +98,29 @@ class AdminVenipakShippingController extends ModuleAdminController
             )
         );
 
-        $this->fields_list['id_label_print'] = array(
-            'title' => $this->l('Actions'),
-            'align' => 'text-center',
+        $this->fields_list['id_order_1'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
             'search' => false,
             'orderby' => false,
             'callback' => 'labelBtn',
         );
+        $this->fields_list['id_order_2'] = array(
+            'title' => $this->module->l('Actions'),
+            'align' => 'text-center remove-dashes',
+            'search' => false,
+            'orderby' => false,
+            'callback' => 'shipmentInfoBtn',
+        );
+        $this->fields_list['id_order_3'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
+            'search' => false,
+            'orderby' => false,
+            'callback' => 'trackingBtn',
+        );
 
-        $this->actions = array('none');
-
+        $this->actions = [];
         $this->bulk_actions = array(
             'generateLabels' => array(
                 'text' => $this->l('Generate Labels'),
@@ -147,40 +162,49 @@ class AdminVenipakShippingController extends ModuleAdminController
         ]);
     }
 
-    public function labelBtn($id)
+    public function labelBtn($id_order)
     {
         $cDb = new MjvpDb();
-        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
-        $content = '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a class="btn btn-default change-shipment-modal" href="#" data-order="' . $id . '" ><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
-                          </a>
-                        </span>
-                    </span>';
+        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]);
+        $content = '';
         if (!$tracking_number) {
             $content .= '<span class="btn-group-action">
                         <span class="btn-group">
-                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitGenerateLabel' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
+                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitGenerateLabel' . '&orderBox[]=' . $id_order . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
                           </a>
                         </span>
                     </span>';
             return $content;
         }
         $content .= '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a class="btn btn-default track-orders" data-id-order="' . $id . '" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track shipment') . '
-                          </a>
-                        </span>
-                    </span>';
-        $content .= '<span class="btn-group-action">
                     <span class="btn-group">
-                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
+                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id_order . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
                         </a>
                     </span>
                 </span>';
         return $content;
     }
 
+    public function shipmentInfoBtn($id_order)
+    {
+        $content = '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a class="btn btn-default change-shipment-modal" href="#" data-order="' . $id_order . '" ><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
+                          </a>
+                        </span>
+                    </span>';
+        return $content;
+    }
+
+    public function trackingBtn($id_order)
+    {
+        return '<span class="btn-group-action">
+                        <span class="btn-group">
+                          <a class="btn btn-default track-orders" data-id-order="' . $id_order . '" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track shipment') . '
+                          </a>
+                        </span>
+                    </span>';
+    }
 
     public function postProcess()
     {
