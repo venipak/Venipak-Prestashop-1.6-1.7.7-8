@@ -42,7 +42,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function init()
     {
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
-            $this->errors[] = $this->l('Select shop');
+            $this->errors[] = $this->module->l('Select shop');
         } else {
             $this->content .= $this->displayMenu();
             $this->readyManifestList();
@@ -91,12 +91,12 @@ class AdminVenipakManifestsController extends ModuleAdminController
     {
         $menu = array(
             array(
-                'label' => $this->l('Ready Orders'),
+                'label' => $this->module->l('Ready Orders'),
                 'url' => $this->context->link->getAdminLink('AdminVenipakShipping'),
                 'active' => false
             ),
             array(
-                'label' => $this->l('Generated Manifests'),
+                'label' => $this->module->l('Generated Manifests'),
                 'url' => $this->context->link->getAdminLink($this->controller_name),
                 'active' => Tools::getValue('controller') == $this->controller_name
             )
@@ -116,7 +116,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
     {
         $this->fields_list = array(
             'manifest_id' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->module->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
                 'filter_key' => 'a!manifest_id',
@@ -124,30 +124,30 @@ class AdminVenipakManifestsController extends ModuleAdminController
             ),
             'shop_name' => array(
                 'type' => 'text',
-                'title' => $this->l('Shop'),
+                'title' => $this->module->l('Shop'),
                 'align' => 'center',
                 'filter_key' => 's!name',
                 'order_key' => 's!name',
             ),
             'date_add' => array(
-                'title' => $this->l('Creation Date'),
+                'title' => $this->module->l('Creation Date'),
                 'align' => 'center',
                 'type' => 'datetime',
                 'filter_key' => 'a!date_add',
             ),
             'orders' => array(
-                'title' => $this->l('Orders in manifest'),
+                'title' => $this->module->l('Orders in manifest'),
                 'align' => 'text-center',
                 'havingFilter' => true,
             ),
             'date_arrival' => array(
-                'title' => $this->l('Carrier arrival'),
+                'title' => $this->module->l('Carrier arrival'),
                 'align' => 'center',
                 'type' => 'datetime',
                 'filter_key' => 'a!arrival_date_from',
             ),
             'warehouse_name' => array(
-                'title' => $this->l('Warehouse'),
+                'title' => $this->module->l('Warehouse'),
                 'align' => 'text-center',
                 'filter_key' => 'mw!name',
             ),
@@ -176,47 +176,57 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $this->actions = [];
     }
 
-    public function printManifestBtn($id)
+    public function printManifestBtn($id_manifest)
     {
         $cDb = new MjvpDb();
-        $closed = $cDb->getManifestValue('closed', ['id' => $id]);
+        $closed = $cDb->getManifestValue('closed', ['id' => $id_manifest]);
         if($closed)
         {
-            $content = '<span class="btn-group-action">
-                        <span class="btn-group">
-                            <a target="_blank" class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print Manifest') . '
-                            </a>
-                        </span>
-                    </span>';
+            $this->context->smarty->assign('data_button', [
+                    'icon' => 'icon-file-pdf-o',
+                    'title' => $this->module->l('Print Manifest'),
+                    'blank' => true,
+                    'manifest' => $id_manifest,
+            ]);
+            return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
         }
         else
         {
-            $content = '<span class="btn-group-action">
-                        <span class="btn-group">
-                            <a target="_blank" class="btn btn-default close-manifest" href="' . self::$currentIndex . '&token=' . $this->token . '&manifestdone' . '&print' . $this->table . '&id=' . $id . '"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Print and close Manifest') . '
-                            </a>
-                        </span>
-                    </span>';
+            $this->context->smarty->assign('data_button', [
+                'icon' => 'icon-file-pdf-o',
+                'title' => $this->module->l('Print and close Manifest'),
+                'manifest' => $id_manifest,
+                'class' => 'close-manifest',
+            ]);
+            return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
         }
-        return $content;
     }
 
-    public function printCallCarrierBtn($id)
+    public function printCallCarrierBtn($id_manifest)
     {
         $cDb = new MjvpDb();
-        $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id]);
-        $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id]);
-        $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id]);
+        $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id_manifest]);
+        $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id_manifest]);
+        $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id_manifest]);
 
         if(!$arrival_time_from || !$arrival_time_to)
         {
-            $content = '<span class="btn-group-action">
-                            <span class="btn-group">
-                                <a data-manifest="' . $id . '" data-warehouse="' . $id_warehouse . '" class="btn btn-default" href="#"><i class="icon-file-pdf-o"></i>&nbsp;' . $this->l('Call Courier') . '
-                                </a>
-                            </span>
-                        </span>';
-            return $content;
+            $this->context->smarty->assign('data_button', [
+                'data' => [
+                    [
+                        'identifier' => 'warehouse',
+                        'value' => $id_warehouse,
+                    ],
+                    [
+                        'identifier' => 'manifest',
+                        'value' => $id_manifest,
+                    ]
+                ],
+                'icon' => 'icon-file-pdf-o',
+                'title' => $this->module->l('Call Courier'),
+                'href' => '#'
+            ]);
+            return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
         }
     }
 
