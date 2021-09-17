@@ -7,7 +7,7 @@
         <div class="tmjs-terminal-finder">
             <h2 data-tmjs-string="modal_header">{l s='Pickup points map' mod='mijoravenipak'}</h2><br>
             <div class="tmjs-d-block tmjs-search-input-container">
-                <input type="text" class="tmjs-search-input">
+                <input type="text" class="tmjs-search-input" placeholder="{l s='Enter address' mod='mijoravenipak'}">
                 <a href="#search" class="tmjs-search-btn"><img width="18" src="{$images_url}search_orange.svg"></a>
                 <a href="#useMyLocation" class="tmjs-geolocation-btn">
                     <img width="15" src="{$images_url}arrow.svg">

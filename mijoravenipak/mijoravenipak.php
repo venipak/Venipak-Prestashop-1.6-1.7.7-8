@@ -224,7 +224,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.8.0';
+        $this->version = '0.8.2';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
@@ -1261,7 +1261,7 @@ class MijoraVenipak extends CarrierModule
                     'terminal_list_header' => $this->l('Pickup points list'),
                     'seach_header' => $this->l('Search around'),
                     'search_btn' => $this->l('Find'),
-                    'modal_open_btn' => $this->l('Select pickup point'),
+                    'modal_open_btn' => $this->l('Select a pickup point'),
                     'geolocation_btn' => $this->l('Use my location'),
                     'your_position' => $this->l('Distance calculated from this point'),
                     'nothing_found' => $this->l('Nothing found'),

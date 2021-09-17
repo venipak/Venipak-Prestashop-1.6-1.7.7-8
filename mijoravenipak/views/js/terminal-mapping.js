@@ -636,7 +636,7 @@ var DOMManipulator = /*#__PURE__*/function () {
   }, {
     key: "addContainer",
     value: function addContainer(id, strings) {
-      var template = "\n    <div class=\"tmjs-selected-terminal\" data-tmjs-string=\"select_pickup_point\">".concat(strings.select_pickup_point, "</div>\n    <a href=\"#tmjsmodal\" class=\"tmjs-open-modal-btn\" data-tmjs-string=\"modal_open_btn\">").concat(strings.modal_open_btn, "</a>\n    ");
+      var template = "\n    <div class=\"tmjs-selected-terminal\" data-tmjs-string=\"select_pickup_point\">".concat("</div>\n    <a href=\"#tmjsmodal\" class=\"tmjs-open-modal-btn\" data-tmjs-string=\"modal_open_btn\">").concat(strings.modal_open_btn, "</a>\n    ");
       var container = this.createElement('div', {
         classList: ['tmjs-container', this.hideContainer ? 'tmjs-hidden' : ''],
         innerHTML: template
