@@ -866,7 +866,7 @@ var DOMManipulator = /*#__PURE__*/function () {
             classList: ['tmjs-city']
           });
 
-          cityEl.innerText = loc.city.toLocaleUpperCase();
+          cityEl.innerText = loc.city;
           listHTML.push(cityEl);
         }
 

@@ -3,7 +3,7 @@
         <div class="tmjs-map-container">
             <div class="tmjs-map"></div>
         </div>
-        <div class="tmjs-terminal-sidebar">
+        <div class="tmjs-terminal-sidebar col-md-4">
         <div class="tmjs-terminal-finder">
             <h2 data-tmjs-string="modal_header">{l s='Pickup points map' mod='mijoravenipak'}</h2><br>
             <div class="tmjs-d-block tmjs-search-input-container">
@@ -16,11 +16,11 @@
             <h3>{l s='Filter delivery points' mod='mijoravenipak'}</h3>
             <div id="filter-container" class="col-xs-12">
                 <div class="col-xs-4 form-check-inline">
-                    <input type="checkbox" name="mjvp-pickup-filter-pickups" class="mjvp-pickup-filter form-check-inline" data-filter="pickup" checked>
-                    <label for="mjvp-pickup-filter-pickups">{l s='Pickups' mod='mijoravenipak'}</label>
+                    <input id="mjvp-pickup-filter-pickups" type="checkbox" name="mjvp-pickup-filter-pickups" class="mjvp-pickup-filter form-check-inline"  data-filter="pickup" checked>
+                    <label for="mjvp-pickup-filter-pickups"></label>{l s='Pickups' mod='mijoravenipak'}
                 </div>
                 <div class="col-xs-4 form-check-inline">
-                    <input type="checkbox" name="mjvp-pickup-filter-lockers" class="mjvp-pickup-filter form-check-inline" data-filter="locker" checked>
+                    <input type="checkbox" name="mjvp-pickup-filter-lockers" id="mjvp-pickup-filter-lockers" class="mjvp-pickup-filter form-check-inline" data-filter="locker" checked>
                     <label for="mjvp-pickup-filter-lockers">{l s='Lockers' mod='mijoravenipak'}</label>
                 </div>
                 <div class="col-xs-4">
@@ -43,12 +43,12 @@
 {*                </a>*}
 {*            </div>*}
 
-            <div class="tmjs-search-result tmjs-d-block tmjs-pt-2">
-            </div>
+{*            <div class="tmjs-search-result tmjs-d-block tmjs-pt-2">*}
+{*            </div>*}
 
         </div>
+            <h3>{l s='Pickup points' mod='mijoravenipak'}</h3>
         <div class="tmjs-terminal-block">
-            <h3 data-tmjs-string="terminal_list_header">{l s='Pickup points list' mod='mijoravenipak'}</h3>
             <ul class="tmjs-terminal-list"></ul>
         </div>
         </div>
