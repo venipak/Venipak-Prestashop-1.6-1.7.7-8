@@ -14,6 +14,11 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+$autoloadPath = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
+}
+
 class MijoraVenipak extends CarrierModule
 {
     const CONTROLLER_SHIPPING = 'AdminVenipakShipping';
