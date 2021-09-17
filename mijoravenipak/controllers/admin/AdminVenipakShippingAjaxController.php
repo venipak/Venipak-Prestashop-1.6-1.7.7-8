@@ -399,6 +399,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             'shipments' => $shipments,
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
         ));
-        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking.tpl')]));
+        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking_modal.tpl')]));
     }
 }

@@ -8,6 +8,7 @@ class AdminVenipakShippingController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
     public $bootstrap = true;
+    private $statuses_array;
 
     /**
      * AdminVenipakShippingController class constructor
@@ -21,14 +22,16 @@ class AdminVenipakShippingController extends ModuleAdminController
         $this->className = 'Order';
         $this->table = 'order';
         parent::__construct();
-        $this->toolbar_title = $this->l('Venipak Manifest - Ready Orders');
+        $this->toolbar_title = $this->module->l('Venipak Manifest - Ready Orders');
         $this->_select = '
             mo.labels_numbers as label_number,
             CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
             osl.`name` AS `osname`,
             os.`color`,
             a.id_order AS id_print,
-            a.id_order AS id_label_print,
+            a.id_order AS id_order_1,
+            a.id_order AS id_order_2,
+            a.id_order AS id_order_3,
             s.`name` AS `shop_name`
 		';
         $this->_join = '
@@ -46,14 +49,15 @@ class AdminVenipakShippingController extends ModuleAdminController
 
         $this->_where = ' AND carrier.id_reference IN ('
             . Configuration::get('MJVP_COURIER_ID_REFERENCE') . ','
-            . Configuration::get('MJVP_PICKUP_ID_REFERENCE') . ")";
+            . Configuration::get('MJVP_PICKUP_ID_REFERENCE') . ")
+            AND mo.`id_order` IS NOT NULL";
         $statuses = OrderState::getOrderStates((int) $this->context->language->id);
         foreach ($statuses as $status) {
             $this->statuses_array[$status['id_order_state']] = $status['name'];
         }
 
         if (Shop::isFeatureActive() && Shop::getContext() !== Shop::CONTEXT_SHOP) {
-            $this->errors[] = $this->l('Select shop');
+            $this->errors[] = $this->module->l('Select shop');
         } else {
             $this->content .= $this->displayMenu();
             $this->readyOrdersList();
@@ -64,19 +68,19 @@ class AdminVenipakShippingController extends ModuleAdminController
     {
         $this->fields_list = array(
             'id_order' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->module->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
             ),
             'shop_name' => array(
                 'type' => 'text',
-                'title' => $this->l('Shop'),
+                'title' => $this->module->l('Shop'),
                 'align' => 'center',
                 'filter_key' => 's!name',
                 'order_key' => 's!name',
             ),
             'osname' => array(
-                'title' => $this->l('Status'),
+                'title' => $this->module->l('Status'),
                 'type' => 'select',
                 'color' => 'color',
                 'list' => $this->statuses_array,
@@ -85,34 +89,47 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'order_key' => 'osname',
             ),
             'customer' => array(
-                'title' => $this->l('Customer'),
+                'title' => $this->module->l('Customer'),
                 'havingFilter' => true,
             ),
             'label_number' => array(
                 'type' => 'text',
-                'title' => $this->l('Tracking number(s)'),
+                'title' => $this->module->l('Tracking number(s)'),
                 'havingFilter' => false,
                 'callback' => 'parseLabelNumbers',
             )
         );
 
-        $this->fields_list['id_label_print'] = array(
-            'title' => $this->l('Actions'),
-            'align' => 'text-center',
+        $this->fields_list['id_order_1'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
             'search' => false,
             'orderby' => false,
             'callback' => 'labelBtn',
         );
+        $this->fields_list['id_order_2'] = array(
+            'title' => $this->module->l('Actions'),
+            'align' => 'text-center remove-dashes',
+            'search' => false,
+            'orderby' => false,
+            'callback' => 'shipmentInfoBtn',
+        );
+        $this->fields_list['id_order_3'] = array(
+            'title' => '',
+            'align' => 'text-left remove-dashes',
+            'search' => false,
+            'orderby' => false,
+            'callback' => 'trackingBtn',
+        );
 
-        $this->actions = array('none');
-
+        $this->actions = [];
         $this->bulk_actions = array(
             'generateLabels' => array(
-                'text' => $this->l('Generate Labels'),
+                'text' => $this->module->l('Generate Labels'),
                 'icon' => 'icon-save'
             ),
             'printLabels' => array(
-                'text' => $this->l('Print Labels'),
+                'text' => $this->module->l('Print Labels'),
                 'icon' => 'icon-print'
             ),
         );
@@ -147,40 +164,69 @@ class AdminVenipakShippingController extends ModuleAdminController
         ]);
     }
 
-    public function labelBtn($id)
+    public function labelBtn($id_order)
     {
         $cDb = new MjvpDb();
-        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id]);
-        $content = '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a class="btn btn-default change-shipment-modal" href="#" data-order="' . $id . '" ><i class="icon-truck"></i>&nbsp;' . $this->l('Change Shipment Info') . '
-                          </a>
-                        </span>
-                    </span>';
+        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]);
         if (!$tracking_number) {
-            $content .= '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a class="btn btn-default" href="' . self::$currentIndex . '&token=' . $this->token . '&submitGenerateLabel' . '&orderBox[]=' . $id . '"><i class="icon-save"></i>&nbsp;' . $this->l('Generate label') . '
-                          </a>
-                        </span>
-                    </span>';
-            return $content;
+            $this->context->smarty->assign('data_button',
+            [
+                'orders' => $id_order,
+                'icon' => 'icon-save',
+                'action' => 'submitGenerateLabel',
+                'title' => $this->module->l('Generate label'),
+            ]);
+            return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
         }
-        $content .= '<span class="btn-group-action">
-                        <span class="btn-group">
-                          <a class="btn btn-default track-orders" data-id-order="' . $id . '" href="' . self::$currentIndex . '&token=' . $this->token . '&submitTrackOrder' . '"><i class="icon-truck"></i>&nbsp;' . $this->l('Track shipment') . '
-                          </a>
-                        </span>
-                    </span>';
-        $content .= '<span class="btn-group-action">
-                    <span class="btn-group">
-                        <a class="btn btn-default" target="_blank" href="' . self::$currentIndex . '&token=' . $this->token . '&submitLabelorder' . '&id_order=' . $id . '"><i class="icon-tag"></i>&nbsp;' . $this->l('Print label(s)') . '
-                        </a>
-                    </span>
-                </span>';
-        return $content;
+        $this->context->smarty->assign('data_button', [
+            'orders' => $id_order,
+            'icon' => 'icon-file-pdf-o',
+            'action' => 'submitPrintLabel',
+            'blank' => true,
+            'title' => $this->module->l('Print label(s)')
+        ]);
+        return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
     }
 
+    public function shipmentInfoBtn($id_order)
+    {
+        $this->context->smarty->assign('data_button', [
+            'data' => [
+                [
+                'identifier' => 'order',
+                'value' => $id_order,
+                ],
+            ],
+            'data_order' => $id_order,
+            'icon' => 'icon-edit',
+            'title' => $this->module->l('Change Shipment Info'),
+            'class' => 'change-shipment-modal',
+            'href' => '#'
+        ]);
+        return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
+    }
+
+    public function trackingBtn($id_order)
+    {
+        $cDb = new MjvpDb();
+        $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]);
+        if($tracking_number)
+        {
+            $this->context->smarty->assign('data_button', [
+                'data' => [
+                    [
+                        'identifier' => 'id-order',
+                        'value' => $id_order,
+                    ]
+                ],
+                'icon' => 'icon-truck',
+                'title' => $this->module->l('Shipment Tracking'),
+                'class' => 'track-orders',
+                'href' => '#'
+            ]);
+            return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/action_button.tpl');
+        }
+    }
 
     public function postProcess()
     {
@@ -202,13 +248,13 @@ class AdminVenipakShippingController extends ModuleAdminController
                 }
             }
         }
-        if(Tools::isSubmit('submitLabelorder'))
+        if(Tools::isSubmit('submitPrintLabel'))
         {
 
             $cApi = new MjvpApi();
-            $id_order = Tools::getValue('id_order');
-
             $cDb = new MjvpDb();
+
+            $id_order = Tools::getValue('orderBox')[0];
             $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);
             $cApi->printLabel($labels_numbers);
         }
@@ -231,17 +277,17 @@ class AdminVenipakShippingController extends ModuleAdminController
     {
         $menu = array(
             array(
-                'label' => $this->l('Ready Orders'),
+                'label' => $this->module->l('Ready Orders'),
                 'url' => $this->context->link->getAdminLink($this->controller_name),
                 'active' => Tools::getValue('controller') == $this->controller_name
             ),
             array(
-                'label' => $this->l('Generated Manifests'),
+                'label' => $this->module->l('Generated Manifests'),
                 'url' => $this->context->link->getAdminLink('AdminVenipakManifests'),
                 'active' => false
             ),
             array(
-                'label' => $this->l('Track orders'),
+                'label' => $this->module->l('Undelivered orders tracking'),
                 'url' => $this->context->link->getAdminLink($this->controller_name),
                 'icon' => 'icon-truck',
                 'active' => false,

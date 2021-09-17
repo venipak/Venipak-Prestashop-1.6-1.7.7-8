@@ -9,6 +9,12 @@
   overflow: hidden !important;
 }
 
+.tmjs-search-input-container {
+  border: 1px solid #EDEDED;
+  border-radius: 3px;
+  margin-bottom: 13px;
+}
+
 /*
   Simple style reset
 */
@@ -177,7 +183,7 @@ div.tmvp-loading-overlay {
   width: 40px;
   height: 30px;
   position: absolute;
-  top: 32px;
+  top: 18px;
   right: 22px;
   cursor: pointer;
 }
@@ -221,13 +227,13 @@ div.tmvp-loading-overlay {
 }
 
 .tmjs-terminal-sidebar {
-  /* width: 30%; */
   flex: 1;
   position: relative;
   background-color: #fff;
   padding: 30px;
   display: flex;
   flex-direction: column;
+  padding: 15px 12px 11px 15px;
 }
 
 .tmjs-terminal-sidebar::before {
@@ -241,13 +247,9 @@ div.tmvp-loading-overlay {
   z-index: 1000;
 }
 
-.tmjs-terminal-finder {
-  margin-bottom: 1em;
-}
-
 .tmjs-search-input {
   padding: 2px 10px;
-  border: 1px solid gainsboro;
+  border: none;
   border-radius: 3px;
   line-height: 30px;
   height: 36px;
@@ -262,13 +264,13 @@ div.tmvp-loading-overlay {
 .tmjs-search-btn {
   background-size: 20px 20px;
   background-position: center center;
-  border-radius: 3px;
+  /*border-radius: 3px;*/
   height: 36px;
   width: 36px;
   display: block;
   float: left;
   border-radius: 0px 4px 4px 0px;
-  background-color: #fd981a;
+  /*background-color: #fd981a;*/
   padding: 9px;
 }
 
@@ -279,9 +281,9 @@ input.tmjs-search-input:focus {
 .tmjs-d-block {
   display: flex;
   width: 100%;
+  margin-bottom: 13px;
 }
 
-a.tmjs-geolocation-btn,
 a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   color: #fd981a;
   text-decoration: none;
@@ -289,6 +291,21 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.tmjs-geolocation-btn {
+  /* background-size: 20px 20px; */
+  /* background-position: center center; */
+  /* border-radius: 3px; */
+  height: 36px;
+  width: 36px;
+  display: block;
+  float: left;
+  /* border-radius: 0px 4px 4px 0px; */
+  padding-top: 10px;
+  /* padding-left: 10px; */
+  border-left: 1px solid #EDEDED;
+  text-align: center;
 }
 
 .tmjs-terminal-block {
@@ -300,6 +317,8 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   border-radius: 3px;
   padding: 20px;
   background-color: #fbfbfb;
+  margin-top: 10px;
+  padding: 16px 14px 13px;
 }
 
 .tmjs-terminal-block > h3 {
@@ -315,9 +334,8 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
 
 .tmjs-terminal-list > li:not(.tmjs-city) {
   line-height: 1.5em;
-  padding: 0.2em;
   cursor: pointer;
-  padding: 13px;
+  padding: 11px;
 }
 
 .tmjs-terminal-list > li:not(.tmjs-city):hover {
@@ -328,6 +346,7 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
 .tmjs-city {
   font-weight: 700;
   list-style-type: none;
+  font-size: 14px;
 }
 
 .tmjs-city:not(:first-of-type) {
@@ -338,8 +357,8 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
 }
 
 .tmjs-active {
-  background-color: #fb9819 !important;
-  color: #fff;
+  background-color: white;
+  color: #000;
   border-radius: 4px;
   margin-top: 5px;
   margin-bottom: 5px;
@@ -349,6 +368,7 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   display: none;
   border-radius: 7px;
   transition: height ease-in-out 1s;
+  text-align: left;
 }
 
 .tmjs-terminal.tmjs-active .tmjs-terminal-info {
@@ -361,9 +381,9 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
 }
 
 .tmjs-active .tmjs-terminal-name {
-  font-weight: 800;
-  font-size: 14px;
+  font-size: 13px;
   margin-right: 0;
+  line-height: 15px;
 }
 
 .tmjs-terminal-name {
@@ -371,24 +391,21 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: wrap;
+  font-size: 13px;
 }
 
 .tmjs-terminal-comment {
-  padding: 15px 0px;
+  padding: 7px 0px;
   text-align: center;
   color: #8e5307;
 }
 
-a.tmjs-select-btn,
-a:hover.tmjs-select-btn,
-a:focus.tmjs-select-btn {
-  color: #000;
-  background-color: #fff;
-  border-color: #007bff;
-  display: block;
-  width: 100%;
+a.tmjs-select-btn, a:hover.tmjs-select-btn, a:focus.tmjs-select-btn {
+  color: #FFFFFF;
+  background-color: #EEAB00;
+  display: inline-block;
   font-weight: 400;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
   vertical-align: middle;
   -webkit-user-select: none;
@@ -396,9 +413,9 @@ a:focus.tmjs-select-btn {
   -ms-user-select: none;
   user-select: none;
   border: 1px solid transparent;
-  padding: 0.375rem 0.75rem;
-  font-size: 12px;
-  line-height: 1.5;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 16px;
   border-radius: 0.25rem;
   transition: color 0.15s;
   text-decoration: none;
@@ -478,6 +495,10 @@ a:focus.tmjs-select-btn {
   .tmjs-terminal-sidebar::before {
     display: none;
   }
+
+  .tmjs-terminal-sidebar {
+    flex: 3;
+  }
 }
 /* tmjs-loading dots loader */
 div.tmjs-loading {
@@ -511,5 +532,9 @@ div.tmjs-loading {
   80%, 100% {
     text-shadow: 0.25em 0 0 #fb9819, 0.5em 0 0 #fb9819;
   }
+}
+
+#filter-container div:last-child {
+  text-align: right;
 }
 /**  tmjs-loading dots loader end **/

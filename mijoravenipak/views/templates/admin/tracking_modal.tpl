@@ -8,7 +8,6 @@
                         <p align="center">
                             <img alt="Venipak" src="{$module_dir}/views/images/venipak_logo_300_crop.jpg" border="0">
                         </p>
-{*                        <img src="{$module_dir}/views/images/venipak-main.svg" class="venipak-logo" alt="Smartpost Logo">*}
                         {l s='Venipak Shipment Tracking' mod='venipakshipping'}
                     </h2>
                 </div>
