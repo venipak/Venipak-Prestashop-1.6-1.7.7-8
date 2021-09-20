@@ -2,16 +2,22 @@
 
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
 use MijoraVenipak\Classes\MjvpApi;
-use MijoraVenipak\Classes\MjvpCart;
 use MijoraVenipak\Classes\MjvpDb;
 use MijoraVenipak\Classes\MjvpFiles;
 use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpManifest;
 use MijoraVenipak\Classes\MjvpModuleConfig;
-use MijoraVenipak\Classes\MjvpWarehouse;
+
+require_once "classes\MjvpCart.php";
+require_once "classes\MjvpManifest.php";
+require_once "classes\MjvpWarehouse.php";
 
 if (!defined('_PS_VERSION_')) {
     exit;
+}
+
+$autoloadPath = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
 }
 
 class MijoraVenipak extends CarrierModule
@@ -102,7 +108,8 @@ class MijoraVenipak extends CarrierModule
         'actionValidateStepComplete',
         'actionValidateOrder',
         'actionAdminControllerSetMedia',
-        'displayAdminListBefore'
+        'displayAdminListBefore',
+        'actionCarrierProcess',
     );
 
     /**
@@ -224,10 +231,10 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.8.2';
+        $this->version = '0.9.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.7.0', 'max' => '1.7.7');
+        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.7');
         $this->bootstrap = true;
 
         parent::__construct();
@@ -250,6 +257,7 @@ class MijoraVenipak extends CarrierModule
         {
             $this->_configKeys['COURIER']['delivery_time_' . $key] = 'MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key);
         }
+        $this->updateTerminals();
     }
 
     /**
@@ -296,7 +304,7 @@ class MijoraVenipak extends CarrierModule
             return false;
         }
         $this->registerTabs();
-        $this->getVenipakTerminals();
+        $this->updateTerminals();
 
         return true;
     }
@@ -639,7 +647,7 @@ class MijoraVenipak extends CarrierModule
     /**
      * Get terminals for all countries
      */
-    private function getVenipakTerminals()
+    private function updateTerminals()
     {
         $cFiles = new MjvpFiles();
         $cFiles->updateCountriesList();
@@ -802,12 +810,12 @@ class MijoraVenipak extends CarrierModule
             array(
                 'id' => 'active_on',
                 'value' => 1,
-                'label' => $this->trans('Yes', array(), 'Admin.Global')
+                'label' => $this->l('Yes', array(), 'Admin.Global')
             ),
             array(
                 'id' => 'active_off',
                 'value' => 0,
-                'label' => $this->trans('No', array(), 'Admin.Global')
+                'label' => $this->l('No', array(), 'Admin.Global')
             )
         );
 
@@ -904,12 +912,12 @@ class MijoraVenipak extends CarrierModule
             array(
                 'id' => 'active_on',
                 'value' => 1,
-                'label' => $this->trans('Yes', array(), 'Admin.Global')
+                'label' => $this->l('Yes', array(), 'Admin.Global')
             ),
             array(
                 'id' => 'active_off',
                 'value' => 0,
-                'label' => $this->trans('No', array(), 'Admin.Global')
+                'label' => $this->l('No', array(), 'Admin.Global')
             )
         );
 
@@ -1245,17 +1253,14 @@ class MijoraVenipak extends CarrierModule
             $filtered_terminals = $this->getFilteredTerminals();
 
             $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
-            $this->context->smarty->assign([
-                    'images_url' => $this->_path . 'views/images/',
-                ]
-            );
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
-                    'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
+                    'mjvp_carriers_controller_url' => $this->context->link->getModuleLink($this->name, 'carriers'),
                     'address_query' => $address_query,
                     'mjvp_translates' => array(
                         'loading' => $this->l('Loading'),
                     ),
+                    'images_url' => $this->_path . 'views/images/',
                     'mjvp_terminal_select_translates' => array(
                     'modal_header' => $this->l('Pickup points map'),
                     'terminal_list_header' => $this->l('Pickup points list'),
@@ -1279,9 +1284,26 @@ class MijoraVenipak extends CarrierModule
                     'mjvp_terminals' => $filtered_terminals
                 )
             );
-            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
-            $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front.js');
-            $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
+            // 1.7
+            if(method_exists($this->context->controller, 'registerJavascript'))
+            {
+                Media::addJsDef([
+                        'mjvp_map_template' => $this->context->smarty->display(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
+                    ]
+                );
+                $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
+                $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front17.js');
+                $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
+            }
+            // 1.6
+            else
+            {
+
+                $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminal-mapping.js');
+                $this->context->controller->addJS('modules/' . $this->name . '/views/js/front16.js');
+                $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminals_map_init.js');
+            }
+
             $this->context->controller->addCSS($this->_path . 'views/css/global.css');
             $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
@@ -1319,10 +1341,12 @@ class MijoraVenipak extends CarrierModule
         }
 
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
-        $cApi = new MjvpApi();
-
         $order_country_code = $venipak_cart_info['country_code'];
-        $pickup_points = $cApi->getTerminals($order_country_code);
+        $cFiles = new MjvpFiles();
+        $pickup_points = $cFiles->getTerminalsListForCountry($order_country_code, false);
+        if(!$pickup_points)
+            $pickup_points = [];
+
         $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
         $venipak_carriers = [];
         foreach (self::$_carriers as $carrier)
@@ -1377,8 +1401,9 @@ class MijoraVenipak extends CarrierModule
         $cDb = new MjvpDb();
         $errors = array();
 
+        // If it's not delivery step, Venipak carrier validation does not matter.
         if($params['step_name'] != 'delivery')
-            return;
+            return true;
         $cart = $params['cart'];
         $carrier = new Carrier($cart->id_carrier);
         $carrier_reference = $carrier->id_reference;
@@ -1392,9 +1417,13 @@ class MijoraVenipak extends CarrierModule
                 $errors['mjvp_terminal'] = $this->l('Please select a terminal.');
                 if(!empty($errors))
                 {
+                    if(isset($params['ajax']) && $params['ajax'])
+                    {
+                        return ['errors' => $errors];
+                    }
                     $this->showErrors($errors);
                     $params['completed'] = false;
-                    return;
+                    return false;
                 }
             }
         }
@@ -1419,9 +1448,13 @@ class MijoraVenipak extends CarrierModule
 
             if(!empty($errors))
             {
+                if(isset($params['ajax']) && $params['ajax'])
+                {
+                    return ['errors' => $errors];
+                }
                 $this->showErrors($errors);
                 $params['completed'] = false;
-                return;
+                return false;
             }
 
             $order_extra_info = self::$_order_additional_info;
@@ -1440,6 +1473,7 @@ class MijoraVenipak extends CarrierModule
 
             $cDb->updateOrderInfo($cart->id, array('other_info' => json_encode($order_extra_info)));
         }
+        return true;
     }
 
     /**
@@ -1498,8 +1532,10 @@ class MijoraVenipak extends CarrierModule
             }
 
             try {
-                $all_terminals_info = $cApi->getTerminals($country_code);
-                if (empty($all_terminals_info)) {
+                $cFiles = new MjvpFiles();
+                $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
+
+                if (!$all_terminals_info || empty($all_terminals_info)) {
                     return '';
                 }
             } catch (Exception $e) {
@@ -1819,7 +1855,10 @@ class MijoraVenipak extends CarrierModule
                     }
                     elseif(isset($status['text']))
                     {
-                        $id_order = array_key_first($order_packages_mapping);
+                        // alternative for array_key_first, to support older PHP versions
+                        reset($order_packages_mapping);
+                        $id_order = key($order_packages_mapping);
+
                         $id_order_carrier = (int) Db::getInstance()->getValue('
                                 SELECT `id_order_carrier`
                                 FROM `' . _DB_PREFIX_ . 'order_carrier`
@@ -2016,8 +2055,10 @@ class MijoraVenipak extends CarrierModule
             $country = new Country();
             $country_code = $country->getIsoById($address->id_country);
 
-            $cApi = new MjvpApi();
-            $all_terminals_info = $cApi->getTerminals($country_code);
+            $cFiles = new MjvpFiles();
+            $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false);
+            if(!$all_terminals_info)
+                $all_terminals_info = [];
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = array_values($filtered_terminals);
 
@@ -2151,5 +2192,94 @@ class MijoraVenipak extends CarrierModule
                     'submit_route' => 'admin_venipak_print_bulk',
                 ])
         );
+    }
+
+    /**
+     * Use hook to validate carrier selection in Prestashop 1.6
+     */
+    public function hookActionCarrierProcess($params)
+    {
+        $data = [
+            'step_name' => 'delivery',
+            'cart' => $params['cart']
+        ];
+        $this->hookActionValidateStepComplete($data);
+    }
+
+
+    /**
+     * Re calculate shipping cost. Cloned from 1.7, as 1.6 does not have this.
+     *
+     * @return object $order
+     */
+    public function refreshShippingCost($order)
+    {
+        if (empty($order->id)) {
+            return false;
+        }
+
+        if (!Configuration::get('PS_ORDER_RECALCULATE_SHIPPING')) {
+            return $order;
+        }
+
+        $fake_cart = new Cart((int) $order->id_cart);
+        $new_cart = $fake_cart->duplicate();
+        $new_cart = $new_cart['cart'];
+
+        // assign order id_address_delivery to cart
+        $new_cart->id_address_delivery = (int) $order->id_address_delivery;
+
+        // assign id_carrier
+        $new_cart->id_carrier = (int) $order->id_carrier;
+
+        //remove all products : cart (maybe change in the meantime)
+        foreach ($new_cart->getProducts() as $product) {
+            $new_cart->deleteProduct((int) $product['id_product'], (int) $product['id_product_attribute']);
+        }
+
+        // add real order products
+        foreach ($order->getProducts() as $product) {
+            $new_cart->updateQty(
+                $product['product_quantity'],
+                (int) $product['product_id'],
+                null,
+                false,
+                'up',
+                0,
+                null,
+                true,
+                true
+            ); // - skipAvailabilityCheckOutOfStock
+        }
+
+        // get new shipping cost
+        $base_total_shipping_tax_incl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, true, null);
+        $base_total_shipping_tax_excl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, false, null);
+
+        // calculate diff price, then apply new order totals
+        $diff_shipping_tax_incl = $order->total_shipping_tax_incl - $base_total_shipping_tax_incl;
+        $diff_shipping_tax_excl = $order->total_shipping_tax_excl - $base_total_shipping_tax_excl;
+
+        $order->total_shipping_tax_excl -= $diff_shipping_tax_excl;
+        $order->total_shipping_tax_incl -= $diff_shipping_tax_incl;
+        $order->total_shipping = $order->total_shipping_tax_incl;
+        $order->total_paid_tax_excl -= $diff_shipping_tax_excl;
+        $order->total_paid_tax_incl -= $diff_shipping_tax_incl;
+        $order->total_paid = $order->total_paid_tax_incl;
+        $order->update();
+
+        // save order_carrier prices, we'll save order right after this in update() method
+        $orderCarrierId = (int) $order->getIdOrderCarrier();
+        if ($orderCarrierId > 0) {
+            $order_carrier = new OrderCarrier($orderCarrierId);
+            $order_carrier->shipping_cost_tax_excl = $order->total_shipping_tax_excl;
+            $order_carrier->shipping_cost_tax_incl = $order->total_shipping_tax_incl;
+            $order_carrier->update();
+        }
+
+        // remove fake cart
+        $new_cart->delete();
+
+        return $order;
     }
 }

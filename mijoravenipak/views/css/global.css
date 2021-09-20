@@ -275,3 +275,17 @@
 a.tmjs-select-btn:hover, a:hover.tmjs-select-btn:hover, a:focus.tmjs-select-btn:hover {
   color: #0a0a0a !important;
 }
+
+
+.tmjs-modal-body h1, .tmjs-modal-body h2, .tmjs-modal-body h3,
+.tmjs-modal-body h4, .tmjs-modal-body h5, .tmjs-modal-body h6 {
+  margin-bottom: .5rem;
+  font-family: inherit;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #232323;
+}
+
+.tmjs-search-result {
+  display: none;
+}

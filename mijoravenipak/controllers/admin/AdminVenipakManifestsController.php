@@ -3,9 +3,7 @@
 use MijoraVenipak\Classes\MjvpApi;
 use MijoraVenipak\Classes\MjvpDb;
 use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpManifest;
 use MijoraVenipak\Classes\MjvpModuleConfig;
-use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakManifestsController extends ModuleAdminController
 {
@@ -21,7 +19,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function __construct()
     {
         $this->list_no_link = true;
-        $this->className = 'MijoraVenipak\Classes\MjvpManifest';
+        $this->className = 'MjvpManifest';
         $this->table = 'mjvp_manifest';
         $this->identifier = 'id';
         parent::__construct();
@@ -67,7 +65,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         parent::setMedia($isNewTheme);
         $this->addJs('modules/' . $this->module->name . '/views/js/mjvp-manifest.js');
         Media::addJsDef([
-                'call_url' => $this->context->link->getAdminLink($this->controller_name, true, [], ['submitCallCarrier' => 1]),
+                'call_url' => $this->context->link->getAdminLink($this->controller_name) . '&submitCallCarrier=1',
                 'call_min_difference' => MijoraVenipak::CARRIER_CALL_MINIMUM_DIFFERENCE,
                 'call_errors' => [
                     'manifest' => $this->module->l('No manifest selected'),
@@ -308,6 +306,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 LEFT JOIN ' . _DB_PREFIX_ . 'mjvp_orders mo ON mo.manifest_id = mm.manifest_id 
                 WHERE mm.id = ' . $id_manifest);
         $shipment_weight = Tools::ps_round((float) $shipment_weight, 2);
+        if($shipment_weight <= 0)
+            $shipment_weight = 0.001;
         $invitation_data['weight'] = $shipment_weight;
         $manifest->shipment_weight = $shipment_weight;
 
@@ -334,6 +334,9 @@ class AdminVenipakManifestsController extends ModuleAdminController
                 $manifest_volume += (float)$product_volume;
             }
         }
+        if($manifest_volume <= 0)
+            $manifest_volume = 0.001;
+
         $invitation_data['volume'] = $manifest_volume;
 
         // Get carrier arrival time

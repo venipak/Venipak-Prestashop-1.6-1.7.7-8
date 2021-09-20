@@ -81,12 +81,12 @@ class MjvpFiles
     /**
      * Get terminals list for specific country from file
      */
-    public function getTerminalsListForCountry($country_code)
+    public function getTerminalsListForCountry($country_code, $assoc = true)
     {
         $file_dir = $this->getFileDir($this->_terminalsList['directory'], str_replace('%s', strtoupper($country_code), $this->_terminalsList['file_name']));
 
         if ($this->checkFile($file_dir)) {
-            return json_decode($this->getFileContent($file_dir), true);
+            return json_decode($this->getFileContent($file_dir), $assoc);
         }
 
         return false;
@@ -97,10 +97,7 @@ class MjvpFiles
      */
     public function updateTerminalsList($forced = false)
     {
-
         $cHelper = new MjvpHelper();
-
-
         $cApi = new MjvpApi();
 
         $last_update = Configuration::getGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals']);
