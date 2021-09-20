@@ -16,6 +16,12 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             $selected_terminal = Tools::getValue('selected_terminal');
             $country_code = Tools::getValue('country_code');
 
+            if(!$country_code)
+            {
+                $address = new Address($this->context->cart->id_address_delivery);
+                $country_code = Country::getIsoById($address->id_country);
+            }
+
             $ps_carrier = new Carrier((int)$carrierId);
 
             if (!Validate::isLoadedObject($ps_carrier)) {
@@ -32,6 +38,21 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                 'status' => $cDb->order_status_new,
                 'id_carrier_ref' => $ps_carrier->id_reference,
             );
+
+            if(Tools::isSubmit('update-data-opc'))
+            {
+                $data = [
+                    'step_name' => 'delivery',
+                    'ajax' => 1,
+                    'cart' => $this->context->cart
+                ];
+                $result = $this->module->hookActionValidateStepComplete($data);
+                if(is_array($result) && isset($result['errors']))
+                {
+                    $this->context->smarty->assign('errors', $result['errors']);
+                    die(json_encode(['errors' => $this->context->smarty->fetch(_PS_THEME_DIR_.'errors.tpl')]));
+                }
+            }
 
             if ($ps_carrier->id_reference == $pickups_reference) {
                 if (empty($selected_terminal)) {
@@ -55,21 +76,6 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 
             if ($ps_carrier->id_reference == $courier_reference) {
                 $sql_values['terminal_id'] = NULL;
-            }
-
-            if(Tools::isSubmit('update-data-opc'))
-            {
-                $data = [
-                    'step_name' => 'delivery',
-                    'ajax' => 1,
-                    'cart' => $this->context->cart
-                ];
-                $result = $this->module->hookActionValidateStepComplete($data);
-                if(is_array($result) && isset($result['errors']))
-                {
-                    $this->context->smarty->assign('errors', $result['errors']);
-                    die(json_encode(['errors' => $this->context->smarty->fetch(_PS_THEME_DIR_.'errors.tpl')]));
-                }
             }
 
             try {

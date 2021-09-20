@@ -3,6 +3,7 @@
 use MijoraVenipak\Classes\MjvpApi;
 use MijoraVenipak\Classes\MjvpDb;
 use MijoraVenipak\Classes\MjvpHelper;
+use MijoraVenipak\Classes\MjvpFiles;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
@@ -202,7 +203,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             if ($changed) {
                 $order_carrier->update();
                 $this->context->currency = isset($this->context->currency) ? $this->context->currency : new Currency(Configuration::get('PS_CURRENCY_DEFAULT'));
-                $order->refreshShippingCost();
+                $this->module->refreshShippingCost($order);
                 $order->update();
             }
         }
@@ -271,10 +272,12 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
 
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
-        $cApi = new MjvpApi();
-
         $order_country_code = $venipak_cart_info['country_code'];
-        $pickup_points = $cApi->getTerminals($order_country_code);
+
+        $cFiles = new MjvpFiles();
+        $pickup_points = $cFiles->getTerminalsListForCountry($order_country_code, false);
+        if(!$pickup_points)
+            $pickup_points = [];
         $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
         $venipak_carriers = [];
         foreach (MijoraVenipak::$_carriers as $carrier)

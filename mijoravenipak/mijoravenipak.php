@@ -257,6 +257,7 @@ class MijoraVenipak extends CarrierModule
         {
             $this->_configKeys['COURIER']['delivery_time_' . $key] = 'MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key);
         }
+        $this->updateTerminals();
     }
 
     /**
@@ -303,7 +304,7 @@ class MijoraVenipak extends CarrierModule
             return false;
         }
         $this->registerTabs();
-        $this->getVenipakTerminals();
+        $this->updateTerminals();
 
         return true;
     }
@@ -646,7 +647,7 @@ class MijoraVenipak extends CarrierModule
     /**
      * Get terminals for all countries
      */
-    private function getVenipakTerminals()
+    private function updateTerminals()
     {
         $cFiles = new MjvpFiles();
         $cFiles->updateCountriesList();
@@ -1340,10 +1341,12 @@ class MijoraVenipak extends CarrierModule
         }
 
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
-        $cApi = new MjvpApi();
-
         $order_country_code = $venipak_cart_info['country_code'];
-        $pickup_points = $cApi->getTerminals($order_country_code);
+        $cFiles = new MjvpFiles();
+        $pickup_points = $cFiles->getTerminalsListForCountry($order_country_code, false);
+        if(!$pickup_points)
+            $pickup_points = [];
+
         $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
         $venipak_carriers = [];
         foreach (self::$_carriers as $carrier)
@@ -1414,6 +1417,10 @@ class MijoraVenipak extends CarrierModule
                 $errors['mjvp_terminal'] = $this->l('Please select a terminal.');
                 if(!empty($errors))
                 {
+                    if(isset($params['ajax']) && $params['ajax'])
+                    {
+                        return ['errors' => $errors];
+                    }
                     $this->showErrors($errors);
                     $params['completed'] = false;
                     return false;
@@ -1525,8 +1532,10 @@ class MijoraVenipak extends CarrierModule
             }
 
             try {
-                $all_terminals_info = $cApi->getTerminals($country_code);
-                if (empty($all_terminals_info)) {
+                $cFiles = new MjvpFiles();
+                $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
+
+                if (!$all_terminals_info || empty($all_terminals_info)) {
                     return '';
                 }
             } catch (Exception $e) {
@@ -2046,8 +2055,10 @@ class MijoraVenipak extends CarrierModule
             $country = new Country();
             $country_code = $country->getIsoById($address->id_country);
 
-            $cApi = new MjvpApi();
-            $all_terminals_info = $cApi->getTerminals($country_code);
+            $cFiles = new MjvpFiles();
+            $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false);
+            if(!$all_terminals_info)
+                $all_terminals_info = [];
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = array_values($filtered_terminals);
 
@@ -2195,4 +2206,80 @@ class MijoraVenipak extends CarrierModule
         $this->hookActionValidateStepComplete($data);
     }
 
+
+    /**
+     * Re calculate shipping cost. Cloned from 1.7, as 1.6 does not have this.
+     *
+     * @return object $order
+     */
+    public function refreshShippingCost($order)
+    {
+        if (empty($order->id)) {
+            return false;
+        }
+
+        if (!Configuration::get('PS_ORDER_RECALCULATE_SHIPPING')) {
+            return $order;
+        }
+
+        $fake_cart = new Cart((int) $order->id_cart);
+        $new_cart = $fake_cart->duplicate();
+        $new_cart = $new_cart['cart'];
+
+        // assign order id_address_delivery to cart
+        $new_cart->id_address_delivery = (int) $order->id_address_delivery;
+
+        // assign id_carrier
+        $new_cart->id_carrier = (int) $order->id_carrier;
+
+        //remove all products : cart (maybe change in the meantime)
+        foreach ($new_cart->getProducts() as $product) {
+            $new_cart->deleteProduct((int) $product['id_product'], (int) $product['id_product_attribute']);
+        }
+
+        // add real order products
+        foreach ($order->getProducts() as $product) {
+            $new_cart->updateQty(
+                $product['product_quantity'],
+                (int) $product['product_id'],
+                null,
+                false,
+                'up',
+                0,
+                null,
+                true,
+                true
+            ); // - skipAvailabilityCheckOutOfStock
+        }
+
+        // get new shipping cost
+        $base_total_shipping_tax_incl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, true, null);
+        $base_total_shipping_tax_excl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, false, null);
+
+        // calculate diff price, then apply new order totals
+        $diff_shipping_tax_incl = $order->total_shipping_tax_incl - $base_total_shipping_tax_incl;
+        $diff_shipping_tax_excl = $order->total_shipping_tax_excl - $base_total_shipping_tax_excl;
+
+        $order->total_shipping_tax_excl -= $diff_shipping_tax_excl;
+        $order->total_shipping_tax_incl -= $diff_shipping_tax_incl;
+        $order->total_shipping = $order->total_shipping_tax_incl;
+        $order->total_paid_tax_excl -= $diff_shipping_tax_excl;
+        $order->total_paid_tax_incl -= $diff_shipping_tax_incl;
+        $order->total_paid = $order->total_paid_tax_incl;
+        $order->update();
+
+        // save order_carrier prices, we'll save order right after this in update() method
+        $orderCarrierId = (int) $order->getIdOrderCarrier();
+        if ($orderCarrierId > 0) {
+            $order_carrier = new OrderCarrier($orderCarrierId);
+            $order_carrier->shipping_cost_tax_excl = $order->total_shipping_tax_excl;
+            $order_carrier->shipping_cost_tax_incl = $order->total_shipping_tax_incl;
+            $order_carrier->update();
+        }
+
+        // remove fake cart
+        $new_cart->delete();
+
+        return $order;
+    }
 }
