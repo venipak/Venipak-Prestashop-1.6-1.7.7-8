@@ -10,7 +10,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 {
     public function initContent()
     {
-        if(Tools::isSubmit('carrier_id') && Tools::isSubmit('selected_terminal') && Tools::isSubmit('country_code'))
+        if(Tools::isSubmit('carrier_id'))
         {
             $carrierId = Tools::getValue('carrier_id');
             $selected_terminal = Tools::getValue('selected_terminal');
@@ -22,20 +22,10 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                 die(json_encode('FAILED TO GET CARRIER'));
             }
 
-            $pickups_references = array();
-            $couriers_references = array();
-
-            foreach (MijoraVenipak::$_carriers as $carrier) {
-                if ($carrier['type'] == 'pickup') {
-                    $pickups_references[] = Configuration::get($carrier['reference_name']);
-                }
-                if ($carrier['type'] == 'courier') {
-                    $couriers_references[] = Configuration::get($carrier['reference_name']);
-                }
-            }
+            $pickups_reference = Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']);
+            $courier_reference = Configuration::get(MijoraVenipak::$_carriers['courier']['reference_name']);
 
             $cDb = new MjvpDb();
-
             $sql_values = array(
                 'country_code' => $country_code,
                 'last_select' => date('Y-m-d H:i:s'),
@@ -43,7 +33,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                 'id_carrier_ref' => $ps_carrier->id_reference,
             );
 
-            if (in_array($ps_carrier->id_reference, $pickups_references)) {
+            if ($ps_carrier->id_reference == $pickups_reference) {
                 if (empty($selected_terminal)) {
                     die(json_encode('TERMINAL NOT SELECTED'));
                 }
@@ -63,8 +53,23 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 
             }
 
-            if (in_array($ps_carrier->id_reference, $couriers_references)) {
+            if ($ps_carrier->id_reference == $courier_reference) {
                 $sql_values['terminal_id'] = NULL;
+            }
+
+            if(Tools::isSubmit('update-data-opc'))
+            {
+                $data = [
+                    'step_name' => 'delivery',
+                    'ajax' => 1,
+                    'cart' => $this->context->cart
+                ];
+                $result = $this->module->hookActionValidateStepComplete($data);
+                if(is_array($result) && isset($result['errors']))
+                {
+                    $this->context->smarty->assign('errors', $result['errors']);
+                    die(json_encode(['errors' => $this->context->smarty->fetch(_PS_THEME_DIR_.'errors.tpl')]));
+                }
             }
 
             try {

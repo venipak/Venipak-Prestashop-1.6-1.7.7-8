@@ -3,7 +3,6 @@
 use MijoraVenipak\Classes\MjvpApi;
 use MijoraVenipak\Classes\MjvpDb;
 use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {

@@ -527,13 +527,13 @@ var DOMManipulator = /*#__PURE__*/function () {
         _this.UI.modal.querySelector('.tmjs-search-result').innerText = "Lat: ".concat(coords.lat, " Long: ").concat(coords.lng);
       });
       this.TMJS.sub('add-search-loader', function (data) {
-        _this.UI.modal.querySelector('.tmjs-search-result').innerHTML = "<div id=\"tmjs-terminals-loader\" class=\"tmjs-loading\"></div>";
+        // _this.UI.modal.querySelector('.tmjs-search-result').innerHTML = "<div id=\"tmjs-terminals-loader\" class=\"tmjs-loading\"></div>";
       });
       this.TMJS.sub('reset-search-result', function (data) {
         _this.UI.modal.querySelector('.tmjs-search-result').innerText = '';
       });
       this.TMJS.sub('search-result', function (data) {
-        _this.UI.modal.querySelector('.tmjs-search-result').innerText = data.address;
+        // _this.UI.modal.querySelector('.tmjs-search-result').innerText = data.address;
         console.info('GEOCODE RESPONSE:', data);
       });
       this.TMJS.sub('list-updated', function (data) {
@@ -874,7 +874,7 @@ var DOMManipulator = /*#__PURE__*/function () {
         var template = "<span class=\"tmjs-terminal-name\">".concat(loc.name, ", ").concat(loc.address);
 
         if (typeof loc.distance != 'undefined' && loc.distance !== null) {
-          template += "<span class=\"tmjs-terminal-distance\"><img src=\"".concat(_this3.TMJS.imagePath, "gps.svg\" width=\"13\">").concat(loc.distance.toFixed(2), " Km.</span>");
+          // template += "<span class=\"tmjs-terminal-distance\"><img src=\"".concat(_this3.TMJS.imagePath, "gps.svg\" width=\"13\">").concat(loc.distance.toFixed(2), " Km.</span>");
         }
 
         template += "</span><div class=\"tmjs-terminal-info\"><p class=\"tmjs-terminal-comment\">";
@@ -1033,8 +1033,8 @@ var DOMManipulator = /*#__PURE__*/function () {
     key: "updateDistanceByCandidate",
     value: function updateDistanceByCandidate(json) {
       if (typeof json.candidates === 'undefined' || !json.candidates.length) {
-        this.UI.modal.querySelector('.tmjs-search-result').innerText = this.TMJS.strings.no_cities_found;
-        console.log('Response had no candidates');
+        // this.UI.modal.querySelector('.tmjs-search-result').innerText = this.TMJS.strings.no_cities_found;
+        // console.log('Response had no candidates');
         return false;
       }
 

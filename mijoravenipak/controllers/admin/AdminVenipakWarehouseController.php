@@ -15,7 +15,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         $this->list_no_link = true;
         $this->_orderBy = 'id';
-        $this->className = 'MijoraVenipak\Classes\MjvpWarehouse';
+        $this->className = 'MjvpWarehouse';
         $this->table = 'mjvp_warehouse';
         $this->list_id = 'mjvp_warehouse';
         $this->identifier = 'id';
@@ -86,9 +86,9 @@ class AdminVenipakWarehouseController extends ModuleAdminController
 
         $this->bulk_actions = array(
             'delete' => array(
-                'text' => $this->trans('Delete selected', array(), 'Admin.Notifications.Info'),
+                'text' => $this->module->l('Delete selected', array(), 'Admin.Notifications.Info'),
                 'icon' => 'icon-trash',
-                'confirm' => $this->trans('Delete selected items?', array(), 'Admin.Notifications.Info'),
+                'confirm' => $this->module->l('Delete selected items?', array(), 'Admin.Notifications.Info'),
             ),
         );
 
@@ -103,53 +103,53 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         $countries = array(
             array(
                 'id' => 'LT',
-                'name' => $this->trans('Lithuania', array(), 'Admin.Global'),
+                'name' => $this->module->l('Lithuania', array(), 'Admin.Global'),
             ),
             array(
                 'id' => 'LV',
-                'name' => $this->trans('Latvia', array(), 'Admin.Global'),
+                'name' => $this->module->l('Latvia', array(), 'Admin.Global'),
             ),
             array(
                 'id' => 'EE',
-                'name' => $this->trans('Estonia', array(), 'Admin.Global'),
+                'name' => $this->module->l('Estonia', array(), 'Admin.Global'),
             ),
         );
 
 
         $this->fields_form = array(
             'legend' => array(
-                'title' => $this->trans('Warehouse', array(), 'Admin.Catalog.Feature'),
+                'title' => $this->module->l('Warehouse', array(), 'Admin.Catalog.Feature'),
                 'icon' => 'icon-info-sign',
             ),
             'input' => array(
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Warehouse name', array(), 'Admin.Global'),
+                    'label' => $this->module->l('Warehouse name', array(), 'Admin.Global'),
                     'name' => 'name',
                     'filter_key' => 'a!name',
                     'required' => true,
                     'col' => '3',
-                    'hint' => $this->trans('Enter the warehouse name', array(), 'Admin.Catalog.Help') . '&nbsp;' . $this->trans('Invalid characters:', array(), 'Admin.Notifications.Info') . ' <>;=#{}',
+                    'hint' => $this->module->l('Enter the warehouse name', array(), 'Admin.Catalog.Help') . '&nbsp;' . $this->module->l('Invalid characters:', array(), 'Admin.Notifications.Info') . ' <>;=#{}',
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Company code', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Company code', array(), 'Admin.Catalog.Feature'),
                     'name' => 'company_code',
                     'required' => true,
                     'col' => '2',
-                    'hint' => $this->trans('Enter the company code', array(), 'Admin.Catalog.Help') . '&nbsp;' . $this->trans('Invalid characters:', array(), 'Admin.Notifications.Info') . ' <>;=#{}',
+                    'hint' => $this->module->l('Enter the company code', array(), 'Admin.Catalog.Help') . '&nbsp;' . $this->module->l('Invalid characters:', array(), 'Admin.Notifications.Info') . ' <>;=#{}',
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Contact person', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Contact person', array(), 'Admin.Catalog.Feature'),
                     'name' => 'contact',
                     'required' => true,
                     'col' => '2',
-                    'hint' => $this->trans('Enter contact person\'s full name.', array(), 'Admin.Catalog.Help'),
+                    'hint' => $this->module->l('Enter contact person\'s full name.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'select',
-                    'label' => $this->trans('Country code', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Country code', array(), 'Admin.Catalog.Feature'),
                     'name' => 'country_code',
                     'required' => true,
                     'col' => '2',
@@ -158,48 +158,48 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                         'id' => 'id',
                         'name' => 'name',
                     ),
-                    'hint' => $this->trans('Select the country code.', array(), 'Admin.Catalog.Help'),
+                    'hint' => $this->module->l('Select the country code.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('City', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('City', array(), 'Admin.Catalog.Feature'),
                     'name' => 'city',
                     'required' => true,
                     'col' => '2',
-                    'hint' => $this->trans('Enter warehouse city.', array(), 'Admin.Catalog.Help'),
+                    'hint' => $this->module->l('Enter warehouse city.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Address', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Address', array(), 'Admin.Catalog.Feature'),
                     'name' => 'address',
                     'required' => true,
                     'col' => '2',
-                    'hint' => $this->trans('Enter warehouse address.', array(), 'Admin.Catalog.Help'),
+                    'hint' => $this->module->l('Enter warehouse address.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Zip code', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Zip code', array(), 'Admin.Catalog.Feature'),
                     'name' => 'zip_code',
                     'required' => true,
-                    'placeholder' => $this->trans('e.g 55555', array(), 'Admin.Global'),
+                    'placeholder' => $this->module->l('e.g 55555', array(), 'Admin.Global'),
                     'col' => '2',
-                    'hint' => $this->trans('Enter warehouse zip code.', array(), 'Admin.Catalog.Help'),
+                    'hint' => $this->module->l('Enter warehouse zip code.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'text',
-                    'label' => $this->trans('Phone', array(), 'Admin.Catalog.Feature'),
+                    'label' => $this->module->l('Phone', array(), 'Admin.Catalog.Feature'),
                     'name' => 'phone',
                     'required' => true,
                     'col' => '2',
-                    'placeholder' => $this->trans('e.g +3706666666', array(), 'Admin.Global'),
-                    'hint' => $this->trans('Enter warehouse phone number.', array(), 'Admin.Catalog.Help'),
+                    'placeholder' => $this->module->l('e.g +3706666666', array(), 'Admin.Global'),
+                    'hint' => $this->module->l('Enter warehouse phone number.', array(), 'Admin.Catalog.Help'),
                 ),
                 array(
                     'type' => 'checkbox',
                     'name' => 'default',
                     'values' => array(
                         'query' => array(
-                            array('id' => 'on', 'name' => $this->trans('Set as default warehouse.', array(), 'Admin.Shopparameters.Feature'), 'val' => '1'),
+                            array('id' => 'on', 'name' => $this->module->l('Set as default warehouse.', array(), 'Admin.Shopparameters.Feature'), 'val' => '1'),
                         ),
                         'id' => 'id',
                         'name' => 'name',
@@ -211,13 +211,13 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         if (Shop::isFeatureActive()) {
             $this->fields_form['input'][] = array(
                 'type' => 'shop',
-                'label' => $this->trans('Shop association', array(), 'Admin.Global'),
+                'label' => $this->module->l('Shop association', array(), 'Admin.Global'),
                 'name' => 'checkBoxShopAsso',
             );
         }
 
         $this->fields_form['submit'] = array(
-            'title' => $this->trans('Save', array(), 'Admin.Actions'),
+            'title' => $this->module->l('Save', array(), 'Admin.Actions'),
         );
 
         return parent::renderForm();
@@ -292,8 +292,8 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         {
             date_default_timezone_set('Europe/Vilnius');
             $time_data = [
-                $manifest_row['arrival_date_to'],
                 $manifest_row['arrival_date_from'],
+                $manifest_row['arrival_date_to'],
             ];
             if(count($time_data) < 2)
                 return $this->module->l('No arrival today.');

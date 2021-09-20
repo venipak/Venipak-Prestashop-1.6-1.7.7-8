@@ -2,7 +2,6 @@
 
 use MijoraVenipak\Classes\MjvpApi;
 use MijoraVenipak\Classes\MjvpDb;
-use MijoraVenipak\Classes\MjvpWarehouse;
 
 class AdminVenipakShippingController extends ModuleAdminController
 {

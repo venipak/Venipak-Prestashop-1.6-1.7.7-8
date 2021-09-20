@@ -348,6 +348,7 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   font-weight: 700;
   list-style-type: none;
   font-size: 14px;
+  color: #232323;
 }
 
 .tmjs-city:not(:first-of-type) {
@@ -393,6 +394,7 @@ a:hover.tmjs-geolocation-btn a:focus.tmjs-geolocation-btn {
   justify-content: flex-start;
   flex-wrap: wrap;
   font-size: 13px;
+  color: #232323;
 }
 
 .tmjs-terminal-comment {

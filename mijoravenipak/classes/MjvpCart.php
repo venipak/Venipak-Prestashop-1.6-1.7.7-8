@@ -1,8 +1,6 @@
 <?php
 
-namespace MijoraVenipak\Classes;
-
-class MjvpCart extends \ObjectModel
+class MjvpCart extends ObjectModel
 {
     public $id;
 
