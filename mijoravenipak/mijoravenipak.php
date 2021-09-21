@@ -7,9 +7,9 @@ use MijoraVenipak\Classes\MjvpFiles;
 use MijoraVenipak\Classes\MjvpHelper;
 use MijoraVenipak\Classes\MjvpModuleConfig;
 
-require_once "classes\MjvpCart.php";
-require_once "classes\MjvpManifest.php";
-require_once "classes\MjvpWarehouse.php";
+require_once __DIR__ . "/classes/MjvpCart.php";
+require_once __DIR__ . "/classes/MjvpManifest.php";
+require_once __DIR__ . "/classes/MjvpWarehouse.php";
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -810,12 +810,12 @@ class MijoraVenipak extends CarrierModule
             array(
                 'id' => 'active_on',
                 'value' => 1,
-                'label' => $this->l('Yes', array(), 'Admin.Global')
+                'label' => $this->l('Yes')
             ),
             array(
                 'id' => 'active_off',
                 'value' => 0,
-                'label' => $this->l('No', array(), 'Admin.Global')
+                'label' => $this->l('No')
             )
         );
 
@@ -912,12 +912,12 @@ class MijoraVenipak extends CarrierModule
             array(
                 'id' => 'active_on',
                 'value' => 1,
-                'label' => $this->l('Yes', array(), 'Admin.Global')
+                'label' => $this->l('Yes')
             ),
             array(
                 'id' => 'active_off',
                 'value' => 0,
-                'label' => $this->l('No', array(), 'Admin.Global')
+                'label' => $this->l('No')
             )
         );
 
@@ -1285,10 +1285,13 @@ class MijoraVenipak extends CarrierModule
                 )
             );
             // 1.7
-            if(method_exists($this->context->controller, 'registerJavascript'))
+            if(version_compare(_PS_VERSION_, '1.7', '>='))
             {
+                $this->context->smarty->assign(
+                    ['images_url' => $this->_path . 'views/images/']
+                );
                 Media::addJsDef([
-                        'mjvp_map_template' => $this->context->smarty->display(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
+                        'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
                     ]
                 );
                 $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
