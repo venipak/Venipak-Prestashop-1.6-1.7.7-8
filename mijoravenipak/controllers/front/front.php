@@ -31,7 +31,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             $pickups_reference = Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']);
             $courier_reference = Configuration::get(MijoraVenipak::$_carriers['courier']['reference_name']);
 
-            $cDb = new MjvpDb();
+            $cDb = $this->module->getModuleService('MjvpDb');
             $sql_values = array(
                 'country_code' => $country_code,
                 'last_select' => date('Y-m-d H:i:s'),

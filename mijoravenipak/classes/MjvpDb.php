@@ -1,13 +1,5 @@
 <?php
 
-namespace MijoraVenipak\Classes;
-
-use Db, Context, Exception;
-
-if (!defined('_PS_VERSION_')) {
-    return;
-}
-
 class MjvpDb
 {
     /**

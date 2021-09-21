@@ -1,23 +1,9 @@
 <?php
 
-namespace MijoraVenipak\Classes;
+require_once "MjvpBase.php";
 
-use MijoraVenipak;
-
-class MjvpModuleConfig
+class MjvpModuleConfig extends MjvpBase
 {
-    /**
-     * Variable for module class
-     */
-    protected $module;
-
-    /**
-     * Class constructor
-     */
-    public function __construct()
-    {
-        $this->module = new MijoraVenipak();
-    }
 
     /**
      * Get config key from all keys list

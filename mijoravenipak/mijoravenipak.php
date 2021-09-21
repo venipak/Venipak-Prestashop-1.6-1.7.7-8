@@ -1,15 +1,13 @@
 <?php
 
-use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
-use MijoraVenipak\Classes\MjvpApi;
-use MijoraVenipak\Classes\MjvpDb;
-use MijoraVenipak\Classes\MjvpFiles;
-use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpModuleConfig;
-
-require_once "classes\MjvpCart.php";
-require_once "classes\MjvpManifest.php";
-require_once "classes\MjvpWarehouse.php";
+require_once __DIR__ . "/classes/MjvpCart.php";
+require_once  __DIR__ . "/classes/MjvpManifest.php";
+require_once __DIR__ . "/classes/MjvpWarehouse.php";
+require_once __DIR__ . "/classes/MjvpApi.php";
+require_once __DIR__ . "/classes/MjvpFiles.php";
+require_once __DIR__ . "/classes/MjvpDb.php";
+require_once __DIR__ . "/classes/MjvpHelper.php";
+require_once __DIR__ . "/classes/MjvpModuleConfig.php";
 
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -224,6 +222,17 @@ class MijoraVenipak extends CarrierModule
         ),
     );
 
+    public static $_classes = [
+        'MjvpCart',
+        'MjvpManifest',
+        'MjvpWarehouse',
+        'MjvpApi',
+        'MjvpFiles',
+        'MjvpDb',
+        'MjvpHelper',
+        'MjvpModuleConfig'
+    ];
+
     /**
      * Class constructor
      */
@@ -257,7 +266,18 @@ class MijoraVenipak extends CarrierModule
         {
             $this->_configKeys['COURIER']['delivery_time_' . $key] = 'MJVP_COURIER_DELIVERY_TIME_' . strtoupper($key);
         }
-        $this->updateTerminals();
+    }
+
+    public function getModuleService($service_name, $id = null)
+    {
+        $reflection = new \ReflectionClass($service_name);
+        if(class_exists($service_name) && in_array($service_name, self::$_classes))
+            return $id ? $reflection->newInstanceArgs([$id]) : $reflection->newInstance() ;
+        elseif (!class_exists($service_name) && in_array($service_name, self::$_classes))
+        {
+            require_once __DIR__ . 'classes/' . $service_name . '.php';
+            return $id ? $reflection->newInstanceArgs([$id]) : $reflection->newInstance() ;
+        }
     }
 
     /**
@@ -1245,6 +1265,7 @@ class MijoraVenipak extends CarrierModule
      */
     public function hookHeader($params)
     {
+        $this->updateTerminals();
         if (!$this->active) return;
 
         if (in_array($this->context->controller->php_self, array('order', 'order-opc'))) {
@@ -1680,13 +1701,14 @@ class MijoraVenipak extends CarrierModule
                 $order = new Order((int)$order_id);
                 $address = new Address($order->id_address_delivery);
                 $carrier = new Carrier($order->id_carrier);
+                $customer = new Customer($order->id_customer);
                 if (!empty($order->id_carrier) && $cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
                     $found = true;
                     $order_products = $order->getProducts();
                     $country_iso = Country::getIsoById($address->id_country);
                     $consignee_name = $address->firstname . ' ' . $address->lastname;
                     $consignee_code = '';
-                    if (!empty($address->company)) {
+                    if ($address->company && $customer->company) {
                         $consignee_name = $address->company;
                         if (empty($address->dni)) {
                             $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Company code is missing');
@@ -1742,7 +1764,6 @@ class MijoraVenipak extends CarrierModule
                     {
                         $contact_person = $address->firstname . ' ' . $address->lastname;
                     }
-                    $customer = new Customer($order->id_customer);
 
                     if(Validate::isLoadedObject($customer))
                     {
@@ -2176,17 +2197,19 @@ class MijoraVenipak extends CarrierModule
     /**
      * Use hook to add Bulk actions for printing and generating labels on Orders page (1.7.7)
      */
+    // note: cannot "use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction",
+    // because 1.6 breaks with any use statement in the module main file...
     public function hookActionOrderGridDefinitionModifier($params)
     {
         $params['definition']->getBulkActions()->add(
-            (new SubmitBulkAction('mjvp_bulk_generate_labels'))
+            (new PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction('mjvp_bulk_generate_labels'))
                 ->setName('Venipak generate labels')
                 ->setOptions([
                     'submit_route' => 'admin_venipak_generate_bulk',
                 ])
         );
         $params['definition']->getBulkActions()->add(
-            (new SubmitBulkAction('mjvp_bulk_print_labels'))
+            (new PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction('mjvp_bulk_print_labels'))
                 ->setName('Venipak print labels')
                 ->setOptions([
                     'submit_route' => 'admin_venipak_print_bulk',

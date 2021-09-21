@@ -1,10 +1,8 @@
 <?php
 
-namespace MijoraVenipak\Classes;
+require_once "MjvpBase.php";
 
-use MijoraVenipak, Configuration;
-
-class MjvpFiles
+class MjvpFiles extends MjvpBase
 {
     /**
      * File info for countries list
@@ -26,13 +24,6 @@ class MjvpFiles
      * Periodic time for update files
      */
     private $_updateEvery = 24 * 3600;
-
-    /**
-     * Class constructor
-     */
-    public function __construct()
-    {
-    }
 
     /**
      * Get countries list from file
@@ -66,7 +57,7 @@ class MjvpFiles
             || $forced
         ) {
 
-            $cHelper = new MjvpHelper();
+            $cHelper = $this->module->getModuleService('MjvpHelper');
             Configuration::updateGlobalValue(MijoraVenipak::$_globalConstants['last_upd_countries'], time());
 
             $all_countries = $cHelper->getAllCountries();
@@ -97,8 +88,8 @@ class MjvpFiles
      */
     public function updateTerminalsList($forced = false)
     {
-        $cHelper = new MjvpHelper();
-        $cApi = new MjvpApi();
+        $cHelper = $this->module->getModuleService('MjvpHelper');
+        $cApi = $this->module->getModuleService('MjvpApi');
 
         $last_update = Configuration::getGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals']);
 
