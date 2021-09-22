@@ -1,8 +1,5 @@
 <?php
 
-use MijoraVenipak\Classes\MjvpApi;
-use MijoraVenipak\Classes\MjvpDb;
-
 class AdminVenipakShippingController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -165,7 +162,7 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function labelBtn($id_order)
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]);
         if (!$tracking_number) {
             $this->context->smarty->assign('data_button',
@@ -207,7 +204,7 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function trackingBtn($id_order)
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $tracking_number = $cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]);
         if($tracking_number)
         {
@@ -250,8 +247,8 @@ class AdminVenipakShippingController extends ModuleAdminController
         if(Tools::isSubmit('submitPrintLabel'))
         {
 
-            $cApi = new MjvpApi();
-            $cDb = new MjvpDb();
+            $cApi = $this->module->getModuleService('MjvpApi');
+            $cDb = $this->module->getModuleService('MjvpDb');
 
             $id_order = Tools::getValue('orderBox')[0];
             $labels_numbers = json_decode($cDb->getOrderValue('labels_numbers', ['id_order' => $id_order]), true);

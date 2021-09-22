@@ -1,10 +1,5 @@
 <?php
 
-use MijoraVenipak\Classes\MjvpApi;
-use MijoraVenipak\Classes\MjvpDb;
-use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpFiles;
-
 class AdminVenipakshippingAjaxController extends ModuleAdminController
 {
     public function __construct()
@@ -42,7 +37,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     protected function saveCart()
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $selected_carrier_reference = (int) Tools::getValue('is_pickup');
         $id_order = Tools::getValue('id_order');
         if(Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']) == $selected_carrier_reference)
@@ -96,7 +91,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 else
                 {
                     $order_warehouse = (int) Tools::getValue('warehouse');
-                    $warehouse = new MjvpWarehouse($order_warehouse);
+                    $warehouse = $this->module->getModuleService('MjvpWarehouse');
                     if(!Validate::isLoadedObject($warehouse))
                     {
                         $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
@@ -170,7 +165,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             else
             {
                 $order_warehouse = (int) Tools::getValue('warehouse');
-                $warehouse = new MjvpWarehouse($order_warehouse);
+                $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
                 if(!Validate::isLoadedObject($warehouse))
                 {
                     $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
@@ -214,7 +209,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     public function generateLabel()
     {
         $order = (int) Tools::getValue('id_order');
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
         $response = $this->module->bulkActionSendLabels(
             [
@@ -239,7 +234,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     public function printLabel()
     {
-        $cApi = new MjvpApi();
+        $cApi = $this->module->getModuleService('MjvpApi');
         $label_number = Tools::getValue('label_number');
         if(!is_array($label_number))
             $label_number = (array) $label_number;
@@ -255,8 +250,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             die(json_encode(['error' => $this->module->l('Could not get a valid order object.')]));
         }
 
-        $cDb = new MjvpDb();
-        $cHelper = new MjvpHelper();
+        $cDb = $this->module->getModuleService('MjvpDb');
+        $cHelper = $this->module->getModuleService('MjvpHelper');
 
         try {
             $carrier = new Carrier($order->id_carrier);
@@ -274,7 +269,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         $venipak_cart_info = $cDb->getOrderInfo($order->id);
         $order_country_code = $venipak_cart_info['country_code'];
 
-        $cFiles = new MjvpFiles();
+        $cFiles = $this->module->getModuleService('MjvpFiles');
         $pickup_points = $cFiles->getTerminalsListForCountry($order_country_code, false);
         if(!$pickup_points)
             $pickup_points = [];
@@ -327,7 +322,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     public function getOrderTrackingModal()
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $id_order = (int) Tools::getValue('id_order');
         if(Validate::isLoadedObject(new Order($id_order)))
         {
@@ -362,7 +357,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         {
             $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
         }
-        $cApi = new MjvpApi();
+        $cApi = $this->module->getModuleService('MjvpApi');
         $shipments = [];
         $csv_fields = [
             'pack_no', 'shipment_no', 'date', 'status', 'terminal'

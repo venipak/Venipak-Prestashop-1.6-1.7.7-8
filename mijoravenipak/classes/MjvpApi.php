@@ -1,14 +1,8 @@
 <?php
 
+require_once "MjvpBase.php";
 
-namespace MijoraVenipak\Classes;
-
-use Configuration, Exception, MijoraVenipak, DOMDocument;
-if (!defined('_PS_VERSION_')) {
-    return;
-}
-
-class MjvpApi
+class MjvpApi extends MjvpBase
 {
 
     private $_liveCurlUrl = 'https://go.venipak.lt/';
@@ -57,7 +51,7 @@ class MjvpApi
     public function buildManifestXml($params)
     {
 
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
         $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
 
         if (empty($api_id)) {
@@ -87,7 +81,7 @@ class MjvpApi
     public function buildCourierInvitationXml($params)
     {
 
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
 
         $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
 
@@ -163,7 +157,7 @@ class MjvpApi
      */
     public function buildConsignorXml()
     {
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
         $xml_code = '<consignor>';
         $xml_code .= '<name>' . Configuration::get($cModuleConfig->getConfigKey('sender_name', 'SHOP')) . '</name>';
         $xml_code .= '<company_code>' . Configuration::get($cModuleConfig->getConfigKey('company_code', 'SHOP'))  . '</company_code>';
@@ -196,7 +190,7 @@ class MjvpApi
         $params['packs'] = (isset($params['packs'])) ? $params['packs'] : array();
 
         $xml_code = '<shipment>';
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
         if(Configuration::get($cModuleConfig->getConfigKey('sender_address', 'SHOP')))
         {
             $xml_code .= $this->buildConsignorXml();
@@ -263,7 +257,7 @@ class MjvpApi
     public function sendXml($xml)
     {
 
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
 
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
@@ -301,7 +295,7 @@ class MjvpApi
 
     public function getLabelLink($labels_numbers)
     {
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));
         $params = array(
@@ -327,7 +321,7 @@ class MjvpApi
     private function getPdfEntity($type, $label_numbers)
     {
 
-        $cModuleConfig = new MjvpModuleConfig();
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
 
         $username = Configuration::get($cModuleConfig->getConfigKey('username', 'API'));
         $password = Configuration::get($cModuleConfig->getConfigKey('password', 'API'));

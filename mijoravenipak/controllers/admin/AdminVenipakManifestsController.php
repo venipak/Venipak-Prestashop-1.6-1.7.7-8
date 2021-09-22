@@ -1,10 +1,5 @@
 <?php
 
-use MijoraVenipak\Classes\MjvpApi;
-use MijoraVenipak\Classes\MjvpDb;
-use MijoraVenipak\Classes\MjvpHelper;
-use MijoraVenipak\Classes\MjvpModuleConfig;
-
 class AdminVenipakManifestsController extends ModuleAdminController
 {
     /** @var bool Is bootstrap used */
@@ -176,7 +171,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function printManifestBtn($id_manifest)
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $closed = $cDb->getManifestValue('closed', ['id' => $id_manifest]);
         if($closed)
         {
@@ -202,7 +197,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function printCallCarrierBtn($id_manifest)
     {
-        $cDb = new MjvpDb();
+        $cDb = $this->module->getModuleService('MjvpDb');
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id_manifest]);
         $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id_manifest]);
         $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id_manifest]);
@@ -232,10 +227,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
     {
         parent::postProcess();
         if (Tools::isSubmit('printmjvp_manifest')) {
-            $cApi = new MjvpApi();
-            $cDb = new MjvpDb();
+            $cApi = $this->module->getModuleService('MjvpApi');
+            $cDb = $this->module->getModuleService('MjvpDb');
             $id_manifest = Tools::getValue('id');
-            $manifest = new MjvpManifest($id_manifest);
+            $manifest = $this->module->getModuleService('MjvpManifest', $id_manifest);
             if(!Validate::isLoadedObject($manifest))
             {
                 $this->errors[] = $this->module->l("Could not find the specified manifest.");
@@ -255,9 +250,9 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
     public function processCarrierCall()
     {
-        $cHelper = new MjvpHelper();
-        $cConfig = new MjvpModuleConfig();
-        $cApi = new MjvpApi();
+        $cHelper = $this->module->getModuleService('MjvpHelper');
+        $cConfig = $this->module->getModuleService('MjvpModuleConfig');
+        $cApi = $this->module->getModuleService('MjvpApi');
 
         $form_data = $this->validateCarrierInviteData();
         if(!empty($form_data['errors']))
@@ -274,7 +269,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $id_warehouse = $form_data['id_warehouse'];
         if($id_warehouse > 0)
         {
-            $warehouse = new MjvpWarehouse($id_warehouse);
+            $warehouse = $this->module->getModuleService('MjvpWarehouse', $id_warehouse);
         }
         else
         {
@@ -287,7 +282,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         }
 
         $id_manifest = $form_data['id_manifest'];
-        $manifest = new MjvpManifest($id_manifest);
+        $manifest = $this->module->getModuleService('MjvpManifest', $id_manifest);
         $manifest->id_warehouse = $id_warehouse;
         $sender['name'] = $warehouse->name;
         $sender['code'] = $warehouse->company_code;
@@ -387,7 +382,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $errors = [];
 
         $id_manifest = (int)Tools::getValue('id_manifest');
-        $manifest = new MjvpManifest($id_manifest);
+        $manifest = $this->module->getModuleService('MjvpManifest', $id_manifest);
 
         // Manifest
         $data['id_manifest'] = $id_manifest;
@@ -398,7 +393,7 @@ class AdminVenipakManifestsController extends ModuleAdminController
 
         // Warehouse
         $id_warehouse = $manifest->id_warehouse;
-        $warehouse = new MjvpWarehouse($id_warehouse);
+        $warehouse = $this->module->getModuleService('MjvpManifest', $id_warehouse);
         $data['id_warehouse'] = $id_warehouse;
         if(!Validate::isLoadedObject($warehouse) && $id_warehouse != 0)
         {
@@ -457,8 +452,8 @@ class AdminVenipakManifestsController extends ModuleAdminController
     public function formTemporayWarehouse()
     {
         $data = $errors = [];
-        $cConfig = new MjvpModuleConfig();
-        $warehouse = new MjvpWarehouse();
+        $cConfig = $this->module->getModuleService('MjvpModuleConfig');
+        $warehouse = $this->module->getModuleService('MjvpWarehouse');
         $shop_name = Configuration::get($cConfig->getConfigKey('sender_name', 'SHOP'));
         if(!$shop_name)
             $errors[] = $this->module->l('Sender name is required.');
