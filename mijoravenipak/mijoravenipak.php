@@ -47,14 +47,14 @@ class MijoraVenipak extends CarrierModule
             'id_name' => 'MJVP_COURIER_ID',
             'reference_name' => 'MJVP_COURIER_ID_REFERENCE',
             'title' => 'Venipak courier',
-            'image' => '',
+            'image' => 'venipak-logo-square.png',
         ),
         'pickup' => array(
             'type' => 'pickup',
             'id_name' => 'MJVP_PICKUP_ID',
             'reference_name' => 'MJVP_PICKUP_ID_REFERENCE',
             'title' => 'Venipak pickup point',
-            'image' => '',
+            'image' => 'venipak-logo-square.png',
         ),
     );
 
@@ -240,7 +240,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.9.0';
+        $this->version = '0.9.1';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.7');

@@ -6,7 +6,7 @@
                     <a class="close" data-dismiss="modal" >&times;</a>
                     <h2 class="text-center">
                         <p align="center">
-                            <img alt="Venipak" src="{$module_dir}/views/images/venipak_logo_300_crop.jpg" border="0">
+                            <img alt="Venipak" src="{$module_dir}/views/images/venipak-logo-name.png" border="0">
                         </p>
                         {l s='Venipak Shipment Tracking' mod='venipakshipping'}
                     </h2>

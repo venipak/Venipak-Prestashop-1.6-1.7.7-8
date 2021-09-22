@@ -7,7 +7,7 @@
     <div class="col-lg-6 col-md-6 col-xs-12 panel">
 
         <div class="panel-heading">
-            <img src="{$module_dir}/views/images/venipak-main.svg" class="venipak-logo" alt="Smartpost Logo">
+            <img src="{$module_dir}/views/images/venipak-logo-square.png" class="venipak-logo" alt="Venipak Logo">
             {l s='Venipak Shipping' mod='venipakshipping'}
         </div>
 
