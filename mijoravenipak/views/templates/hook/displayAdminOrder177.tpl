@@ -7,7 +7,7 @@
     <div id="venipak-order-card" class="card">
 
         <div class="card-header">
-            <img src="{$module_dir}/views/images/venipak-main.svg" class="venipak-logo" alt="Smartpost Logo">
+            <img src="{$module_dir}/views/images/venipak-logo-square.png" class="venipak-logo" alt="Veniapk Logo">
             {l s='Venipak Shipping' mod='venipakshipping'}
         </div>
 
