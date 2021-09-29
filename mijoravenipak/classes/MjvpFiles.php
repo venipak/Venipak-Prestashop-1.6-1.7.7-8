@@ -81,7 +81,7 @@ class MjvpFiles extends MjvpBase
             $terminals = json_decode($this->getFileContent($file_dir), $assoc);
         }
 
-        if(!empty($terminals) && !empty($terminals))
+        if(!empty($terminals) && !empty($filters))
         {
             $filtered_terminals = [];
             foreach ($terminals as $terminal)
@@ -112,7 +112,7 @@ class MjvpFiles extends MjvpBase
             return $filtered_terminals;
         }
 
-        return false;
+        return $terminals;
     }
 
     /**

@@ -683,7 +683,7 @@ var DOMManipulator = /*#__PURE__*/function () {
       var close_button_class = this.isModal ? '' : 'tmjs-hidden';
       var template = mjvp_map_template;
       var modal = this.createElement('div', {
-        classList: [this.isModal ? 'tmjs-modaldsfsdffsd' : 'tmjs-modal-flat', this.isModal ? 'tmjs-hidden' : ''],
+        classList: [this.isModal ? 'tmjs-modal' : 'tmjs-modal-flat', this.isModal ? 'tmjs-hidden' : ''],
         innerHTML: template
       });
       modal.id = id;
