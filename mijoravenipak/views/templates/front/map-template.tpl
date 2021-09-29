@@ -16,11 +16,11 @@
             <h3>{l s='Filter delivery points' mod='mijoravenipak'}</h3>
             <div id="filter-container" class="col-xs-12">
                 <div class="col-xs-4 form-check-inline">
-                    <input id="mjvp-pickup-filter-pickups" type="checkbox" name="mjvp-pickup-filter-pickups" class="mjvp-pickup-filter form-check-inline not_uniform"  data-filter="pickup" checked>
+                    <input id="mjvp-pickup-filter-pickups" type="checkbox" name="mjvp-pickup-filter-pickups" class="mjvp-pickup-filter form-check-inline not_uniform"  data-filter="1" checked>
                     <label for="mjvp-pickup-filter-pickups">{l s='Pickups' mod='mijoravenipak'}</label>
                 </div>
                 <div class="col-xs-4 form-check-inline">
-                    <input type="checkbox" name="mjvp-pickup-filter-lockers" id="mjvp-pickup-filter-lockers" class="mjvp-pickup-filter form-check-inline not_uniform" data-filter="locker" checked>
+                    <input type="checkbox" name="mjvp-pickup-filter-lockers" id="mjvp-pickup-filter-lockers" class="mjvp-pickup-filter form-check-inline not_uniform" data-filter="3" checked>
                     <label for="mjvp-pickup-filter-lockers">{l s='Lockers' mod='mijoravenipak'}</label>
                 </div>
                 <div class="col-xs-4">

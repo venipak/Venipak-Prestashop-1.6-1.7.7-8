@@ -16,13 +16,19 @@ $( document ).ready(function() {
         }
 
         var selectedFilters = {};
+        var countChecked = 0;
         $("#filter-container input[type='checkbox']").each((i, el) => {
             if($(el).is(':checked'))
             {
+                countChecked++;
                 selectedFilters[i] = $(el).data('filter');
             }
         });
 
+        if(countChecked == 2)
+            selectedFilters = {};
+        else if(countChecked == 0)
+            selectedFilters['type'] = 0;
         $('.mjvp-pickup-filter').removeClass('active');
         $.ajax({
             type: "POST",

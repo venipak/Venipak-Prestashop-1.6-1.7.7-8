@@ -73,7 +73,7 @@ class MijoraVenipak extends CarrierModule
     /**
      * COD modules
      */
-    public static $_codModules = array('ps_cashondelivery');
+    public static $_codModules = array('ps_cashondelivery', 'venipakcod');
 
     public $deliveryTimes = [];
 
@@ -2070,7 +2070,7 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
-    public function getFilteredTerminals($filters = '', $entity = null)
+    public function getFilteredTerminals($filters = [], $entity = null)
     {
         if(!$entity && isset($this->context->cart))
             $entity = $this->context->cart;
@@ -2080,42 +2080,12 @@ class MijoraVenipak extends CarrierModule
             $country_code = $country->getIsoById($address->id_country);
 
             $cFiles = new MjvpFiles();
-            $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false);
+            $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false, $filters);
             if(!$all_terminals_info)
                 $all_terminals_info = [];
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = array_values($filtered_terminals);
-
-            if (!$filters && !is_array($filters) && isset($this->context->controller->module)
-                && $this->context->controller->module == $this && $this->context->controller->controller_type != 'moduleadmin')
-                return [];
-            elseif (!$filters && !is_array($filters))
-                return $filtered_terminals;
-
-            $terminals = $filtered_terminals;
-            $terminal_field = 'type';
-            $allowed_values = [];
-
-            foreach ($filters as $filter)
-            {
-                if ($filter == 'pickup') {
-                    $allowed_values[] = 1;
-                }
-                elseif ($filter == 'locker') {
-                    $allowed_values[] = 3;
-                }
-                elseif ($filter == 'cod') {
-                    $terminal_field = 'cod_enabled';
-                    $allowed_values[] = 1;
-                }
-            }
-
-            foreach ($terminals as $key => $terminal) {
-                if (isset($terminal->$terminal_field) && !in_array($terminal->$terminal_field, $allowed_values))
-                    unset($terminals[$key]);
-            }
-            $terminals = array_values($terminals);
-            return $terminals;
+            return $filtered_terminals;
         }
         else
         {

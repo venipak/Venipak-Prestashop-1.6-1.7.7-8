@@ -64,6 +64,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                         'city' => $selected_terminal->city,
                         'address' => $selected_terminal->address,
                         'post_code' => $selected_terminal->zip,
+                        'is_cod' => $selected_terminal->cod_enabled
                     ];
                 }
 
