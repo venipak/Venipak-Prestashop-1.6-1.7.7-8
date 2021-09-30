@@ -10,9 +10,11 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 {
     public function initContent()
     {
-        if(Tools::isSubmit('carrier_id'))
+        if(Tools::isSubmit('carrier_id') || Tools::getValue('selected_terminal'))
         {
             $carrierId = Tools::getValue('carrier_id');
+            if(!$carrierId)
+                $carrierId = $this->context->cart->id_carrier;
             $selected_terminal = Tools::getValue('selected_terminal');
             $country_code = Tools::getValue('country_code');
 
@@ -69,6 +71,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
                         'city' => $terminal['city'],
                         'address' => $terminal['address'],
                         'post_code' => $terminal['zip'],
+                        'is_cod' => $terminal['cod_enabled']
                     ]);
                 }
 

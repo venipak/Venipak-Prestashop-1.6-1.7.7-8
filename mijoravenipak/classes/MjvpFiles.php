@@ -72,15 +72,47 @@ class MjvpFiles extends MjvpBase
     /**
      * Get terminals list for specific country from file
      */
-    public function getTerminalsListForCountry($country_code, $assoc = true)
+    public function getTerminalsListForCountry($country_code, $assoc = true, $filters = [])
     {
         $file_dir = $this->getFileDir($this->_terminalsList['directory'], str_replace('%s', strtoupper($country_code), $this->_terminalsList['file_name']));
 
+        $terminals = [];
         if ($this->checkFile($file_dir)) {
-            return json_decode($this->getFileContent($file_dir), $assoc);
+            $terminals = json_decode($this->getFileContent($file_dir), $assoc);
         }
 
-        return false;
+        if(!empty($terminals) && !empty($filters))
+        {
+            $filtered_terminals = [];
+            foreach ($terminals as $terminal)
+            {
+                $terminal_fit = true;
+                foreach ($filters as $fiter_key => $filter_value)
+                {
+                    if($assoc)
+                    {
+                        if(isset($terminal[$fiter_key]) && $terminal[$fiter_key] != $filter_value)
+                        {
+                            $terminal_fit = false;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if(isset($terminal->{$fiter_key}) && $terminal->{$fiter_key} != $filter_value)
+                        {
+                            $terminal_fit = false;
+                            break;
+                        }
+                    }
+                }
+                if($terminal_fit)
+                    $filtered_terminals[] = $terminal;
+            }
+            return $filtered_terminals;
+        }
+
+        return $terminals;
     }
 
     /**

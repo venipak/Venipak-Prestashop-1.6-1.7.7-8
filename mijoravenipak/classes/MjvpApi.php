@@ -544,7 +544,8 @@ class MjvpApi extends MjvpBase
         $curl = curl_init();
 
         $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) ? $this->_liveCurlUrl : $this->_curlUrl;
-
+        $reference_header = "Reference: Prestashop " . _PS_VERSION_;
+        $headers = [$reference_header];
         $curl_options = array(
             CURLOPT_URL => $endpoint . $url_suffix . $url_query,
             CURLOPT_RETURNTRANSFER => true,
@@ -555,6 +556,7 @@ class MjvpApi extends MjvpBase
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => $request_type,
             CURLOPT_POSTFIELDS => $params,
+            CURLOPT_HTTPHEADER => $headers,
         );
 
         curl_setopt_array($curl, $curl_options);

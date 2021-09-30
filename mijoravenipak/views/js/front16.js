@@ -73,13 +73,19 @@ function filterEventListener()
         }
 
         var selectedFilters = {};
+        var countChecked = 0;
         $("#filter-container input[type='checkbox']").each((i, el) => {
             if($(el).is(':checked'))
             {
+                countChecked++;
                 selectedFilters[i] = $(el).data('filter');
             }
         });
 
+        if(countChecked == 2)
+            selectedFilters = {};
+        else if(countChecked == 0)
+            selectedFilters['type'] = 0;
         $('.mjvp-pickup-filter').removeClass('active');
         $.ajax({
             type: "POST",
@@ -131,7 +137,7 @@ function filterEventListener()
 function addTerminalValidateListener()
 {
     $('#HOOK_PAYMENT').on('click', () => {
-        if($('#mjvp-selected-terminal').length != 0)
+        if($('#mjvp-selected-terminal').length != 0 && !$(event.target).hasClass('venipakcod'))
         {
             event.preventDefault();
             mjvp_registerSelection('mjvp-selected-terminal', {
