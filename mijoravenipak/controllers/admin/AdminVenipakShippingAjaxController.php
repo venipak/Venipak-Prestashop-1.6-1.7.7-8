@@ -92,7 +92,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 else
                 {
                     $order_warehouse = (int) Tools::getValue('warehouse');
-                    $warehouse = $this->module->getModuleService('MjvpWarehouse');
+                    $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
                     if(!Validate::isLoadedObject($warehouse))
                     {
                         $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
@@ -387,11 +387,14 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             // Get all undelivered Venipak orders
             $orders = Db::getInstance()->executeS('SELECT mo.* FROM ' . _DB_PREFIX_ . 'mjvp_orders mo
                 LEFT JOIN ' ._DB_PREFIX_ . 'orders o ON o.`id_order` = mo.`id_order`
-                LEFT JOIN ' ._DB_PREFIX_ . 'order_state_lang osl ON osl.`id_order_state` = o.`current_state`
+                LEFT JOIN `' . _DB_PREFIX_ . 'carrier` c ON (o.`id_carrier` = c.`id_carrier`)
                 WHERE mo.`id_order` IS NOT NULL 
                 AND mo.`labels_numbers` IS NOT NULL 
                 AND mo.`manifest_id` IS NOT NULL 
-                AND (osl.`name` != "Delivered" OR mo.`status` != "delivered")'
+                AND mo.`status` != "delivered"
+                AND mo.`last_select` > date_sub(now(), interval 1 month)
+                AND c.id_reference IN (' . Configuration::get('MJVP_COURIER_ID_REFERENCE') . ','
+                . Configuration::get('MJVP_PICKUP_ID_REFERENCE') . ')'
             );
             $orders_tracking_numbers = [];
             if(empty($orders))
@@ -421,7 +424,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                         if(isset($lastRow[3]))
                         {
                             $cDb = $this->module->getModuleService('MjvpDb');
-                            $cDb->updateOrderInfo($order_id, ['status' => strtolower($this->module->l($lastRow[3]), 'VenipakShippingAjax')], 'id_order');
+                            $cDb->updateOrderInfo($order_id, ['status' => strtolower($lastRow[3])], 'id_order');
                         }
                     }
                 }

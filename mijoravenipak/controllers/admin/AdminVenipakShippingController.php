@@ -28,7 +28,7 @@ class AdminVenipakShippingController extends ModuleAdminController
             'out for delivery' => $this->module->l('out for delivery', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
             'delivered' => $this->module->l('delivered', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
         ];
-        $this->toolbar_title = $this->module->l('Venipak Manifest - Ready Orders');
+        $this->toolbar_title = $this->module->l('Venipak Orders');
         $this->_select = '
             mo.labels_numbers as label_number,
             status,
