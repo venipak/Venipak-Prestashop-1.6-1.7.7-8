@@ -6,7 +6,6 @@ $(document).ready(function () {
         create_order_modal();
     });
 
-    // Venipak Orders page modal handling.
     $('.track-orders').on('click', function(e) {
         e.preventDefault();
         let order = null;
@@ -15,7 +14,10 @@ $(document).ready(function () {
             order = target.data('id-order');
         else if(target.parent().data('id-order'))
             order = target.parent().data('id-order');
-        create_tracking_modal(order);
+        if(order)
+            create_tracking_modal(order);
+        else
+            trackOrders();
     });
 
     // Configuration page
@@ -232,6 +234,47 @@ function create_order_modal() {
             enableButtons();
             $('#venipak-modal-order').modal('show');
             bindOrderFormEvents();
+            removeOverlay();
+        }
+    });
+}
+
+function trackOrders()
+{
+    addOverlay();
+    if($('#vp-tracking-modal-wrapper').length != 0)
+    {
+        $('#venipak-modal-tracking').modal('hide');
+        $('#vp-tracking-modal-wrapper').remove();
+    }
+    $.ajax({
+        type: "POST",
+        url: venipak_tracking_url,
+        success: function (res) {
+            res = JSON.parse(res);
+            if (typeof res.errors != 'undefined') {
+                if(Array.isArray(res.errors))
+                {
+                    res.errors.forEach((error) => {
+                        showResponse(error, 'danger');
+                    });
+                }
+                else
+                {
+                    showResponse(res.errors, 'danger');
+                }
+                return false;
+            } else if(typeof res.success != 'undefined'){
+                removeOverlay();
+                showSuccessMessage(res.success);
+                document.location.reload();
+            } else if(typeof res.warning != 'undefined'){
+                removeOverlay();
+                showErrorMessage(res.warning);
+            }
+
+        },
+        complete: function(jqXHR, status) {
             removeOverlay();
         }
     });

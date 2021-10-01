@@ -6,6 +6,8 @@ class AdminVenipakShippingController extends ModuleAdminController
     public $bootstrap = true;
     private $statuses_array;
 
+    public static $status_trans = [];
+
     /**
      * AdminVenipakShippingController class constructor
      *
@@ -14,13 +16,22 @@ class AdminVenipakShippingController extends ModuleAdminController
      */
     public function __construct()
     {
+
         $this->list_no_link = true;
         $this->className = 'Order';
         $this->table = 'order';
         parent::__construct();
+        self::$status_trans = [
+            'new' => $this->module->l('new', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
+            'registered' => $this->module->l('registered', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
+            'at terminal' => $this->module->l('at terminal', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
+            'out for delivery' => $this->module->l('out for delivery', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
+            'delivered' => $this->module->l('delivered', 'ADMINVENIPAKSHIPPINGCONTROLLER'),
+        ];
         $this->toolbar_title = $this->module->l('Venipak Manifest - Ready Orders');
         $this->_select = '
             mo.labels_numbers as label_number,
+            status,
             CONCAT(LEFT(c.`firstname`, 1), \'. \', c.`lastname`) AS `customer`,
             osl.`name` AS `osname`,
             os.`color`,
@@ -116,6 +127,11 @@ class AdminVenipakShippingController extends ModuleAdminController
             'search' => false,
             'orderby' => false,
             'callback' => 'trackingBtn',
+        );
+        $this->fields_list['status'] = array(
+            'title' => 'Tracking status',
+            'align' => 'text-left',
+            'callback' => 'transStatus'
         );
 
         $this->actions = [];
@@ -283,7 +299,7 @@ class AdminVenipakShippingController extends ModuleAdminController
                 'active' => false
             ),
             array(
-                'label' => $this->module->l('Undelivered orders tracking'),
+                'label' => $this->module->l('Track all orders'),
                 'url' => $this->context->link->getAdminLink($this->controller_name),
                 'icon' => 'icon-truck',
                 'active' => false,
@@ -300,4 +316,12 @@ class AdminVenipakShippingController extends ModuleAdminController
 
         return $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/manifest_menu.tpl');
     }
+
+    public function transStatus($status)
+    {
+        if(isset(self::$status_trans[$status]))
+            return self::$status_trans[$status];
+        return $status;
+    }
+
 }

@@ -78,7 +78,7 @@ function filterEventListener()
             if($(el).is(':checked'))
             {
                 countChecked++;
-                selectedFilters[i] = $(el).data('filter');
+                selectedFilters['type'] = $(el).data('filter');
             }
         });
 
@@ -109,12 +109,7 @@ function filterEventListener()
                                 lat: terminal.lat,
                                 lng: terminal.lng
                             };
-                            // Pickup type
-                            if(terminal.type == 1)
-                                terminal['identifier'] = 'venipak-pickup';
-                            // Locker type
-                            else if(terminal.type == 3)
-                                terminal['identifier'] = 'venipak-locker';
+                            terminal['identifier'] = 'venipak';
                             terminals.push(terminal);
                         }
                     });
