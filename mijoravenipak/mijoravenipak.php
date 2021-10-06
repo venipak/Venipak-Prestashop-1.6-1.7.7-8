@@ -1492,7 +1492,8 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
-        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
+        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (Tools::isSubmit('mjvp_door_code') || Tools::isSubmit('mjvp_cabinet_number')
+            || Tools::isSubmit('mjvp_warehouse_number') || Tools::isSubmit('mjvp_delivery_time') || Tools::isSubmit('mjvp_door_code')))
         {
             // Validate extra fields
             $field_door_code = Tools::getValue('mjvp_door_code', 0);
@@ -1865,11 +1866,10 @@ class MijoraVenipak extends CarrierModule
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
                     }
-                    if(isset($other_info->return_service) && $other_info->return_service)
-                        $return_service = 1;
-                    else
-                        $return_service = 0;
-                    $consignee['return_service'] = $return_service;
+                    if(isset($other_info->return_service))
+                    {
+                        $consignee['return_service'] = $other_info->return_service;
+                    }
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,
