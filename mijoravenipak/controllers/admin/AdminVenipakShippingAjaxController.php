@@ -101,6 +101,13 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                         $data['warehouse_id'] = $order_warehouse;
                 }
 
+                $return_service = 0;
+                if(Tools::isSubmit('mjvp_return_service'))
+                    $return_service = 1;
+                $order_extra_info = [];
+                $order_extra_info['return_service'] = $return_service;
+                $data['other_info'] = json_encode($order_extra_info);
+
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if($res)
                 {
@@ -147,8 +154,12 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     $result['errors'][] = $this->module->l('The warehouse number is too long.');
                 if(!isset($this->module->deliveryTimes[$field_delivery_time]))
                     $result['errors'][] = $this->module->l('Selected delivery time does not exist.');
+                $return_service = 0;
+                if(Tools::isSubmit('mjvp_return_service'))
+                    $return_service = 1;
 
                 $order_extra_info = [];
+                $order_extra_info['return_service'] = $return_service;
                 $order_extra_info['door_code'] = $field_door_code;
                 $order_extra_info['cabinet_number'] = $field_cabinet_number;
                 $order_extra_info['warehouse_number'] = $field_warehouse_number;

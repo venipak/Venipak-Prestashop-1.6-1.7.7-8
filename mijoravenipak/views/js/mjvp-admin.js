@@ -30,6 +30,15 @@ $(document).ready(function () {
             $('.delivery-checkbox').addClass('hide');
     });
 
+    if($('#MJVP_RETURN_SERVICE_on').is(':checked'))
+        $('.return-days').removeClass('hide');
+    $('#MJVP_RETURN_SERVICE_on, #MJVP_RETURN_SERVICE_off').on('change', () =>{
+        if($('#MJVP_RETURN_SERVICE_on').is(':checked'))
+            $('.return-days').removeClass('hide');
+        else
+            $('.return-days').addClass('hide');
+    });
+
     // Admin order JavaScript
     if ($('#venipak_order_form').length != 0)
     {
