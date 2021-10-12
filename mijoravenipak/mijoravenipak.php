@@ -1761,11 +1761,11 @@ class MijoraVenipak extends CarrierModule
                     $consignee_code = '';
                     if ($address->company && $customer->company) {
                         $consignee_name = $address->company;
-                        if (empty($address->dni)) {
+                        if (!$address->dni && !$customer->siret) {
                             $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Company code is missing');
                             continue;
                         } else {
-                            $consignee_code = $address->dni;
+                            $consignee_code = $address->dni ?: $customer->siret;
                         }
                     }
                     $consignee_address = $address->address1;
