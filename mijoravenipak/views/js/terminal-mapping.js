@@ -223,12 +223,7 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
                lat: terminal.lat,
                lng: terminal.lng
              };
-             // Pickup type
-             if(terminal.type == 1)
-                terminal['identifier'] = 'venipak-pickup';
-             // Locker type
-             else if(terminal.type == 3)
-                terminal['identifier'] = 'venipak-locker';
+             terminal['identifier'] = 'venipak';
              terminals.push(terminal);
            }
         });
@@ -1154,14 +1149,11 @@ var Map = /*#__PURE__*/function () {
       });
       var Icon = L.Icon.extend({
         options: {
-          iconSize: [80, 144]
+          iconSize: [40, 40]
         }
       });
-      _this._icons['venipak-pickup'] = new Icon({
-            iconUrl: mjvp_imgs_url + "/venipak-main.svg"
-      });
-      _this._icons['venipak-locker'] = new Icon({
-        iconUrl: mjvp_imgs_url + "/venipak-alt.svg"
+      _this._icons['venipak'] = new Icon({
+        iconUrl: mjvp_imgs_url + "/map-pin.svg"
       });
 
       if (_this._markerLayer.getLayers().length > 0) {

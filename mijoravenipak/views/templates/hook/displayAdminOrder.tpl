@@ -110,6 +110,15 @@
                 </div>
             {/if}
 
+            <div class="row">
+                <div class="col-xs-12">
+                    <div class="field-row">
+                        <input name="mjvp_return_service" type="checkbox"
+                               {if isset($return_service) && $return_service}checked{/if}>
+                        {l s='Return service' mod='mijoravenipak'}
+                    </div>
+                </div>
+            </div>
             <div class="row extra-services-container">
                 <div class="row">
                     <div class="venipak-extra-header">

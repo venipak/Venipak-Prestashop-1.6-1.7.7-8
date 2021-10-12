@@ -21,7 +21,7 @@ $( document ).ready(function() {
             if($(el).is(':checked'))
             {
                 countChecked++;
-                selectedFilters[i] = $(el).data('filter');
+                selectedFilters['type'] = $(el).data('filter');
             }
         });
 
@@ -38,8 +38,6 @@ $( document ).ready(function() {
                 'filter_keys' : selectedFilters
             },
             success: function (res) {
-                // $('.tmjs-search-input').val('');
-                // $('#terminal-search-radius').val('');
                 venipak_custom_modal.tmjs.dom.removeOverlay();
                 if(typeof res.mjvp_terminals != "undefined")
                 {
@@ -52,12 +50,7 @@ $( document ).ready(function() {
                                 lat: terminal.lat,
                                 lng: terminal.lng
                             };
-                            // Pickup type
-                            if(terminal.type == 1)
-                                terminal['identifier'] = 'venipak-pickup';
-                            // Locker type
-                            else if(terminal.type == 3)
-                                terminal['identifier'] = 'venipak-locker';
+                            terminal['identifier'] = 'venipak';
                             terminals.push(terminal);
                         }
                     });

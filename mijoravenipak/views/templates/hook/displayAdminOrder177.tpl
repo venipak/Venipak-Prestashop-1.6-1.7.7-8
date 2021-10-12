@@ -109,6 +109,16 @@
                     </div>
                 {/if}
 
+                <div class="row mt-3 mb-3">
+                    <div class="col-md-6 col-xs-12">
+                        <div class="field-row">
+                            <input name="mjvp_return_service" type="checkbox"
+                                   {if isset($return_service) && $return_service}checked{/if}>
+                            {l s='Return service' mod='mijoravenipak'}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="extra-services-container">
                     <div class="col-xs-12 card-block card-header">
                         <span>{l s="Extra carrier info" mod='venipakshipping'}:</span>

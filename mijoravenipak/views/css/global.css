@@ -179,6 +179,7 @@
   display: flex;
   height: 29px;
   margin: 10px 0px;
+  justify-content: space-between;
 }
 #filter-container > div {
   height: 35px;
@@ -244,6 +245,7 @@
 
 #filter-container label {
   vertical-align: bottom;
+  font-size: 13px;
 }
 
 #filter-container input {

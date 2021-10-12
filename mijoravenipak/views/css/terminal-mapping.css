@@ -227,7 +227,6 @@ div.tmvp-loading-overlay {
 }
 
 .tmjs-terminal-sidebar {
-  flex: 1;
   position: relative;
   background-color: #fff;
   padding: 30px;
@@ -485,7 +484,7 @@ a.tmjs-select-btn, a:hover.tmjs-select-btn, a:focus.tmjs-select-btn {
   justify-content: center;
 }
 
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 767px) {
   .tmjs-modal-body {
     flex-direction: column;
   }
@@ -539,5 +538,15 @@ div.tmjs-loading {
 
 #filter-container div:last-child {
   text-align: right;
+}
+
+@media (max-width: 992px) and (min-width: 768px)
+{
+  #filter-container label {
+    width: 50%;
+  }
+  .tmjs-close-modal-btn {
+    right: -5px;
+  }
 }
 /**  tmjs-loading dots loader end **/

@@ -26,6 +26,7 @@ class MijoraVenipak extends CarrierModule
     const CONTROLLER_ADMIN_MANIFEST = 'AdminVenipakManifests';
     const EXTRA_FIELDS_SIZE = 10;
     const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
+    const RETURN_DAYS_DEFAULT = 14;
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -137,6 +138,8 @@ class MijoraVenipak extends CarrierModule
             'cabinet_number' => 'MJVP_COURIER_CABINET_NUMBER',
             'delivery_time' => 'MJVP_COURIER_DELIVERY_TIME',
             'call_before_delivery' => 'MJVP_COURIER_CALL_BEFORE_DELIVERY',
+            'return_service' => 'MJVP_RETURN_SERVICE',
+            'return_days' => 'MJVP_RETURN_DAYS',
         ),
         'LABEL' => array(
             'label_size' => 'MJVP_LABEL_SIZE',
@@ -240,7 +243,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '0.9.1';
+        $this->version = '1.0.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.7');
@@ -826,7 +829,7 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
-        $swither_values = array(
+        $switcher_values = array(
             array(
                 'id' => 'active_on',
                 'value' => 1,
@@ -912,7 +915,7 @@ class MijoraVenipak extends CarrierModule
                 'label' => $this->l('Use as sender\'s address.'),
                 'name' => $cModuleConfig->getConfigKey('sender_address', $section_id),
                 'desc' => $this->l('Use shop settings as sender\'s address. Otherwise inforamtion from your Venipak account will be used.'),
-                'values' => $swither_values
+                'values' => $switcher_values
             ),
         );
 
@@ -928,7 +931,7 @@ class MijoraVenipak extends CarrierModule
 
         $section_id = 'COURIER';
 
-        $swither_values = array(
+        $switcher_values = array(
             array(
                 'id' => 'active_on',
                 'value' => 1,
@@ -947,35 +950,50 @@ class MijoraVenipak extends CarrierModule
                 'label' => $this->l('Door code'),
                 'name' => $cModuleConfig->getConfigKey('door_code', $section_id),
                 'desc' => $this->l('Add input for customers to enter their door code, when selected courier.'),
-                'values' => $swither_values
+                'values' => $switcher_values
             ),
             array(
                 'type' => 'switch',
                 'label' => $this->l('Cabinet number'),
                 'name' => $cModuleConfig->getConfigKey('cabinet_number', $section_id),
                 'desc' => $this->l('Allow customers to input cabinet number.'),
-                'values' => $swither_values
+                'values' => $switcher_values
             ),
             array(
                 'type' => 'switch',
                 'label' => $this->l('Warehouse number'),
                 'name' => $cModuleConfig->getConfigKey('warehouse_number', $section_id),
                 'desc' => $this->l('Allow customers to select warehouse.'),
-                'values' => $swither_values
+                'values' => $switcher_values
             ),
             array(
                 'type' => 'switch',
                 'label' => $this->l('Enable carrier call before delivery'),
                 'name' => $cModuleConfig->getConfigKey('call_before_delivery', $section_id),
                 'desc' => $this->l('Enable this option, if you want courier to call a consignee before shipment delivery'),
-                'values' => $swither_values
+                'values' => $switcher_values
+            ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Enable return service'),
+                'name' => $cModuleConfig->getConfigKey('return_service', $section_id),
+                'desc' => $this->l('Enable this option, if you want to enable return service for shipments.'),
+                'values' => $switcher_values
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Return days'),
+                'name' => $cModuleConfig->getConfigKey('return_days', $section_id),
+                'class' => 'input fixed-width-xl',
+                'maxlength' => 3,
+                'form_group_class' => 'return-days hide',
             ),
             array(
                 'type' => 'switch',
                 'label' => $this->l('Enable delivery time selection'),
                 'name' => $cModuleConfig->getConfigKey('delivery_time', $section_id),
                 'desc' => $this->l('Allow customers to select delivery time.'),
-                'values' => $swither_values
+                'values' => $switcher_values
             ),
         );
         $form_fields = array_merge($form_fields, $this->getDeliveryTimeSelectionFormFields());
@@ -1145,6 +1163,8 @@ class MijoraVenipak extends CarrierModule
                     $prefix = '_ON';
 
                 $value = Configuration::get($key);
+                if($key == $this->_configKeys['COURIER']['return_days'] && !$value)
+                    $value = self::RETURN_DAYS_DEFAULT;
                 $helper->fields_value[$key . $prefix] = $value;
             }
         }
@@ -1240,6 +1260,13 @@ class MijoraVenipak extends CarrierModule
                         $errors[] = sprintf($this->l('%s is not valid.'), $configField['name']);
                     }
                 }
+            }
+        }
+
+        if ($section_id == 'COURIER') {
+            if(Tools::getValue('MJVP_RETURN_DAYS') && !Validate::isInt(Tools::getValue('MJVP_RETURN_DAYS')))
+            {
+                $errors[] = sprintf($this->l('Return days must be a positive number.'));
             }
         }
 
@@ -1404,8 +1431,10 @@ class MijoraVenipak extends CarrierModule
         if(!$order_warehouse)
             $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
 
+        $cModuleConfig = $this->getModuleService('MjvpModuleConfig');
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
+            'return_service' => isset($other_info['return_service']) ? $other_info['return_service'] : Configuration::get($cModuleConfig->getConfigKey('return_service', 'COURIER')),
             'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->name,
             'label_status' => $status,
             'label_error' => $error,
@@ -1463,7 +1492,8 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
-        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
+        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (Tools::isSubmit('mjvp_door_code') || Tools::isSubmit('mjvp_cabinet_number')
+            || Tools::isSubmit('mjvp_warehouse_number') || Tools::isSubmit('mjvp_delivery_time') || Tools::isSubmit('mjvp_door_code')))
         {
             // Validate extra fields
             $field_door_code = Tools::getValue('mjvp_door_code', 0);
@@ -1790,9 +1820,9 @@ class MijoraVenipak extends CarrierModule
                     {
                         $contact_email = $customer->email;
                     }
+                    $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
                     if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
                     {
-                        $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
                         $door_code = $other_info->door_code;
                         $cabinet_number = $other_info->cabinet_number;
                         $warehouse_number = $other_info->warehouse_number;
@@ -1836,7 +1866,10 @@ class MijoraVenipak extends CarrierModule
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
                     }
-
+                    if(isset($other_info->return_service))
+                    {
+                        $consignee['return_service'] = $other_info->return_service;
+                    }
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
                         'order_code' => $order->reference,

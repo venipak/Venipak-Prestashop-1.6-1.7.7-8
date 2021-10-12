@@ -92,7 +92,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 else
                 {
                     $order_warehouse = (int) Tools::getValue('warehouse');
-                    $warehouse = $this->module->getModuleService('MjvpWarehouse');
+                    $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
                     if(!Validate::isLoadedObject($warehouse))
                     {
                         $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
@@ -100,6 +100,13 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     else
                         $data['warehouse_id'] = $order_warehouse;
                 }
+
+                $return_service = 0;
+                if(Tools::isSubmit('mjvp_return_service'))
+                    $return_service = 1;
+                $order_extra_info = [];
+                $order_extra_info['return_service'] = $return_service;
+                $data['other_info'] = json_encode($order_extra_info);
 
                 $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if($res)
@@ -147,8 +154,12 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     $result['errors'][] = $this->module->l('The warehouse number is too long.');
                 if(!isset($this->module->deliveryTimes[$field_delivery_time]))
                     $result['errors'][] = $this->module->l('Selected delivery time does not exist.');
+                $return_service = 0;
+                if(Tools::isSubmit('mjvp_return_service'))
+                    $return_service = 1;
 
                 $order_extra_info = [];
+                $order_extra_info['return_service'] = $return_service;
                 $order_extra_info['door_code'] = $field_door_code;
                 $order_extra_info['cabinet_number'] = $field_cabinet_number;
                 $order_extra_info['warehouse_number'] = $field_warehouse_number;
@@ -325,6 +336,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     {
         $cDb = $this->module->getModuleService('MjvpDb');
         $id_order = (int) Tools::getValue('id_order');
+
+        // If single order is tracked, we return modal with tracking history.
         if(Validate::isLoadedObject(new Order($id_order)))
         {
             $labels_numbers = $cDb->getOrderValue('labels_numbers', array('id_order' => $id_order));
@@ -332,71 +345,102 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 'id_order' => $id_order,
                 'labels_numbers' => $labels_numbers,
             ];
+
+            $orders_tracking_numbers = [];
+            foreach ($orders as $row)
+            {
+                $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
+            }
+            $cApi = $this->module->getModuleService('MjvpApi');
+            $shipments = [];
+            $csv_fields = [
+                'pack_no', 'shipment_no', 'date', 'status', 'terminal'
+            ];
+
+            foreach ($orders_tracking_numbers as $order_id => $tracking_numbers)
+            {
+                $shipment = [];
+                $shipment['order_id'] = $order_id;
+                $shipment['heading'] = $this->module->l(sprintf("Order #%d (packets: %s)", $order_id, implode(', ', $tracking_numbers)));
+                foreach ($tracking_numbers as $tracking_number)
+                {
+                    $csv = $cApi->getTrackingShipment($tracking_number);
+                    $count = 0;
+                    $shipment_data = [];
+                    if (($handle = fopen("data://text/csv," . $csv, "r")) !== false) {
+                        while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                            $count++;
+                            if($count == 1)
+                                continue;
+                            $row = [];
+                            $num = count($data);
+                            for ($c = 0; $c < $num; $c++) {
+                                $row[$csv_fields[$c]] = $data[$c];
+                            }
+                            $shipment_data[] = $row;
+                        }
+                        $shipment['data'] = $shipment_data;
+                        $shipments[$tracking_number] = $shipment;
+                        fclose($handle);
+                    }
+                }
+            }
+
+            $this->context->smarty->assign(array(
+                'shipments' => $shipments,
+                'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
+            ));
+            die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking_modal.tpl')]));
         }
+        // If query is to track all orders, when we simply update their tracking status and reload the page.
         else
         {
             // Get all undelivered Venipak orders
             $orders = Db::getInstance()->executeS('SELECT mo.* FROM ' . _DB_PREFIX_ . 'mjvp_orders mo
                 LEFT JOIN ' ._DB_PREFIX_ . 'orders o ON o.`id_order` = mo.`id_order`
-                LEFT JOIN ' ._DB_PREFIX_ . 'order_state_lang osl ON osl.`id_order_state` = o.`current_state`
+                LEFT JOIN `' . _DB_PREFIX_ . 'carrier` c ON (o.`id_carrier` = c.`id_carrier`)
                 WHERE mo.`id_order` IS NOT NULL 
                 AND mo.`labels_numbers` IS NOT NULL 
                 AND mo.`manifest_id` IS NOT NULL 
-                AND osl.`name` != "Delivered"'
+                AND mo.`status` != "delivered"
+                AND mo.`last_select` > date_sub(now(), interval 1 month)
+                AND c.id_reference IN (' . Configuration::get('MJVP_COURIER_ID_REFERENCE') . ','
+                . Configuration::get('MJVP_PICKUP_ID_REFERENCE') . ')'
             );
-        }
-
-
-        $demo_number = 'V00010E2521185';
-        $orders_tracking_numbers = [];
-
-        // Demo tracking number. To be removed in prod @todo
-        // Structure to match numbers mapping with orders.
-        // $orders_tracking_numbers[] = [0 => $demo_number];
-
-        foreach ($orders as $row)
-        {
-            $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
-        }
-        $cApi = $this->module->getModuleService('MjvpApi');
-        $shipments = [];
-        $csv_fields = [
-            'pack_no', 'shipment_no', 'date', 'status', 'terminal'
-        ];
-
-        foreach ($orders_tracking_numbers as $order_id => $tracking_numbers)
-        {
-            $shipment = [];
-            $shipment['order_id'] = $order_id;
-            $shipment['heading'] = $this->module->l(sprintf("Order #%d (packets: %s)", $order_id, implode(', ', $tracking_numbers)));
-            foreach ($tracking_numbers as $tracking_number)
+            $orders_tracking_numbers = [];
+            if(empty($orders))
             {
-                $csv = $cApi->getTrackingShipment($tracking_number);
-                $count = 0;
-                $shipment_data = [];
-                if (($handle = fopen("data://text/csv," . $csv, "r")) !== false) {
-                    while (($data = fgetcsv($handle, 1000, ",")) !== false) {
-                        $count++;
-                        if($count == 1)
-                            continue;
-                        $row = [];
-                        $num = count($data);
-                        for ($c = 0; $c < $num; $c++) {
-                            $row[$csv_fields[$c]] = $data[$c];
+                die(json_encode(['warning' => $this->module->l('No trackable orders found')]));
+            }
+            foreach ($orders as $row)
+            {
+                $orders_tracking_numbers[$row['id_order']] = json_decode($row['labels_numbers'], true);
+            }
+
+            $cApi = $this->module->getModuleService('MjvpApi');
+            foreach ($orders_tracking_numbers as $order_id => $tracking_numbers)
+            {
+                foreach ($tracking_numbers as $tracking_number)
+                {
+                    $csv = $cApi->getTrackingShipment($tracking_number);
+                    if (($handle = fopen("data://text/csv," . $csv, "r")) !== false) {
+                        $lastRow = [];
+                        while (($data = fgetcsv($handle, 1000, ",")) !== false) {
+                            // Omit header
+                            if(isset($data[3]) && $data[3] != 'Status')
+                                $lastRow = $data;
                         }
-                        $shipment_data[] = $row;
+                        fclose($handle);
+                        // Check the last row of the tracking history to get the last tracking status.
+                        if(isset($lastRow[3]))
+                        {
+                            $cDb = $this->module->getModuleService('MjvpDb');
+                            $cDb->updateOrderInfo($order_id, ['status' => strtolower($lastRow[3])], 'id_order');
+                        }
                     }
-                    $shipment['data'] = $shipment_data;
-                    $shipments[$tracking_number] = $shipment;
-                    fclose($handle);
                 }
             }
+            die(json_encode(['success' => $this->module->l('Orders tracking updated.')]));
         }
-
-        $this->context->smarty->assign(array(
-            'shipments' => $shipments,
-            'module_dir' => __PS_BASE_URI__ . 'modules/' . $this->module->name,
-        ));
-        die(json_encode(['modal' => $this->context->smarty->fetch(MijoraVenipak::$_moduleDir . 'views/templates/admin/tracking_modal.tpl')]));
     }
 }

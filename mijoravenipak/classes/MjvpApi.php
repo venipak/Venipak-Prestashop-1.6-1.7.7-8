@@ -155,10 +155,10 @@ class MjvpApi extends MjvpBase
     /**
      * Build consignor XML structure
      */
-    public function buildConsignorXml()
+    public function buildCustomAddress($type)
     {
         $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
-        $xml_code = '<consignor>';
+        $xml_code = "<{$type}>";
         $xml_code .= '<name>' . Configuration::get($cModuleConfig->getConfigKey('sender_name', 'SHOP')) . '</name>';
         $xml_code .= '<company_code>' . Configuration::get($cModuleConfig->getConfigKey('company_code', 'SHOP'))  . '</company_code>';
         $xml_code .= '<country>' . Configuration::get($cModuleConfig->getConfigKey('shop_country_code', 'SHOP'))  . '</country>';
@@ -168,7 +168,7 @@ class MjvpApi extends MjvpBase
         $xml_code .= '<contact_person>' . Configuration::get($cModuleConfig->getConfigKey('shop_name', 'SHOP'))  . '</contact_person>';
         $xml_code .= '<contact_tel>' . Configuration::get($cModuleConfig->getConfigKey('shop_phone', 'SHOP')) . '</contact_tel>';
         $xml_code .= '<contact_email>' . Configuration::get($cModuleConfig->getConfigKey('shop_email', 'SHOP'))  . '</contact_email>';
-        $xml_code .= '</consignor>';
+        $xml_code .= "</{$type}>";
         return $xml_code;
     }
 
@@ -193,7 +193,11 @@ class MjvpApi extends MjvpBase
         $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
         if(Configuration::get($cModuleConfig->getConfigKey('sender_address', 'SHOP')))
         {
-            $xml_code .= $this->buildConsignorXml();
+            $xml_code .= $this->buildCustomAddress('consignor');
+        }
+        if((isset($params['consignee']['return_service']) && $params['consignee']['return_service']) || (!isset($params['consignee']['return_service']) && Configuration::get($cModuleConfig->getConfigKey('return_service', 'COURIER'))))
+        {
+            $xml_code .= $this->buildCustomAddress('return_consignee');
         }
         $xml_code .= '<consignee>';
         $xml_code .= '<name>' . $params['consignee']['name'] . '</name>';
@@ -229,6 +233,8 @@ class MjvpApi extends MjvpBase
             $xml_code .= '<cod>' . $params['consignee']['cod'] . '</cod>';
         if($params['consignee']['cod_type'])
             $xml_code .= '<cod_type>' . $params['consignee']['cod_type'] . '</cod_type>';
+        if((isset($params['consignee']['return_service']) && $params['consignee']['return_service']) || (!isset($params['consignee']['return_service']) && Configuration::get($cModuleConfig->getConfigKey('return_service', 'COURIER'))))
+            $xml_code .= '<return_service>' . (int) Configuration::get($cModuleConfig->getConfigKey('return_days', 'COURIER')) . '</return_service>';
         $xml_code .= '</attribute>';
 
         foreach ($params['packs'] as $pack) {
