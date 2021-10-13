@@ -1108,7 +1108,7 @@ var Map = /*#__PURE__*/function () {
 
     this.TMJS = TMJS;
     this.prefix = TMJS.prefix;
-    this._tileServerUrl = 'https://www.terminalmappingjs.com/tile/{z}/{x}/{y}.png';
+    this._tileServerUrl = 'https://osm.venipak.com/tile/{z}/{x}/{y}.png';
     this._attribution = "\n      &copy; <a href=\"https://www.mijora.lt\">Mijora</a>\n      | Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors,\n      <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>\n    ";
     /* default map center Lithuania Kaunas */
 
