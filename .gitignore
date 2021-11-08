@@ -1,2 +1,4 @@
-*.DS_Store
-config*.xml
+*
+!*/mijoravenipak
+!CHANGELOG.md
+!README.md
