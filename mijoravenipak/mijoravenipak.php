@@ -119,6 +119,7 @@ class MijoraVenipak extends CarrierModule
             'username' => 'MJVP_API_USER',
             'password' => 'MJVP_API_PASS',
             'id' => 'MJVP_API_ID',
+            'live_mode' => 'MJVP_API_LIVE_MODE',
         ),
         'SHOP' => array(
             'sender_name' => 'MJVP_SENDER_NAME',
@@ -246,7 +247,7 @@ class MijoraVenipak extends CarrierModule
         $this->version = '1.0.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.7');
+        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.8');
         $this->bootstrap = true;
 
         parent::__construct();
@@ -783,6 +784,19 @@ class MijoraVenipak extends CarrierModule
 
         $section_id = 'API';
 
+        $switcher_values = array(
+            array(
+                'id' => 'active_on',
+                'value' => 1,
+                'label' => $this->l('Yes')
+            ),
+            array(
+                'id' => 'active_off',
+                'value' => 0,
+                'label' => $this->l('No')
+            )
+        );
+
         $form_fields = array(
             array(
                 'type' => 'text',
@@ -804,6 +818,13 @@ class MijoraVenipak extends CarrierModule
                 'name' => $cModuleConfig->getConfigKey('id', $section_id),
                 'size' => 20,
                 'required' => true
+            ),
+            array(
+                'type' => 'switch',
+                'label' => $this->l('Live mode'),
+                'name' => $cModuleConfig->getConfigKey('live_mode', $section_id),
+                'desc' => $this->l('Use this mode if you have Live API credentials. If you have test credentials, disable this option.'),
+                'values' => $switcher_values
             ),
         );
 

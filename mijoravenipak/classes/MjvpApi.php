@@ -549,7 +549,8 @@ class MjvpApi extends MjvpBase
 
         $curl = curl_init();
 
-        $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) ? $this->_liveCurlUrl : $this->_curlUrl;
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
+        $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) || Configuration::get($cModuleConfig->getConfigKey('live_mode', 'API')) ? $this->_liveCurlUrl : $this->_curlUrl;
         $reference_header = "Reference: Prestashop " . _PS_VERSION_;
         $headers = [$reference_header];
         $curl_options = array(
