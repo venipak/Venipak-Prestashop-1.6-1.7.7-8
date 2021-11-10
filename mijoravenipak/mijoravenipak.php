@@ -27,6 +27,8 @@ class MijoraVenipak extends CarrierModule
     const EXTRA_FIELDS_SIZE = 10;
     const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
     const RETURN_DAYS_DEFAULT = 14;
+    const DEFAULT_LIVE_API_SERVER = 'https://go.venipak.lt/';
+    const DEFAULT_TEST_API_SERVER = 'https://venipak.uat.megodata.com/';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -120,6 +122,8 @@ class MijoraVenipak extends CarrierModule
             'password' => 'MJVP_API_PASS',
             'id' => 'MJVP_API_ID',
             'live_mode' => 'MJVP_API_LIVE_MODE',
+            'live_api_server' => 'MJVP_LIVE_API_SERVER',
+            'test_api_server' => 'MJVP_TEST_API_SERVER',
         ),
         'SHOP' => array(
             'sender_name' => 'MJVP_SENDER_NAME',
@@ -289,7 +293,8 @@ class MijoraVenipak extends CarrierModule
      */
     public function install()
     {
-
+        Configuration::updateValue($this->_configKeys['API']['live_api_server'], self::DEFAULT_LIVE_API_SERVER);
+        Configuration::updateValue($this->_configKeys['API']['test_api_server'], self::DEFAULT_TEST_API_SERVER);
         if (extension_loaded('curl') == false) {
             $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
             return false;
@@ -825,6 +830,28 @@ class MijoraVenipak extends CarrierModule
                 'name' => $cModuleConfig->getConfigKey('live_mode', $section_id),
                 'desc' => $this->l('Use this mode if you have Live API credentials. If you have test credentials, disable this option.'),
                 'values' => $switcher_values
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Live API Server'),
+                'name' => $cModuleConfig->getConfigKey('live_api_server', $section_id),
+                'desc' => [
+                    [
+                        'text' => $this->l('Do not edit this field, unless Venipak has changed their Live API server URL!'),
+                        'id' => 'live-endpoint-desc',
+                    ]
+                ]
+            ),
+            array(
+                'type' => 'text',
+                'label' => $this->l('Test API Server'),
+                'name' => $cModuleConfig->getConfigKey('test_api_server', $section_id),
+                'desc' => [
+                    [
+                        'text' => $this->l('Do not edit this field, unless Venipak has changed their Test API server URL!'),
+                        'id' => 'test-endpoint-desc',
+                    ]
+                ]
             ),
         );
 

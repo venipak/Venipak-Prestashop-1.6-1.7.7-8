@@ -5,8 +5,15 @@ require_once "MjvpBase.php";
 class MjvpApi extends MjvpBase
 {
 
-    private $_liveCurlUrl = 'https://go.venipak.lt/';
-    private $_curlUrl = 'https://venipak.uat.megodata.com/'; //DEMO
+    private $_liveCurlUrl;
+    private $_curlUrl;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->_liveCurlUrl = Configuration::get('MJVP_LIVE_API_SERVER');
+        $this->_curlUrl = Configuration::get('MJVP_TEST_API_SERVER');
+    }
 
     /**
      * Get terminals for country

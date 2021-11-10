@@ -242,3 +242,7 @@ div#vp-loading-overlay {
 .row_hover .remove-dashes {
     font-size: 0;
 }
+
+#live-endpoint-desc, #test-endpoint-desc {
+    color: red;
+}
