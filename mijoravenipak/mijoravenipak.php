@@ -1343,10 +1343,9 @@ class MijoraVenipak extends CarrierModule
         $this->updateTerminals();
         if (!$this->active) return;
 
-        $add_content = false;
         if(version_compare(_PS_VERSION_, '1.7', '>='))
         {
-            $add_content = $this->context->controller->php_self == 'order' && !$this->context->controller->getCheckoutProcess()->getSteps()[3]->isCurrent();
+            $add_content = $this->context->controller->php_self == 'order';
         }
         // 1.6
         else
@@ -1595,14 +1594,7 @@ class MijoraVenipak extends CarrierModule
      */
     public function hookDisplayCarrierExtraContent($params)
     {
-        $add_content = false;
-        if(version_compare(_PS_VERSION_, '1.7', '>=') && $this->context->controller->php_self == 'order' && $this->context->controller->getCheckoutProcess()->getSteps()[3]->isCurrent())
-        {
-            return '';
-        }
-
         $cHelper = new MjvpHelper();
-        $cApi = new MjvpApi();
         $cDb = new MjvpDb();
         $cModuleConfig = new MjvpModuleConfig();
 
