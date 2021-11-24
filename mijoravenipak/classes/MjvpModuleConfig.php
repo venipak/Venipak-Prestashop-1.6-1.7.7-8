@@ -20,7 +20,7 @@ class MjvpModuleConfig extends MjvpBase
                 }
             } 
         }
-        return $this->module->_configKeys[$section][$key_name] ?? '';
+        return isset($this->module->_configKeys[$section][$key_name]) ? $this->module->_configKeys[$section][$key_name] : '';
     }
 
     /**
@@ -28,6 +28,6 @@ class MjvpModuleConfig extends MjvpBase
      */
     public function getConfigKeyOther($key_name)
     {
-        return $this->module->_configKeysOther[$key_name]['key'] ?? '';
+        return isset($this->module->_configKeysOther[$key_name]['key']) ? $this->module->_configKeysOther[$key_name]['key']  : '';
     }
 }

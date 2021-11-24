@@ -1730,7 +1730,7 @@ class MijoraVenipak extends CarrierModule
      */
     public function bulkActionSendLabels($warehouse_group)
     {
-        $warehouse_id = $warehouse_group['warehouse_id'] ?? 0;
+        $warehouse_id = isset($warehouse_group['warehouse_id']) ? $warehouse_group['warehouse_id'] : 0;
         $orders_ids = $warehouse_group['orders'];
         $cApi = new MjvpApi();
         $cHelper = new MjvpHelper();
