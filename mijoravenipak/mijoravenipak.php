@@ -2125,7 +2125,7 @@ class MijoraVenipak extends CarrierModule
     public function hookActionAdminControllerSetMedia()
     {
         if (get_class($this->context->controller) == 'AdminOrdersController' || get_class($this->context->controller) == 'AdminLegacyLayoutControllerCore'
-            || (isset($this->context->controller->module) && $this->context->controller->module = $this)) {
+            || (isset($this->context->controller->module) && $this->context->controller->module == $this)) {
             {
                 Media::addJsDef([
                     'venipak_generate_label_url' => $this->context->link->getAdminLink('AdminVenipakshippingAjax') . '&action=generateLabel',
