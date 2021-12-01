@@ -239,6 +239,10 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             $is_cod = 0;
             if(in_array($order->module, MijoraVenipak::$_codModules))
                 $is_cod = 1;
+
+            $address = new Address($order->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
             $newOrderData = [
                 'id_order' => $order->id,
                 'id_cart' => $order->id_cart,
@@ -246,7 +250,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 'order_weight' => $order_weight,
                 'is_cod' => $is_cod,
                 'cod_amount' => $order->total_paid_tax_incl,
-            
+                'country_code' => $country_code,
             ];
             $res = $cDb->saveOrderInfo($newOrderData);
             return $res;
