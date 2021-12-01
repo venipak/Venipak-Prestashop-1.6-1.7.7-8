@@ -68,7 +68,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     ];
                 }
 
-
                 $data = [
                     'packages' => Tools::getValue('packs', 1),
                     'order_weight' => Tools::getValue('weight', 0),
@@ -108,7 +107,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $order_extra_info['return_service'] = $return_service;
                 $data['other_info'] = json_encode($order_extra_info);
 
-                $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
+                $res = $this->createVenipakOrderIfNotExists($order);
+                $res &= $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if($res)
                 {
                     $result['success'][] = $this->module->l('Shipment data updated successfully.');
@@ -187,7 +187,9 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             }
 
             if (!isset($result['errors'])) {
-                $res = $cDb->updateOrderInfo($id_order, $data, 'id_order');
+                $order = new Order($id_order);
+                $res = $this->createVenipakOrderIfNotExists($order);
+                $res &= $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if ($res) {
                     $result['success'][] = $this->module->l('Shipment data updated successfully.');
                 } else {
@@ -216,6 +218,38 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
 
         die(json_encode($result));
+    }
+
+    public function createVenipakOrderIfNotExists($order)
+    {
+        // Fix issue if customer selected Venipak carrier/terminal, but order data was not registered.
+        // As that functionality is handled by JavaScript, the problem is possible due to browser's cache.
+        $cDb = $this->module->getModuleService('MjvpDb');
+        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+        if(!$venipak_cart_info)
+        {
+            $order_weight = $order->getTotalWeight();
+
+            // Convert to kg, if weight is in grams.
+            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
+                $order_weight *= 0.001;
+            
+            $is_cod = 0;
+            if(in_array($order->module, MijoraVenipak::$_codModules))
+                $is_cod = 1;
+            $newOrderData = [
+                'id_order' => $order->id,
+                'id_cart' => $order->id_cart,
+                'id_carrier_ref' => $selected_carrier_reference,
+                'order_weight' => $order_weight,
+                'is_cod' => $is_cod,
+                'cod_amount' => $order->total_paid_tax_incl,
+            
+            ];
+            $res = $cDb->saveOrderInfo($newOrderData);
+            return $res;
+        }
+        return true;
     }
 
     public function generateLabel()
