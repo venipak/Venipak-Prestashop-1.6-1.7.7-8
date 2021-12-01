@@ -94,7 +94,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
                     if(!Validate::isLoadedObject($warehouse))
                     {
-                        $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                        // If order was not assigned warehouse (i.e none were created at that moment), then assign the default warehouse.
+                        $data['warehouse_id'] = MjvpWarehouse::getDefaultWarehouse();
                     }
                     else
                         $data['warehouse_id'] = $order_warehouse;
@@ -115,7 +116,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 }
                 else
                 {
-                    $result['errors'][] = $this->module->l('Failed to updated shipment data data.');
+                    $result['errors'][] = $this->module->l('Failed to update shipment data.');
                 }
 
             }
@@ -180,7 +181,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
                 if(!Validate::isLoadedObject($warehouse))
                 {
-                    $result['errors'][] = $this->module->l('Selected warehouse does not exist.');
+                    // If order was not assigned warehouse (i.e none were created at that moment), then assign the default warehouse.
+                    $data['warehouse_id'] = MjvpWarehouse::getDefaultWarehouse();
                 }
                 else
                     $data['warehouse_id'] = $order_warehouse;
@@ -193,7 +195,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 if ($res) {
                     $result['success'][] = $this->module->l('Shipment data updated successfully.');
                 } else {
-                    $result['errors'][] = $this->module->l('Failed to updated shipment data data.');
+                    $result['errors'][] = $this->module->l('Failed to update shipment data.');
                 }
             }
         }
