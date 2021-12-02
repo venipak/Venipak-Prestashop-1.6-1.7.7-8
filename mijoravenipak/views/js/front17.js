@@ -71,41 +71,43 @@ $( document ).ready(function() {
 });
 
 $(document).on("change", "input[name^='delivery_option[']", function() {
-    if (document.getElementById('mjvp-selected-terminal')) {
+    if(typeof event.target.value !== "undefined" && typeof venipakCarrierID !== "undefined" && parseInt(event.target.value) == parseInt(venipakCarrierID))
         mjvp_registerSelection('mjvp-selected-terminal');
-    }
 });
 
 $(document).on("change", "#mjvp-terminal-select-field", function() {
-    document.getElementById("mjvp-selected-terminal").value = this.value;
+    $("#mjvp-selected-terminal").val(this.value);
     mjvp_registerSelection('mjvp-selected-terminal');
 });
 
 function mjvp_registerSelection(selected_field_id) {
-  var ajaxData = {};
-  ajaxData.carrier_id = $("input[name^='delivery_option[']:checked").val().split(',')[0];
-  ajaxData.selected_terminal = document.getElementById(selected_field_id).value;
-  ajaxData.country_code = document.getElementById("mjvp-pickup-country").value;
+    var ajaxData = {};
+    ajaxData.carrier_id = $("input[name^='delivery_option[']:checked").val().split(',')[0];
+    ajaxData.selected_terminal = $(`#selected_field_id`).length != 0 ? $(`#selected_field_id`).value : 0;
+    ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").value : 0;
 
     var terminal = null;
-    mjvp_terminals.forEach((val, i) => {
-        if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
-            terminal = val;
-        }
-    });
-    ajaxData.terminal = terminal;
-
-  $.ajax(mjvp_front_controller_url,
+    if(ajaxData.selected_terminal != 0)
     {
-      data: ajaxData,
-      type: "POST",
-      dataType: "json",
+        mjvp_terminals.forEach((val, i) => {
+            if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
+                terminal = val;
+            }
+        });
+        ajaxData.terminal = terminal;
+    }
+
+    $.ajax(mjvp_front_controller_url,
+    {
+        data: ajaxData,
+        type: "POST",
+        dataType: "json",
     })
     .always(function (jqXHR, status) {
-      if (typeof jqXHR === 'object' && jqXHR !== null && 'msg' in jqXHR) {
-        console.log(jqXHR.msg);
-      } else {
-        console.log(jqXHR);
-      }
+        if (typeof jqXHR === 'object' && jqXHR !== null && 'msg' in jqXHR) {
+            console.log(jqXHR.msg);
+        } else {
+            console.log(jqXHR);
+        }
     });
 }

@@ -1601,6 +1601,7 @@ class MijoraVenipak extends CarrierModule
         $carrier_id_reference = $params['carrier']['id_reference'];
         $carrier_type = $cHelper->itIsThisModuleCarrier($carrier_id_reference);
         $delivery_times = $this->getEnabledDeliveryTimes();
+        $courier = Carrier::getCarrierByReference($params['carrier']['id_reference']);
 
         if ($carrier_type == 'courier') {
 
@@ -1610,7 +1611,8 @@ class MijoraVenipak extends CarrierModule
                 'show_warehouse_number' => Configuration::get($cModuleConfig->getConfigKey('warehouse_number', 'COURIER')),
                 'show_delivery_time' => Configuration::get($cModuleConfig->getConfigKey('delivery_time', 'COURIER')),
                 'show_carrier_call' => Configuration::get($cModuleConfig->getConfigKey('call_before_delivery', 'COURIER')),
-                'delivery_times' => $delivery_times
+                'delivery_times' => $delivery_times,
+                'venipakCarrierID' => $courier->id
             ];
 
 

@@ -1,3 +1,6 @@
+<script>
+    var venipakCarrierID = "{$venipakCarrierID}";
+</script>
 <div id="mjvp-courier-extra-fields" class="container-fluid mjvp-courier-extra-fields">
     {if isset($show_door_code) && $show_door_code}
         {if isset($notifications.error.mjvp_door_code)}
