@@ -248,7 +248,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.8');
@@ -1757,10 +1757,16 @@ class MijoraVenipak extends CarrierModule
 
         $manifest_title = '';
         $manifest_id = 0;
+    
+        // In case client changed credentials, we cannot use the old. manifest title and id
+        $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
         if($manifest_data)
         {
-            $manifest_title = $manifest_data['manifest_id'];
-            $manifest_id = $manifest_data['id'];
+            if(substr($manifest_data['manifest_id'], 0, 5) == $api_id)
+            {
+                $manifest_title = $manifest_data['manifest_id'];
+                $manifest_id = $manifest_data['id'];
+            }
         }
 
         // If not found, build new one.
@@ -1769,7 +1775,6 @@ class MijoraVenipak extends CarrierModule
             $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
             $current_date = date('ymd');
             $manifest_counter = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
-            $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
             $manifest_title = $cApi->buildManifestNumber($api_id, $manifest_counter);
         }
 
