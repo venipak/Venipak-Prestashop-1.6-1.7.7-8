@@ -1345,7 +1345,7 @@ class MijoraVenipak extends CarrierModule
 
         if(version_compare(_PS_VERSION_, '1.7', '>='))
         {
-            $add_content = $this->context->controller->php_self == 'order';
+            $add_content = $this->context->controller->php_self == 'order' && !$this->check17PaymentStep($this->context->cart);
         }
         // 1.6
         else
@@ -1589,11 +1589,36 @@ class MijoraVenipak extends CarrierModule
         return true;
     }
 
+    // Separate method, as methods of gettign a checkout step on 1.7 are inconsistent among minor versions.
+    public function check17PaymentStep($cart)
+    {
+        if(version_compare(_PS_VERSION_, '1.7', '>'))
+        {
+            $rawData = Db::getInstance()->getValue(
+                'SELECT checkout_session_data FROM ' . _DB_PREFIX_ . 'cart WHERE id_cart = ' . (int) $cart->id
+            );
+            $data = json_decode($rawData, true);
+            if (!is_array($data)) {
+                $data = [];
+            }
+            // Do not add this module extra content, if it is payment step to avoid conflicts with venipakcod.
+            if((isset($data['checkout-delivery-step']) && $data['checkout-delivery-step']['step_is_complete']) &&
+                (isset($data['checkout-payment-step']) && !$data['checkout-payment-step']['step_is_complete'])
+            )
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Hook to display content on carrier in checkout page
      */
     public function hookDisplayCarrierExtraContent($params)
     {
+        if($this->check17PaymentStep($params['cart']) && !isset($params['venipakcod']))
+            return '';
         $cHelper = new MjvpHelper();
         $cDb = new MjvpDb();
         $cModuleConfig = new MjvpModuleConfig();

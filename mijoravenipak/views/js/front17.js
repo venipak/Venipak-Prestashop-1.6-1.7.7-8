@@ -83,8 +83,8 @@ $(document).on("change", "#mjvp-terminal-select-field", function() {
 function mjvp_registerSelection(selected_field_id) {
     var ajaxData = {};
     ajaxData.carrier_id = $("input[name^='delivery_option[']:checked").val().split(',')[0];
-    ajaxData.selected_terminal = $(`#selected_field_id`).length != 0 ? $(`#selected_field_id`).value : 0;
-    ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").value : 0;
+    ajaxData.selected_terminal = $(`#${selected_field_id}`).length != 0 ? $(`#${selected_field_id}`).val() : 0;
+    ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").val() : 0;
 
     var terminal = null;
     if(ajaxData.selected_terminal != 0)
