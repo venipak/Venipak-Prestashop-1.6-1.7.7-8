@@ -80,6 +80,10 @@ class MijoraVenipak extends CarrierModule
 
     public $deliveryTimes = [];
 
+    public $id_carrier = false;
+
+    public $terminal_count;
+
     public static $_order_additional_info = array(
         'door_code' => '',
         'cabinet_number' => '',
@@ -497,11 +501,21 @@ class MijoraVenipak extends CarrierModule
      */
     public function getOrderShippingCost($params, $shipping_cost)
     {
+        $pickupCarrier = Carrier::getCarrierByReference(Configuration::get(self::$_carriers['pickup']['reference_name']));
         if($params instanceof Cart)
         {
             $cart = $params;
             if($this->checkCarrierDisablePassphrase($cart))
                 return false;
+
+            // Check pickup carrier, if there are any terminals for cart weight.
+            if(!isset($this->terminal_count))
+            {
+                $filtered_terminals = $this->getFilteredTerminals();
+                $this->terminal_count = count($filtered_terminals);
+            }
+            if($this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
+                return false; 
         }
         return $shipping_cost;
     }
@@ -1358,6 +1372,7 @@ class MijoraVenipak extends CarrierModule
 
             $address = new Address($params['cart']->id_address_delivery);
             $filtered_terminals = $this->getFilteredTerminals();
+            $this->terminal_count = count($filtered_terminals);
 
             $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
             Media::addJsDef(array(
