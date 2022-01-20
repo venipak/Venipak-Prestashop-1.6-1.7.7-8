@@ -76,10 +76,11 @@ class MjvpFiles extends MjvpBase
     {
         $file_dir = $this->getFileDir($this->_terminalsList['directory'], str_replace('%s', strtoupper($country_code), $this->_terminalsList['file_name']));
 
-        $terminals = [];
-        if ($this->checkFile($file_dir)) {
-            $terminals = json_decode($this->getFileContent($file_dir), $assoc);
+        if (!$this->checkFile($file_dir)) {
+            $this->updateCountriesList();
+            $this->updateTerminalsList();
         }
+        $terminals = json_decode($this->getFileContent($file_dir), $assoc);
 
         if(!empty($terminals) && !empty($filters))
         {
