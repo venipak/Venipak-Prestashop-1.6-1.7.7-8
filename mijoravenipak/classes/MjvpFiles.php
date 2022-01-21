@@ -230,7 +230,7 @@ class MjvpFiles extends MjvpBase
      */
     private function checkFile($file_dir)
     {
-        if (!is_file($file_dir)) {
+        if (!is_file($file_dir) || !file_get_contents($file_dir) || !$this->isJson(file_get_contents($file_dir))) {
             return false;
         }
         return true;
@@ -254,5 +254,11 @@ class MjvpFiles extends MjvpBase
             return file_get_contents($file_dir);
         }
         return '';
+    }
+
+    private function isJson($string)
+    {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 }

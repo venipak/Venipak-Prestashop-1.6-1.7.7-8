@@ -299,6 +299,7 @@ class MijoraVenipak extends CarrierModule
     {
         Configuration::updateValue($this->_configKeys['API']['live_api_server'], self::DEFAULT_LIVE_API_SERVER);
         Configuration::updateValue($this->_configKeys['API']['test_api_server'], self::DEFAULT_TEST_API_SERVER);
+        Configuration::updateValue($this->_configKeys['API']['live_mode'], 1);
         if (extension_loaded('curl') == false) {
             $this->_errors[] = $this->l('You have to enable the cURL extension on your server to install this module');
             return false;
