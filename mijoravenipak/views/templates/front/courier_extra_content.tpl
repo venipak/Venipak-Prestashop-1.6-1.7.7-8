@@ -75,7 +75,7 @@
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 <input name="mjvp_carrier_call" type="checkbox" class="not_uniform" {if isset($carrier_call) && $carrier_call}checked{/if}>
-                {l s='Carrier will call customer before delivery' mod='mijoravenipak'}
+                {l s='Carrier will call you before delivery' mod='mijoravenipak'}
             </label>
         </div>
     {/if}

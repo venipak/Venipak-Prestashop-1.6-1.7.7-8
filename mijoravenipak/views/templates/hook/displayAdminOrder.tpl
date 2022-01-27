@@ -170,7 +170,7 @@
                     <div class="col-md-6 col-xs-12">
                         <div class="field-row">
                             <input name="mjvp_carrier_call" type="checkbox" {if isset($venipak_other_info.carrier_call) && $venipak_other_info.carrier_call}checked{/if}>
-                            {l s='Select this option if you want carrier to call you before delivery' mod='mijoravenipak'}
+                            {l s='Select this option if you want carrier to call client before delivery' mod='mijoravenipak'}
                         </div>
                     </div>
                     <div class="col-md-6 col-xs-12">
