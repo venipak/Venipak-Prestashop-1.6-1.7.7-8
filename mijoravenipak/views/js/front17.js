@@ -97,8 +97,9 @@ function mjvp_registerSelection(selected_field_id) {
         ajaxData.terminal = terminal;
     }
 
-    $.ajax(mjvp_front_controller_url,
+    $.ajax(
     {
+        url: mjvp_front_controller_url,
         data: ajaxData,
         type: "POST",
         dataType: "json",
