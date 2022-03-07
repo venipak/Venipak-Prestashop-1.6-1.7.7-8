@@ -852,19 +852,19 @@ var DOMManipulator = /*#__PURE__*/function () {
       }
 
       terminals.forEach(function (loc) {
-        if (city !== loc.city.toLowerCase()) {
-          city = loc.city.toLowerCase();
+        // if (city !== loc.city.toLowerCase()) {
+        //   city = loc.city.toLowerCase();
 
-          var cityEl = _this3.createElement('li', {
-            classList: ['tmjs-city']
-          });
+        //   var cityEl = _this3.createElement('li', {
+        //     classList: ['tmjs-city']
+        //   });
 
-          cityEl.innerText = loc.city;
-          listHTML.push(cityEl);
-        }
+        //   cityEl.innerText = loc.city;
+        //   listHTML.push(cityEl);
+        // }
 
         var selectBtnHidden = _this3.hideSelectBtn ? 'tmjs-hidden' : '';
-        var template = "<span class=\"tmjs-terminal-name\">".concat(loc.name, ", ").concat(loc.address);
+        var template = `<span class="tmjs-terminal-name">${loc.name}, ${loc.address}, ${loc.city}`;
 
         if (typeof loc.distance != 'undefined' && loc.distance !== null) {
           // template += "<span class=\"tmjs-terminal-distance\"><img src=\"".concat(_this3.TMJS.imagePath, "gps.svg\" width=\"13\">").concat(loc.distance.toFixed(2), " Km.</span>");
