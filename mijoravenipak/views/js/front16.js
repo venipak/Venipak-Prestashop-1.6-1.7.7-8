@@ -11,7 +11,7 @@ $( document ).ready(function() {
     if(typeof page_name != "undefined" && page_name == 'order-opc')
     {
         $( document ).ajaxComplete(function( event, xhr, settings ) {
-            if ( settings.data.includes('updateCarrierAndGetPayments')) {
+            if ( typeof settings.data !== 'undefined' && settings.data.includes('updateCarrierAndGetPayments')) {
                 loadCarrierContent();
             }
         });

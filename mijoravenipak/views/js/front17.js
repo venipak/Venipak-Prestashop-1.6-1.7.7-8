@@ -51,10 +51,10 @@ $( document ).ready(function() {
                                 lng: terminal.lng
                             };
                             terminal['identifier'] = 'venipak';
+                            terminal['name'] = terminal['name'].split(', ').slice(1).join(', ');
                             terminals.push(terminal);
                         }
                     });
-                    // venipak_custom_modal.tmjs.terminals_cache = terminals;
                     if(terminals.length == 0)
                     {
                         venipak_custom_modal.tmjs.map._markerLayer.clearLayers();

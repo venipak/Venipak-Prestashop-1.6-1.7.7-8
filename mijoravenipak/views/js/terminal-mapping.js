@@ -224,13 +224,12 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
                lng: terminal.lng
              };
              terminal['identifier'] = 'venipak';
+             terminal['name'] = terminal['name'].split(', ').slice(1).join(', ');
              terminals.push(terminal);
            }
         });
 
           _this2.setTerminals(terminals);
-          // if(!_this2.terminals_cache)
-          //   _this2.terminals_cache = terminals;
           _this2.dom.renderTerminalList(_this2.map.locations);
 
           console.info(_this2.prefix + 'Terminals loaded');
@@ -238,7 +237,6 @@ var TerminalMappingMjvp = /*#__PURE__*/function () {
           _this2.dom.removeOverlay();
 
           _this2.publish('tmjs-ready', _this2);
-        // });
       });
     }
   }, {
