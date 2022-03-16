@@ -246,3 +246,8 @@ div#vp-loading-overlay {
 #live-endpoint-desc, #test-endpoint-desc {
     color: red;
 }
+
+.adminvenipakshipping .venipak-logo {
+    width: 25px;
+    margin-bottom: 3px;
+}

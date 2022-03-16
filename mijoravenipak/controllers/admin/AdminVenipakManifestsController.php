@@ -200,9 +200,10 @@ class AdminVenipakManifestsController extends ModuleAdminController
         $cDb = $this->module->getModuleService('MjvpDb');
         $arrival_time_from = $cDb->getManifestValue('arrival_date_from', ['id' => $id_manifest]);
         $arrival_time_to = $cDb->getManifestValue('arrival_date_to', ['id' => $id_manifest]);
+        $closed = $cDb->getManifestValue('closed', ['id' => $id_manifest]);
         $id_warehouse = $cDb->getManifestValue('id_warehouse', ['id' => $id_manifest]);
 
-        if(!$arrival_time_from || !$arrival_time_to)
+        if((!$arrival_time_from || !$arrival_time_to) && $closed)
         {
             $this->context->smarty->assign('data_button', [
                 'data' => [
