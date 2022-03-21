@@ -852,16 +852,16 @@ var DOMManipulator = /*#__PURE__*/function () {
       }
 
       terminals.forEach(function (loc) {
-        // if (city !== loc.city.toLowerCase()) {
-        //   city = loc.city.toLowerCase();
+        if (city !== loc.city.toLowerCase()) {
+          city = loc.city.toLowerCase();
 
-        //   var cityEl = _this3.createElement('li', {
-        //     classList: ['tmjs-city']
-        //   });
+          var cityEl = _this3.createElement('li', {
+            classList: ['tmjs-city']
+          });
 
-        //   cityEl.innerText = loc.city;
-        //   listHTML.push(cityEl);
-        // }
+          cityEl.innerText = loc.city;
+          listHTML.push(cityEl);
+        }
 
         var selectBtnHidden = _this3.hideSelectBtn ? 'tmjs-hidden' : '';
         var template = `<span class="tmjs-terminal-name">${loc.name}, ${loc.address}, ${loc.city}`;
@@ -1463,7 +1463,26 @@ var Map = /*#__PURE__*/function () {
         loc.distance = _this4.calculateDistance(origin, loc.coords);
       });
       this.locations.sort(this.sortByDistance);
-      return this.locations;
+      let cities = [];
+      this.locations.forEach((val, i) => {
+         if(!cities.includes(val.city)) {
+            cities.push(val.city)
+          }
+        }
+      );
+
+      let relocated = [];
+      cities.forEach((city, i) => {
+        this.locations.forEach((val, i) => {
+          if(city == val.city) {
+            relocated.push(val);
+           }
+         });
+       }
+     );
+
+    this.locations = relocated;
+    return this.locations;
     }
   }, {
     key: "deg2rad",
