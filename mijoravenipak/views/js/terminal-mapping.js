@@ -864,7 +864,7 @@ var DOMManipulator = /*#__PURE__*/function () {
         }
 
         var selectBtnHidden = _this3.hideSelectBtn ? 'tmjs-hidden' : '';
-        var template = `<span class="tmjs-terminal-name">${loc.name}, ${loc.address}, ${loc.city}`;
+        var template = `<span class="tmjs-terminal-name">${loc.display_name}, ${loc.address}`;
 
         if (typeof loc.distance != 'undefined' && loc.distance !== null) {
           // template += "<span class=\"tmjs-terminal-distance\"><img src=\"".concat(_this3.TMJS.imagePath, "gps.svg\" width=\"13\">").concat(loc.distance.toFixed(2), " Km.</span>");
