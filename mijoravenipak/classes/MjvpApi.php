@@ -532,7 +532,7 @@ class MjvpApi extends MjvpBase
         return empty($errors);
     }
 
-    private function executeRequest($url_suffix, $request_type, $params = array())
+    public function executeRequest($url_suffix, $request_type, $params = array())
     {
         if (empty($url_suffix) || empty($request_type)) {
             throw new Exception('URL suffix or request type is empty.');

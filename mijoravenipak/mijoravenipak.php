@@ -1768,6 +1768,35 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
+    public function checkFourHandsService($address)
+    {
+        $cApi = new MjvpApi();
+
+        $country_iso = Country::getIsoById($address->id_country);
+        $postcode = $address->postcode;
+        try {
+            $response = $cApi->executeRequest('ws/get_route', 'GET', [
+                'queryParams' => [
+                    'country' => $country_iso,
+                    'code' => $postcode,
+                    'type' => 'all',
+                    'view' => 'json'
+                ]
+            ]);
+
+            if($response)
+            {
+                $response = (array) $response;
+                if(isset($response['service1']) && $response['service1'] === "1")
+                    return true;
+            }
+
+        } catch (Exception $e) {
+            return false;
+        }
+        return false;
+    }
+
     /**
      * Hook to send labels when launch bulk action
      */
