@@ -2256,11 +2256,12 @@ class MijoraVenipak extends CarrierModule
                 {
                     // if any arrangment fits, terminal is good and we can stop checking other arrangements
                     // width and depth are considered invariablly, because it is assumed that shipment can be rotated
-                    if(($terminal->max_height >= $cartDimension['height']) && 
-                        (
-                            (($terminal->max_width >= $cartDimension['width']) && ($terminal->max_length >= $cartDimension['depth'])) ||
-                            (($terminal->max_length >= $cartDimension['depth']) && ($terminal->max_width >= $cartDimension['width']))
-                        )
+                    if( ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['depth'])
+                     || ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['width'])
+                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['depth']) 
+                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['height'])
+                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['width'])
+                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['height'])
                     )
                     {
                         $someArrangmentFits = true;
