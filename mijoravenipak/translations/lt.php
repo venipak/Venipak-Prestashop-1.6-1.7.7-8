@@ -52,7 +52,7 @@ $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_271e53f729450d8c0e1c7c3bc00c4
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_0f8a72ddc990a25bc754a256416cdff7'] = 'Darbo valandos';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_9aa698f602b1e5694855cee73a683488'] = 'Kontaktai';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_aaecaec71aff2fb7316be8b091c0d77b'] = 'Nėra punktų, kuriuos reikia pasirinkti';
-$_MODULE['<{mijoravenipak}prestashop>mijoravenipak_99938282f04071859941e18f16efcf42'] = 'psasirinkti';
+$_MODULE['<{mijoravenipak}prestashop>mijoravenipak_99938282f04071859941e18f16efcf42'] = 'Pasirinkti';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_25b1be43db812fdcbc408129371462e0'] = 'atnaujinti paiešką';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_8a644475a8ff34cd3e78f91386fbcecb'] = 'Nėra informacijos';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_5b8a4008ca4a4ac43834f2b65ce77998'] = 'Pasirinkite terminalą.';

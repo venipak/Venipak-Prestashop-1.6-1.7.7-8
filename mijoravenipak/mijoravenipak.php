@@ -2227,6 +2227,9 @@ class MijoraVenipak extends CarrierModule
             $weight = $entity->getTotalWeight();
             foreach ($terminals as $key => $terminal)
             {
+                // Zero means no limit
+                if($terminal->size_limit == 0)
+                    continue;
                 if(isset($terminal->size_limit) && $terminal->size_limit < $weight)
                     unset($terminals[$key]);
             }
@@ -2236,6 +2239,78 @@ class MijoraVenipak extends CarrierModule
         {
             return [];
         }
+    }
+
+    public function filterTerminalsByDimensions($terminals, $entity)
+    {
+        if($entity instanceof Order || $entity instanceof Cart)
+        {
+            $cartDimensions = $this->getProductsDimensionsCombinations($entity->getProducts());
+            foreach ($terminals as $key => $terminal)
+            {
+                // Zero means no limit
+                if($terminal->max_height == 0 || $terminal->max_width == 0 || $terminal->max_length == 0)
+                    continue;
+                $someArrangmentFits = false;
+                foreach($cartDimensions as $cartDimension)
+                {
+                    // if any arrangment fits, terminal is good and we can stop checking other arrangements
+                    // width and depth are considered invariablly, because it is assumed that shipment can be rotated
+                    if(($terminal->max_height >= $cartDimension['height']) && 
+                        (
+                            (($terminal->max_width >= $cartDimension['width']) && ($terminal->max_length >= $cartDimension['depth'])) ||
+                            (($terminal->max_length >= $cartDimension['depth']) && ($terminal->max_width >= $cartDimension['width']))
+                        )
+                    )
+                    {
+                        $someArrangmentFits = true;
+                        break;
+                    }
+
+                    if(!$someArrangmentFits)
+                    {
+                        unset($terminals[$key]);
+                    }
+                }
+            }
+            return $terminals;
+        }
+
+        return $terminals;
+    }
+
+    // Simplest variant. Returns 3 combinations to put products in, each time changing the stacking dimension.
+    private function getProductsDimensionsCombinations($products)
+    {
+        $emptyDimensions = [
+            'height' => 0,
+            'width' => 0,
+            'depth' => 0
+        ];
+        $dimensionsCombinations = [$emptyDimensions, $emptyDimensions, $emptyDimensions];
+
+        $divisor = Configuration::get('PS_DIMENSION_UNIT') == 'cm' ? 100 : 1;
+
+        foreach($products as $product)
+        {
+            $height = ((float) $product['height'] / $divisor) * $product['quantity'];
+            $width = ((float) $product['width'] / $divisor) * $product['quantity'];
+            $depth = ((float) $product['depth'] / $divisor) * $product['quantity'];
+
+            $dimensionsCombinations[0]['height'] += $height;
+            $dimensionsCombinations[0]['width'] += $width;
+            $dimensionsCombinations[0]['depth'] += $depth;
+
+            $dimensionsCombinations[1]['height'] += $width;
+            $dimensionsCombinations[1]['width'] += $height;
+            $dimensionsCombinations[1]['depth'] += $depth;
+
+            $dimensionsCombinations[2]['height'] += $depth;
+            $dimensionsCombinations[2]['width'] += $width;
+            $dimensionsCombinations[2]['depth'] += $height;
+        }
+
+        return $dimensionsCombinations;
     }
 
     public function getFilteredTerminals($filters = [], $entity = null)
@@ -2252,6 +2327,7 @@ class MijoraVenipak extends CarrierModule
             if(!$all_terminals_info)
                 $all_terminals_info = [];
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
+            $filtered_terminals = $this->filterTerminalsByDimensions($filtered_terminals, $entity);
             $filtered_terminals = array_values($filtered_terminals);
             return $filtered_terminals;
         }
