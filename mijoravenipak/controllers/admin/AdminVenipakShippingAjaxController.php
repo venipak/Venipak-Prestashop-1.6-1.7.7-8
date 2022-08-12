@@ -208,14 +208,14 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
             $changed = false;
             if ($selected_carrier->id != $order_carrier->id_carrier) {
                 $order->id_carrier = $selected_carrier->id;
-                $order_carrier->id_carrier = $selected_carrier->id;
                 $changed = true;
             }
             if ($changed) {
-                $order_carrier->update();
                 $this->context->currency = isset($this->context->currency) ? $this->context->currency : new Currency(Configuration::get('PS_CURRENCY_DEFAULT'));
-                $this->module->refreshShippingCost($order);
-                $order->update();
+                if($this->module->refreshShippingCost($order))
+                {
+                    $order->update();
+                }
             }
         }
 

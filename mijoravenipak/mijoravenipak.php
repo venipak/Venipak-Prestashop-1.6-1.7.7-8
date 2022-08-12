@@ -503,16 +503,25 @@ class MijoraVenipak extends CarrierModule
     public function getOrderShippingCost($params, $shipping_cost)
     {
         $pickupCarrier = Carrier::getCarrierByReference(Configuration::get(self::$_carriers['pickup']['reference_name']));
-        if($params instanceof Cart)
+        if($params instanceof CartCore)
         {
             $cart = $params;
             if($this->checkCarrierDisablePassphrase($cart))
                 return false;
 
             // Check pickup carrier, if there are any terminals for cart weight.
-            if(!isset($this->terminal_count))
+            if(empty($this->terminal_count))
             {
-                $filtered_terminals = $this->getFilteredTerminals();
+                $order = Order::getByCartId($cart->id);
+                if($order)
+                {
+                    $filtered_terminals = $this->getFilteredTerminals([], $order);
+                }
+                else
+                {
+                    $filtered_terminals = $this->getFilteredTerminals([], $cart);
+                }
+
                 $this->terminal_count = count($filtered_terminals);
             }
             if($this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
@@ -2222,7 +2231,7 @@ class MijoraVenipak extends CarrierModule
 
     private function filterTerminalsByWeight($terminals, $entity)
     {
-        if($entity instanceof Order || $entity instanceof Cart)
+        if($entity instanceof OrderCore || $entity instanceof CartCore)
         {
             $weight = $entity->getTotalWeight();
             foreach ($terminals as $key => $terminal)
@@ -2318,7 +2327,8 @@ class MijoraVenipak extends CarrierModule
     {
         if(!$entity && isset($this->context->cart))
             $entity = $this->context->cart;
-        if($entity instanceof Order || $entity instanceof Cart) {
+
+        if($entity instanceof OrderCore || $entity instanceof CartCore) {
             $address = new Address($entity->id_address_delivery);
             $country = new Country();
             $country_code = $country->getIsoById($address->id_country);
@@ -2494,12 +2504,14 @@ class MijoraVenipak extends CarrierModule
         }
 
         // get new shipping cost
-        $base_total_shipping_tax_incl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, true, null);
-        $base_total_shipping_tax_excl = (float) $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, false, null);
+        $base_total_shipping_tax_incl = $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, true, null);
+        $base_total_shipping_tax_excl = $new_cart->getPackageShippingCost((int) $new_cart->id_carrier, false, null);
+        if(!$base_total_shipping_tax_incl || !$base_total_shipping_tax_excl)
+            return false;
 
         // calculate diff price, then apply new order totals
-        $diff_shipping_tax_incl = $order->total_shipping_tax_incl - $base_total_shipping_tax_incl;
-        $diff_shipping_tax_excl = $order->total_shipping_tax_excl - $base_total_shipping_tax_excl;
+        $diff_shipping_tax_incl = $order->total_shipping_tax_incl - (float) $base_total_shipping_tax_incl;
+        $diff_shipping_tax_excl = $order->total_shipping_tax_excl - (float) $base_total_shipping_tax_excl;
 
         $order->total_shipping_tax_excl -= $diff_shipping_tax_excl;
         $order->total_shipping_tax_incl -= $diff_shipping_tax_incl;
@@ -2513,6 +2525,7 @@ class MijoraVenipak extends CarrierModule
         $orderCarrierId = (int) $order->getIdOrderCarrier();
         if ($orderCarrierId > 0) {
             $order_carrier = new OrderCarrier($orderCarrierId);
+            $order_carrier->id_carrier = (int) $order->id_carrier;
             $order_carrier->shipping_cost_tax_excl = $order->total_shipping_tax_excl;
             $order_carrier->shipping_cost_tax_incl = $order->total_shipping_tax_incl;
             $order_carrier->update();
