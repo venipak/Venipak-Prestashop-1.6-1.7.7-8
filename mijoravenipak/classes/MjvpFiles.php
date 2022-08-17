@@ -248,7 +248,7 @@ class MjvpFiles extends MjvpBase
     /**
      * Function to get content from file
      */
-    private function getFileContent($file_dir)
+    public function getFileContent($file_dir)
     {
         if ($this->checkFile($file_dir)) {
             return file_get_contents($file_dir);
