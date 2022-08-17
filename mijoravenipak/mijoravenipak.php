@@ -1977,7 +1977,14 @@ class MijoraVenipak extends CarrierModule
                     // If carrier is pickup terminal, consignee has to use terminal data.
                     if(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference)
                     {
-                        $terminal_info = json_decode($cDb->getOrderValue('terminal_info', array('id_order' => $order_id)));
+                        
+                        // Update terminal with latest data, because outdated data might yield API errors.
+                        $terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
+                        $terminal_info = $this->updateOrderTerminal($terminal_id, $country_iso, $order->id);
+
+                        if(empty($terminal_info))
+                            $terminal_info = json_decode($cDb->getOrderValue('terminal_info', array('id_order' => $order_id)));
+
                         $consignee = [
                             'name' => $terminal_info->name,
                             'code' => $terminal_info->company_code,
@@ -2144,6 +2151,40 @@ class MijoraVenipak extends CarrierModule
                 return $return;
             }
         }
+    }
+
+    public function updateOrderTerminal($terminal_id, $country_code, $id_order)
+    {
+        $cFiles = new MjvpFiles();
+        $cDb = new MjvpDb();
+        $terminals_file = _PS_MODULE_DIR_ . $this->name . "/data/terminals_$country_code.json";
+        $terminals = json_decode($cFiles->getFileContent($terminals_file));
+        $terminalToUpdate = null;
+        foreach($terminals as $terminal)
+        {
+            if(!empty($terminal->id) && $terminal->id == $terminal_id)
+            {
+                $terminalToUpdate = $terminal;
+                break;
+            }
+        }
+        if($terminalToUpdate)
+        {
+            $sql_values['terminal_info'] = json_encode([
+                'name' => $terminal->name,
+                'company_code' => $terminal->code,
+                'country' => $terminal->country,
+                'city' => $terminal->city,
+                'address' => $terminal->address,
+                'post_code' => $terminal->zip,
+                'is_cod' => $terminal->cod_enabled
+            ]);
+            $result = $cDb->updateOrderInfo($id_order, $sql_values, 'id_order');
+            if($result)
+                return json_decode($sql_values['terminal_info']);
+        }
+
+        return null;
     }
 
     /**
