@@ -165,16 +165,19 @@ function mjvp_registerSelection(selected_field_id, ajaxData = {}, params = {}) {
     ajaxData.carrier_id = $("input[name^='delivery_option[']:checked").val().split(',')[0];
     if(document.getElementById(selected_field_id))
         ajaxData.selected_terminal = document.getElementById(selected_field_id).value;
-    if(document.getElementById("mjvp-pickup-country"))
-        ajaxData.country_code = document.getElementById("mjvp-pickup-country").value;
 
     var terminal = null;
-    mjvp_terminals.forEach((val, i) => {
-        if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
-            terminal = val;
-        }
-    });
-    ajaxData.terminal = terminal;
+    if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && !empty(mjvp_terminals))
+    {
+        mjvp_terminals.forEach((val, i) => {
+            if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
+                terminal = val;
+            }
+        });
+        ajaxData.terminal = terminal;
+    }
+    if(document.getElementById("mjvp-pickup-country"))
+        ajaxData.country_code = document.getElementById("mjvp-pickup-country").value;
 
     $('.alert.alert-danger').remove();
     $.ajax(
