@@ -75,6 +75,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     'id_carrier_ref' => Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name'])),
                     'terminal_id' => Tools::getValue('id_pickup_point'),
                     'terminal_info' => json_encode($terminal_info),
+                    'last_select' => date('Y-m-d H:i:s'),
                 ];
 
                 // If cod is disabled, cod ammount will not be submitted at all.
@@ -108,7 +109,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $order_extra_info['return_service'] = $return_service;
                 $data['other_info'] = json_encode($order_extra_info);
 
-                $res = $this->createVenipakOrderIfNotExists($order);
+                $res = $this->module->createVenipakOrderIfNotExists($order);
                 $res &= $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if($res)
                 {
@@ -190,7 +191,7 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
             if (!isset($result['errors'])) {
                 $order = new Order($id_order);
-                $res = $this->createVenipakOrderIfNotExists($order);
+                $res = $this->module->createVenipakOrderIfNotExists($order);
                 $res &= $cDb->updateOrderInfo($id_order, $data, 'id_order');
                 if ($res) {
                     $result['success'][] = $this->module->l('Shipment data updated successfully.');
@@ -220,42 +221,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
 
         die(json_encode($result));
-    }
-
-    public function createVenipakOrderIfNotExists($order)
-    {
-        // Fix issue if customer selected Venipak carrier/terminal, but order data was not registered.
-        // As that functionality is handled by JavaScript, the problem is possible due to browser's cache.
-        $cDb = $this->module->getModuleService('MjvpDb');
-        $venipak_cart_info = $cDb->getOrderInfo($order->id);
-        if(!$venipak_cart_info)
-        {
-            $order_weight = $order->getTotalWeight();
-
-            // Convert to kg, if weight is in grams.
-            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
-                $order_weight *= 0.001;
-            
-            $is_cod = 0;
-            if(in_array($order->module, MijoraVenipak::$_codModules))
-                $is_cod = 1;
-
-            $address = new Address($order->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
-            $newOrderData = [
-                'id_order' => $order->id,
-                'id_cart' => $order->id_cart,
-                'id_carrier_ref' => $selected_carrier_reference,
-                'order_weight' => $order_weight,
-                'is_cod' => $is_cod,
-                'cod_amount' => $order->total_paid_tax_incl,
-                'country_code' => $country_code,
-            ];
-            $res = $cDb->saveOrderInfo($newOrderData);
-            return $res;
-        }
-        return true;
     }
 
     public function generateLabel()

@@ -1482,6 +1482,7 @@ class MijoraVenipak extends CarrierModule
         if(!$pickup_points)
             $pickup_points = [];
 
+        $this->createVenipakOrderIfNotExists($order);
         $order_terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
         $venipak_carriers = [];
         foreach (self::$_carriers as $carrier)
@@ -2576,5 +2577,42 @@ class MijoraVenipak extends CarrierModule
         $new_cart->delete();
 
         return $order;
+    }
+
+    public function createVenipakOrderIfNotExists($order)
+    {
+        // Fix issue if customer selected Venipak carrier/terminal, but order data was not registered.
+        // As that functionality is handled by JavaScript, the problem is possible due to browser's cache.
+        $cDb = $this->getModuleService('MjvpDb');
+        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+        if(!$venipak_cart_info)
+        {
+            $order_weight = $order->getTotalWeight();
+
+            // Convert to kg, if weight is in grams.
+            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
+                $order_weight *= 0.001;
+            
+            $is_cod = 0;
+            if(in_array($order->module, MijoraVenipak::$_codModules))
+                $is_cod = 1;
+
+            $address = new Address($order->id_address_delivery);
+            $country = new Country();
+            $country_code = $country->getIsoById($address->id_country);
+            $newOrderData = [
+                'id_order' => $order->id,
+                'id_cart' => $order->id_cart,
+                'id_carrier_ref' => $selected_carrier_reference,
+                'order_weight' => $order_weight,
+                'is_cod' => $is_cod,
+                'cod_amount' => $order->total_paid_tax_incl,
+                'country_code' => $country_code,
+                'last_select' => date('Y-m-d H:i:s'),
+            ];
+            $res = $cDb->saveOrderInfo($newOrderData);
+            return $res;
+        }
+        return true;
     }
 }
