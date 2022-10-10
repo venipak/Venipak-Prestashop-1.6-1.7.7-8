@@ -1,0 +1,4 @@
+*.DS_Store
+config*.xml
+/data/*
+/pdf/*

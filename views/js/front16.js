@@ -167,7 +167,7 @@ function mjvp_registerSelection(selected_field_id, ajaxData = {}, params = {}) {
         ajaxData.selected_terminal = document.getElementById(selected_field_id).value;
 
     var terminal = null;
-    if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && !empty(mjvp_terminals))
+    if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && mjvp_terminals.length != 0)
     {
         mjvp_terminals.forEach((val, i) => {
             if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {

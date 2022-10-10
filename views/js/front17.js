@@ -87,7 +87,7 @@ function mjvp_registerSelection(selected_field_id) {
     ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").val() : 0;
 
     var terminal = null;
-    if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && !empty(mjvp_terminals))
+    if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && mjvp_terminals.length != 0)
     {
         mjvp_terminals.forEach((val, i) => {
             if(parseInt(val.id) == parseInt(ajaxData.selected_terminal)) {
