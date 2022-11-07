@@ -252,7 +252,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.0';
+        $this->version = '1.1.1';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.8');
@@ -512,7 +512,17 @@ class MijoraVenipak extends CarrierModule
             // Check pickup carrier, if there are any terminals for cart weight.
             if(empty($this->terminal_count))
             {
-                $order = Order::getByCartId($cart->id);
+                $order = null;
+                if(method_exists(Order::class, 'getByCartId'))
+                {
+                    $order = Order::getByCartId($cart->id);
+                }
+                elseif(method_exists(Order::class, 'getOrderByCartId'))
+                {
+                    $id_order = (int) Order::getOrderByCartId($cart->id);
+                    $order = new Order($id_order);
+                }
+
                 if($order)
                 {
                     $filtered_terminals = $this->getFilteredTerminals([], $order);

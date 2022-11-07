@@ -214,7 +214,7 @@ class MjvpApi extends MjvpBase
         $xml_code .= '<country>' . $params['consignee']['country_code'] . '</country>';
         $xml_code .= '<city>' . $params['consignee']['city'] . '</city>';
         $xml_code .= '<address>' . $params['consignee']['address'] . '</address>';
-        $xml_code .= '<post_code>' . $params['consignee']['postcode'] . '</post_code>';
+        $xml_code .= '<post_code>' . $this->getConsigneePostcode($params['consignee']['postcode'], $params['consignee']['country_code']) . '</post_code>';
         $xml_code .= '<contact_person>' . $params['consignee']['person'] . '</contact_person>';
         $xml_code .= '<contact_tel>' . $params['consignee']['phone'] . '</contact_tel>';
         $xml_code .= '<contact_email>' . $params['consignee']['email'] . '</contact_email>';
@@ -257,6 +257,15 @@ class MjvpApi extends MjvpBase
         $xml_code .= '</shipment>';
 
         return $xml_code;
+    }
+
+    private function getConsigneePostcode($postcode, $country)
+    {
+        if ($country == 'LV') {
+            return preg_replace('/[^0-9]/', '', $postcode);
+        }
+
+        return $postcode;
     }
 
     public function buildTrackingNumber($login_id, $serial_number)
