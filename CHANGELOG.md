@@ -1,8 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.1]
 ### Fixed
 - fixed consignee postcode for Latvia
+- fixed Order::getByCartId incompatibility for Prestashop 1.6
 
 ## [1.1.0] - 2021-11-23
 ### Init
