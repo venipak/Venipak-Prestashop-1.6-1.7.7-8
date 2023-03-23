@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.1.1]
+## [Unreleased]
+### Fixed
+- fixed pickup point carrier show in Checkout on PS 1.6.1
+
+## [1.1.1] - 2022-11-07
 ### Fixed
 - fixed consignee postcode for Latvia
 - fixed Order::getByCartId incompatibility for Prestashop 1.6

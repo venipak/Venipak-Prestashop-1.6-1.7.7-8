@@ -520,7 +520,9 @@ class MijoraVenipak extends CarrierModule
                 elseif(method_exists(Order::class, 'getOrderByCartId'))
                 {
                     $id_order = (int) Order::getOrderByCartId($cart->id);
-                    $order = new Order($id_order);
+                    if ( ! empty($id_order) ) {
+                        $order = new Order($id_order);
+                    }
                 }
 
                 if($order)
