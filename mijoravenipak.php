@@ -1898,13 +1898,19 @@ class MijoraVenipak extends CarrierModule
                     $country_iso = Country::getIsoById($address->id_country);
                     $consignee_name = $address->firstname . ' ' . $address->lastname;
                     $consignee_code = '';
-                    if ($address->company && $customer->company) {
-                        $consignee_name = $address->company;
-                        if (!$address->dni && !$customer->siret) {
+                    if ($address->company || $customer->company) {
+                        $consignee_name = $address->company ?: $customer->company;
+                        if (!$address->dni && !$address->vat_number && !$customer->siret) {
                             $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Company code is missing');
                             continue;
                         } else {
-                            $consignee_code = $address->dni ?: $customer->siret;
+                            if(!empty($address->dni)) {
+                                $consignee_code = $address->dni;
+                            } elseif(!empty($address->vat_number)) {
+                                $consignee_code = $address->vat_number;
+                            } else {
+                                $consignee_code = $customer->siret;
+                            }
                         }
                     }
                     $consignee_address = $address->address1;
