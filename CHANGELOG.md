@@ -1,8 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.2]
 ### Fixed
 - fixed pickup point carrier show in Checkout on PS 1.6.1
+
+### Improved
+- added the option to specify the company name instead of the person name on the label
 
 ## [1.1.1] - 2022-11-07
 ### Fixed
