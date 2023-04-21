@@ -2069,7 +2069,7 @@ class MijoraVenipak extends CarrierModule
                             $order_carrier = new OrderCarrier($id_order_carrier);
                             $order_carrier->tracking_number = $order_labels[0];
                             $order_carrier->save();
-                            
+
                             $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
