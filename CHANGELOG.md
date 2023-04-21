@@ -1,6 +1,10 @@
 # Changelog
 
-## [1.1.2]
+## [Unreleased]
+### Fixed
+- fixed email sending, when is set on Venipak Order status
+
+## [1.1.2] - 2023-04-07
 ### Fixed
 - fixed pickup point carrier show in Checkout on PS 1.6.1
 
