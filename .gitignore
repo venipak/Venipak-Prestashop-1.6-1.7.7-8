@@ -1,4 +1,5 @@
 *.DS_Store
 config*.xml
-/data/*
-/pdf/*
+data/**/*.json
+pdf/**/*.pdf
+logs/**/*.log

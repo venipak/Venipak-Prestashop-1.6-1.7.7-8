@@ -255,7 +255,7 @@ class MijoraVenipak extends CarrierModule
         $this->version = '1.1.2';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.8');
+        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
         $this->bootstrap = true;
 
         parent::__construct();
