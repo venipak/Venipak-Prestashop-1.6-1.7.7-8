@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.3] - 2023-09-06
 ### Fixed
 - fixed email sending, when is set on Venipak Order status
 
