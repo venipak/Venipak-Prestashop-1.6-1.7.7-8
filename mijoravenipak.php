@@ -252,10 +252,10 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.2';
+        $this->version = '1.1.3';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => '1.7.8');
+        $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
         $this->bootstrap = true;
 
         parent::__construct();
@@ -2059,7 +2059,6 @@ class MijoraVenipak extends CarrierModule
                         $offset = 0;
                         foreach ($order_packages_mapping as $order_id => $mapping)
                         {
-                            $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $order_labels = array_slice($status['text'], $offset, $mapping);
 
                             // Add first label number to OrderCarrier as tracking number.
@@ -2071,6 +2070,7 @@ class MijoraVenipak extends CarrierModule
                             $order_carrier->tracking_number = $order_labels[0];
                             $order_carrier->save();
 
+                            $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
                                 'manifest_id' => $manifest_title,
@@ -2456,7 +2456,7 @@ class MijoraVenipak extends CarrierModule
             $history->id_employee = Context::getContext()->employee->id;
             $history->changeIdOrderState((int)$status, $order);
             $order->update();
-            $history->add();
+            $history->addWithemail(true);
         }
     }
 

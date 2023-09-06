@@ -1,6 +1,13 @@
 # Changelog
 
-## [1.1.2]
+## [1.1.3] - 2023-09-06
+### Fixed
+- fixed email sending, when is set on Venipak Order status
+
+### Improved
+- the module is adapted to work in the Prestashop 8.x system (tested up to Prestashop 8.1.1)
+
+## [1.1.2] - 2023-04-07
 ### Fixed
 - fixed pickup point carrier show in Checkout on PS 1.6.1
 
