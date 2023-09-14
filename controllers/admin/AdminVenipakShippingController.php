@@ -279,7 +279,14 @@ class AdminVenipakShippingController extends ModuleAdminController
 
     public function parseLabelNumbers($labels)
     {
-        return implode(', ', json_decode($labels, true));
+        $labels_array = json_decode($labels, true);
+        if ( ! is_array($labels_array) ) {
+            if ( empty($labels_array) ) {
+                return '';
+            }
+            return 'ERROR! ' . json_encode($labels, JSON_PRETTY_PRINT);
+        }
+        return implode(', ', $labels_array);
     }
 
     /**

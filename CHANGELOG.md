@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed warning message in Venipak Orders page, when order does not have Venipak tracking number
+
 ## [1.1.3] - 2023-09-06
 ### Fixed
 - fixed email sending, when is set on Venipak Order status
