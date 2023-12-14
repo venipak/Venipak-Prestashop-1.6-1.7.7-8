@@ -1836,6 +1836,13 @@ class MijoraVenipak extends CarrierModule
         $found = false;
         $notfound_ids = [];
 
+        if ( ! $warehouse_id ) {
+            $default_warehouse_id = $cDb->getValue('mjvp_warehouse', 'id', array('default_on' => 1));
+            if ( $default_warehouse_id ) {
+                $warehouse_id = $default_warehouse_id;
+            }
+        }
+
         /* Determine the manifest ID. If there exist manifest, which:
                 1. Was generated today;
                 2. Is assigned to a warehouse @$warehouse_id;

@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - fixed warning message in Venipak Orders page, when order does not have Venipak tracking number
+- fixed problem when sometimes warehouse is not assigned to the manifest
 
 ## [1.1.3] - 2023-09-06
 ### Fixed
