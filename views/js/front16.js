@@ -131,14 +131,14 @@ function filterEventListener()
 
 function addTerminalValidateListener()
 {
-    $('#HOOK_PAYMENT').on('click', () => {
-        if($('#mjvp-selected-terminal').length != 0 && !$(event.target).hasClass('venipakcod'))
+    $('#HOOK_PAYMENT').on('click', (e) => {
+        if($('#mjvp-selected-terminal').length != 0 && !$(e.target).hasClass('venipakcod'))
         {
-            event.preventDefault();
+            e.preventDefault();
             mjvp_registerSelection('mjvp-selected-terminal', {
                 'update-data-opc' : 1
             }, {
-                'href' : $(event.target).attr('href'),
+                'href' : $(e.target).attr('href'),
                 'scrollToError' : 1,
             });
         }
