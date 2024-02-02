@@ -105,11 +105,13 @@ class MijoraVenipak extends CarrierModule
      */
     protected $_hooks = array(
         'header',
+        'displayHeader',
         'actionOrderGridDefinitionModifier',
         'actionAdminOrdersListingFieldsModifier',
         'displayCarrierExtraContent',
         'updateCarrier',
         'displayAdminOrder',
+        'actionCarrierUpdate', // hookUpdateCarrier
         'actionValidateStepComplete',
         'actionValidateOrder',
         'actionAdminControllerSetMedia',
@@ -1371,6 +1373,11 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
+    public function hookActionCarrierUpdate($params)
+    {
+        $this->hookUpdateCarrier($params);
+    }
+
     /**
      * Hook for js/css files and other elements in header
      */
@@ -1455,6 +1462,14 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
         }
+    }
+
+    /**
+     * Hook for js/css files and other elements in header for PS 8.x
+     */
+    public function hookDisplayHeader($params)
+    {
+        $this->hookHeader($params);
     }
 
 
@@ -2487,6 +2502,11 @@ class MijoraVenipak extends CarrierModule
                 )
             );
         }
+    }
+
+    public function hookdisplayAdminGridTableBefore($params)
+    {
+        $this->hookDisplayAdminListBefore($params);
     }
 
     /**
