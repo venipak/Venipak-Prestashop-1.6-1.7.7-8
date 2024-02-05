@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4] - 2024-02-05
+### Fixed
+- fixed warning message in Venipak Orders page, when order does not have Venipak tracking number
+- fixed problem when sometimes warehouse is not assigned to the manifest
+- fixed checkout terminal validation event
+- fixed hooks in PS 8.x
+
 ## [1.1.3] - 2023-09-06
 ### Fixed
 - fixed email sending, when is set on Venipak Order status

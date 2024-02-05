@@ -105,11 +105,13 @@ class MijoraVenipak extends CarrierModule
      */
     protected $_hooks = array(
         'header',
+        'displayHeader',
         'actionOrderGridDefinitionModifier',
         'actionAdminOrdersListingFieldsModifier',
         'displayCarrierExtraContent',
         'updateCarrier',
         'displayAdminOrder',
+        'actionCarrierUpdate', // hookUpdateCarrier
         'actionValidateStepComplete',
         'actionValidateOrder',
         'actionAdminControllerSetMedia',
@@ -252,7 +254,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.3';
+        $this->version = '1.1.4';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1371,6 +1373,11 @@ class MijoraVenipak extends CarrierModule
         }
     }
 
+    public function hookActionCarrierUpdate($params)
+    {
+        $this->hookUpdateCarrier($params);
+    }
+
     /**
      * Hook for js/css files and other elements in header
      */
@@ -1455,6 +1462,14 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
         }
+    }
+
+    /**
+     * Hook for js/css files and other elements in header for PS 8.x
+     */
+    public function hookDisplayHeader($params)
+    {
+        $this->hookHeader($params);
     }
 
 
@@ -1835,6 +1850,13 @@ class MijoraVenipak extends CarrierModule
         $success_orders = [];
         $found = false;
         $notfound_ids = [];
+
+        if ( ! $warehouse_id ) {
+            $default_warehouse_id = $cDb->getValue('mjvp_warehouse', 'id', array('default_on' => 1));
+            if ( $default_warehouse_id ) {
+                $warehouse_id = $default_warehouse_id;
+            }
+        }
 
         /* Determine the manifest ID. If there exist manifest, which:
                 1. Was generated today;
@@ -2480,6 +2502,11 @@ class MijoraVenipak extends CarrierModule
                 )
             );
         }
+    }
+
+    public function hookdisplayAdminGridTableBefore($params)
+    {
+        $this->hookDisplayAdminListBefore($params);
     }
 
     /**
