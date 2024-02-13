@@ -2223,8 +2223,14 @@ class MijoraVenipak extends CarrierModule
         }
 
         if ( isset($response['error']['text']) ) {
-            if ( isset($response['error']['@attributes']) && ! empty($response['error']['@attributes']['pack']) ) {
-                $error_shipments[$response['error']['@attributes']['pack']] = $response['error']['text'];
+            $errors = array($response['error']);
+        } else if ( is_array($response['error']) ) {
+            $errors = $response['error'];
+        }
+
+        foreach ( $errors as $error ) {
+            if ( isset($error['@attributes']) && ! empty($error['@attributes']['pack']) ) {
+                $error_shipments[$error['@attributes']['pack']] = $error['text'];
             }
         }
 
