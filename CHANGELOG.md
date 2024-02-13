@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed that the status of orders that do not have errors would not be changed during bulk shipment registration
+
+### Improved
+- improved that the error message show the ID of the order that contains the error
+
 ## [1.1.4] - 2024-02-05
 ### Fixed
 - fixed warning message in Venipak Orders page, when order does not have Venipak tracking number
