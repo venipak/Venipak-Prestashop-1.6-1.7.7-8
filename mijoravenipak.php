@@ -2127,24 +2127,44 @@ class MijoraVenipak extends CarrierModule
 
                 }
                 if (isset($status['error'])) {
-                    // Each order in this manifest gets error status. There is no simple way do identify, which orders had API errors.
+                    $error_shipments_txt = $this->getApiErrorShipments($status);
+                    $error_shipments = $this->getShipmentsByTrackingNumbers($manifest['shipments'], array_keys($error_shipments_txt));
                     foreach ($success_orders as $order)
                     {
-                        $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
+                        if ( empty($error_shipments) ) {
+                            $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
+                        } else {
+                            foreach ( $error_shipments as $error_shipment ) {
+                                if ( empty($error_shipment['order_id']) ) {
+                                    continue;
+                                }
+                                if ( trim($order, ' #') == $error_shipment['order_id'] ) {
+                                    $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
+                                }
+                            }
+                        }
                     }
                     // Nullify successful orders array. If one order in manifest is incorrect, entire manifest fails.
                     $success_orders = [];
-                    if (isset($status['error']['text'])) {
-                        $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];
-                    }
-                    elseif (is_array($status['error'])) {
-                        foreach ($status['error'] as $error)
-                        {
-                            $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $error['text'];
+                    
+                    if ( ! empty($error_shipments) ) {
+                        foreach ( $error_shipments as $track_number => $error_shipment ) {
+                            $errors[] = '<b>' . sprintf($this->l('API error in order #%s'), $error_shipment['order_id']) . ':</b> ' . $error_shipments_txt[$track_number];
                         }
-                    }
-                    else {
-                       $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
+                        $errors[] = $this->l('The manifest cannot be registered if there is an error in even one shipment. Please remove the indicated errors or unmark orders with errors.');
+                    } else {
+                        if (isset($status['error']['text'])) {
+                            $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];
+                        }
+                        elseif (is_array($status['error'])) {
+                            foreach ($status['error'] as $error)
+                            {
+                                $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $error['text'];
+                            }
+                        }
+                        else {
+                           $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
+                        }
                     }
                 } else if(!$manifest_id) {
                     Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
@@ -2165,7 +2185,7 @@ class MijoraVenipak extends CarrierModule
         {
             if (empty($errors))
             {
-                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title));
+                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the manifest #%s.', $manifest_title));
             }
             else
             {
@@ -2181,7 +2201,7 @@ class MijoraVenipak extends CarrierModule
         {
             if (empty($errors))
             {
-                return  ['success' => $this->l(sprintf('Successfully created label(s) for the shipment #%s.', $manifest_title))];
+                return  ['success' => $this->l(sprintf('Successfully created label(s) for the manifest #%s.', $manifest_title))];
             }
             else
             {
@@ -2192,6 +2212,57 @@ class MijoraVenipak extends CarrierModule
                 return $return;
             }
         }
+    }
+
+    private function getApiErrorShipments( $response )
+    {
+        $error_shipments = array();
+
+        if ( ! isset($response['error']) ) {
+            return $error_shipments;
+        }
+
+        if ( isset($response['error']['text']) ) {
+            $errors = array($response['error']);
+        } else if ( is_array($response['error']) ) {
+            $errors = $response['error'];
+        }
+
+        foreach ( $errors as $error ) {
+            if ( isset($error['@attributes']) && ! empty($error['@attributes']['pack']) ) {
+                $error_shipments[$error['@attributes']['pack']] = $error['text'];
+            }
+        }
+
+        return $error_shipments;
+    }
+
+    private function getShipmentsByTrackingNumbers( $shipments, $tracking_numbers )
+    {
+        $found_shipments = array();
+
+        foreach ( $tracking_numbers as $track_number ) {
+            $exploded_number = explode('E', $track_number);
+            if ( ! isset($exploded_number[1]) ) {
+                continue;
+            }
+            $shipment_serial_number = (int) $exploded_number[1];
+            foreach ( $shipments as $shipment ) {
+                if ( empty($shipment['packs']) ) {
+                    continue;
+                }
+                foreach ( $shipment['packs'] as $shipment_pack ) {
+                    if ( empty($shipment_pack['serial_number']) ) {
+                        continue;
+                    }
+                    if ( $shipment_serial_number == $shipment_pack['serial_number'] ) {
+                        $found_shipments[$track_number] = $shipment;
+                    }
+                }
+            }
+        }
+
+        return $found_shipments;
     }
 
     public function updateOrderTerminal($terminal_id, $country_code, $id_order)
