@@ -1850,6 +1850,13 @@ class MijoraVenipak extends CarrierModule
         $success_orders = [];
         $found = false;
         $notfound_ids = [];
+        $manifest_errors = [];
+
+        if (!$warehouse_id) {
+            return array('errors' => array(
+                $this->l('Orders are not assigned a warehouse or their delivery method is not Venipak') . ': #' . implode(', #', $orders_ids)
+            ));
+        }
 
         if ( ! $warehouse_id ) {
             $default_warehouse_id = $cDb->getValue('mjvp_warehouse', 'id', array('default_on' => 1));
@@ -1899,17 +1906,15 @@ class MijoraVenipak extends CarrierModule
             'manifest_title' => $manifest_title
         );
 
-        try {
-            $error_order_no = '-';
+        // Venipak returns batch of label numbers that have no relation to shipments for which label was generated, other than their order.
+        // This gets complicated when packs are used. So we sort orders (this way we will know which label number belongs to which order)
+        // and map each order to it's packages and parse the response accordingly.
+        sort($orders_ids);
+        $order_packages_mapping = [];
 
-            // Venipak returns batch of label numbers that have no relation to shipments for which label was generated, other than their order.
-            // This gets complicated when packs are used. So we sort orders (this way we will know which label number belongs to which order)
-            // and map each order to it's packages and parse the response accordingly.
-            sort($orders_ids);
-            $order_packages_mapping = [];
-
-            foreach ($orders_ids as $order_id) {
-                $error_order_no = ' #' . $order_id;
+        foreach ($orders_ids as $order_id) {
+            $error_order_no = ' #' . $order_id;
+            try {
                 $order = new Order((int)$order_id);
                 $address = new Address($order->id_address_delivery);
                 $carrier = new Carrier($order->id_carrier);
@@ -1920,19 +1925,22 @@ class MijoraVenipak extends CarrierModule
                     $country_iso = Country::getIsoById($address->id_country);
                     $consignee_name = $address->firstname . ' ' . $address->lastname;
                     $consignee_code = '';
+                    if (!in_array($country_iso, $this->available_countries)) {
+                        $errors[$order_id][] = $this->l('Consignee country is not allowed');
+                        continue;
+                    }
                     if ($address->company || $customer->company) {
                         $consignee_name = $address->company ?: $customer->company;
                         if (!$address->dni && !$address->vat_number && !$customer->siret) {
-                            $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Company code is missing');
+                            $errors[$order_id][] = $this->l('Company code is missing');
                             continue;
+                        }
+                        if(!empty($address->dni)) {
+                            $consignee_code = $address->dni;
+                        } elseif(!empty($address->vat_number)) {
+                            $consignee_code = $address->vat_number;
                         } else {
-                            if(!empty($address->dni)) {
-                                $consignee_code = $address->dni;
-                            } elseif(!empty($address->vat_number)) {
-                                $consignee_code = $address->vat_number;
-                            } else {
-                                $consignee_code = $customer->siret;
-                            }
+                            $consignee_code = $customer->siret;
                         }
                     }
                     $consignee_address = $address->address1;
@@ -1940,34 +1948,8 @@ class MijoraVenipak extends CarrierModule
                         $consignee_address .= ', ' . $address->address2;
                     }
                     $consignee_phone = (!empty($address->phone_mobile)) ? $address->phone_mobile : $address->phone;
-                    if (!in_array($country_iso, $this->available_countries)) {
-                        $errors[] = $this->l('Order') . $error_order_no. '. ' . $this->l('Consignee country is not allowed');
-                        continue;
-                    }
 
                     $order_info = $cDb->getOrderInfo($order_id);
-                    $packages = $order_info['packages'];
-                    $order_packages_mapping[$order_id] = $packages;
-                    $shipment_pack = [];
-                    for($i = 1; $i <= $packages; $i++)
-                    {
-                        $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
-                        $shipment_pack[$i] = array(
-                            'serial_number' => $pack_no,
-                            'document_number' => '',
-                            'weight' => Tools::ps_round($order_info['order_weight'] / $packages, 2),
-                            'volume' => 0,
-                        );
-                        foreach ($order_products as $key => $product) {
-                            // Calculate volume in m3
-                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm')
-                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                            elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm')
-                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
-                            $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
-                        }
-                        Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
-                    }
 
                     // Get other info fields for Venipak carrier (door code, cabinet number, warehouse, delivery time).
                     $carrier_reference = $carrier->id_reference;
@@ -1987,14 +1969,18 @@ class MijoraVenipak extends CarrierModule
                     {
                         $contact_email = $customer->email;
                     }
+
                     $other_info = json_decode($cDb->getOrderValue('other_info', array('id_order' => $order_id)));
-                    if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference)
-                    {
-                        $door_code = $other_info->door_code;
-                        $cabinet_number = $other_info->cabinet_number;
-                        $warehouse_number = $other_info->warehouse_number;
-                        $delivery_time = $other_info->delivery_time;
-                        $carrier_call = $other_info->carrier_call;
+                    if(empty($other_info) && !is_object($other_info)) {
+                        $other_info = new stdClass();
+                    }
+                    
+                    if(Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference) {
+                        $door_code = (property_exists($other_info, 'door_code')) ? $other_info->door_code : '';
+                        $cabinet_number = (property_exists($other_info, 'cabinet_number')) ? $other_info->cabinet_number : '';
+                        $warehouse_number = (property_exists($other_info, 'warehouse_number')) ? $other_info->warehouse_number : '';
+                        $delivery_time = (property_exists($other_info, 'delivery_time')) ? $other_info->delivery_time : 'nwd';
+                        $carrier_call = (property_exists($other_info, 'carrier_call')) ? $other_info->carrier_call : 0;
                         $consignee = [
                             'name' => $consignee_name,
                             'code' => $consignee_code,
@@ -2014,18 +2000,17 @@ class MijoraVenipak extends CarrierModule
                             'cod' => $order_info['is_cod'] ? $order_info['cod_amount'] : '',
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
-                    }
-                    // If carrier is pickup terminal, consignee has to use terminal data.
-                    if(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference)
-                    {
-                        
+                    } elseif(Configuration::get(self::$_carriers['pickup']['reference_name']) == $carrier_reference) {
                         // Update terminal with latest data, because outdated data might yield API errors.
                         $terminal_id = $cDb->getOrderValue('terminal_id', ['id_order' => $order->id]);
                         $terminal_info = $this->updateOrderTerminal($terminal_id, $country_iso, $order->id);
-
-                        if(empty($terminal_info))
+                        if(empty($terminal_info)) {
                             $terminal_info = json_decode($cDb->getOrderValue('terminal_info', array('id_order' => $order_id)));
-
+                        }
+                        if(empty($terminal_info)) {
+                            $errors[$order_id][] = $this->l('Failed to get selected terminal information');
+                            continue;
+                        }
                         $consignee = [
                             'name' => $terminal_info->name,
                             'code' => $terminal_info->company_code,
@@ -2040,9 +2025,32 @@ class MijoraVenipak extends CarrierModule
                             'cod_type' => $order_info['is_cod'] ? $currency_iso : '',
                         ];
                     }
-                    if(isset($other_info->return_service))
-                    {
+                    
+                    if(isset($other_info->return_service)) {
                         $consignee['return_service'] = $other_info->return_service;
+                    }
+
+                    $packages = $order_info['packages'];
+                    $order_packages_mapping[$order_id] = $packages;
+                    $shipment_pack = [];
+                    for($i = 1; $i <= $packages; $i++) {
+                        $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
+                        $shipment_pack[$i] = array(
+                            'serial_number' => $pack_no,
+                            'document_number' => '',
+                            'weight' => Tools::ps_round($order_info['order_weight'] / $packages, 2),
+                            'volume' => 0,
+                        );
+                        foreach ($order_products as $key => $product) {
+                            // Calculate volume in m3
+                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm') {
+                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
+                            } elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm') {
+                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
+                            }
+                            $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
+                        }
+                        Configuration::updateValue($this->_configKeysOther['counter_packs']['key'], $pack_no);
                     }
                     $manifest['shipments'][] = array(
                         'order_id' => $order_id,
@@ -2050,22 +2058,23 @@ class MijoraVenipak extends CarrierModule
                         'consignee' => $consignee,
                         'packs' => $shipment_pack,
                     );
-                    $success_orders[] = $error_order_no;
+
+                    $success_orders[] = $order_id;
                 } else {
-                    $notfound_ids[] = $error_order_no;
+                    $notfound_ids[] = $order_id;
                 }
+            } catch (Exception $e) {
+                $errors[$order_id][] = $e->getMessage();
             }
+        }
+
+        try {
+            // Add to manifest
             $manifest_xml = $cApi->buildManifestXml($manifest);
             if ($cHelper->isXMLContentValid($manifest_xml) && $found) {
                 $status = $cApi->sendXml($manifest_xml);
-                if(!isset($status['error']) && $status['text'])
-                {
-                    if($manifest_id)
-                    {
-                        $mjvp_manifest = new MjvpManifest($manifest_id);
-                    }
-                    else
-                        $mjvp_manifest = new MjvpManifest();
+                if(!isset($status['error']) && $status['text']) {
+                    $mjvp_manifest = ($manifest_id) ? new MjvpManifest($manifest_id) : new MjvpManifest();
 
                     $mjvp_manifest->manifest_id = $manifest_title;
                     $mjvp_manifest->id_warehouse = $warehouse_id;
@@ -2076,12 +2085,15 @@ class MijoraVenipak extends CarrierModule
                     $mjvp_manifest->save(true);
 
                     // Multiple labels - $status['text'] is array
-                    if(isset($status['text']) && is_array($status['text']))
-                    {
+                    if(isset($status['text']) && is_array($status['text'])) {
                         $offset = 0;
-                        foreach ($order_packages_mapping as $order_id => $mapping)
-                        {
+                        foreach ($order_packages_mapping as $order_id => $mapping) {
+                            $error_prefix = $this->l('Order') . ' #' . $order_id . ': ';
                             $order_labels = array_slice($status['text'], $offset, $mapping);
+                            if (empty($order_labels)) {
+                                $manifest_errors[] = $error_prefix . $this->l('Failed to get order labels');
+                                continue;
+                            }
 
                             // Add first label number to OrderCarrier as tracking number.
                             $id_order_carrier = (int) Db::getInstance()->getValue('
@@ -2092,7 +2104,7 @@ class MijoraVenipak extends CarrierModule
                             $order_carrier->tracking_number = $order_labels[0];
                             $order_carrier->save();
 
-                            $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
+                            $this->changeOrderStatus((int)$order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                             $cDb->updateRow('mjvp_orders', [
                                 'labels_numbers' => json_encode($order_labels),
                                 'manifest_id' => $manifest_title,
@@ -2101,22 +2113,20 @@ class MijoraVenipak extends CarrierModule
                                 ['id_order' => $order_id]);
                             $offset += $mapping;
                         }
-                    }
-                    elseif(isset($status['text']))
-                    {
-                        // alternative for array_key_first, to support older PHP versions
+                    } elseif(isset($status['text'])) {
+                        // Alternative for array_key_first, to support older PHP versions
                         reset($order_packages_mapping);
                         $id_order = key($order_packages_mapping);
 
                         $id_order_carrier = (int) Db::getInstance()->getValue('
                                 SELECT `id_order_carrier`
                                 FROM `' . _DB_PREFIX_ . 'order_carrier`
-                                WHERE `id_order` = ' . (int) $order_id);
+                                WHERE `id_order` = ' . (int) $id_order);
                         $order_carrier = new OrderCarrier($id_order_carrier);
                         $order_carrier->tracking_number = $status['text'];
                         $order_carrier->save();
 
-                        $this->changeOrderStatus($order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
+                        $this->changeOrderStatus((int)$order_id, Configuration::get(self::$_order_states['order_state_ready']['key']));
                         $cDb->updateRow('mjvp_orders', [
                             'labels_numbers' => json_encode([$status['text']]),
                             'manifest_id' => $manifest_title,
@@ -2124,94 +2134,96 @@ class MijoraVenipak extends CarrierModule
                             'labels_date' => date('Y-m-d h:i:s')],
                             ['id_order' => $id_order]);
                     }
-
-                }
-                if (isset($status['error'])) {
+                } elseif (isset($status['error'])) {
                     $error_shipments_txt = $this->getApiErrorShipments($status);
                     $error_shipments = $this->getShipmentsByTrackingNumbers($manifest['shipments'], array_keys($error_shipments_txt));
-                    foreach ($success_orders as $order)
-                    {
-                        if ( empty($error_shipments) ) {
-                            $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
-                        } else {
-                            foreach ( $error_shipments as $error_shipment ) {
-                                if ( empty($error_shipment['order_id']) ) {
-                                    continue;
-                                }
-                                if ( trim($order, ' #') == $error_shipment['order_id'] ) {
-                                    $this->changeOrderStatus(trim($order, ' #'), Configuration::get(self::$_order_states['order_state_error']['key']));
-                                }
-                            }
-                        }
-                    }
-                    // Nullify successful orders array. If one order in manifest is incorrect, entire manifest fails.
-                    $success_orders = [];
                     
-                    if ( ! empty($error_shipments) ) {
-                        foreach ( $error_shipments as $track_number => $error_shipment ) {
-                            $errors[] = '<b>' . sprintf($this->l('API error in order #%s'), $error_shipment['order_id']) . ':</b> ' . $error_shipments_txt[$track_number];
+                    // Nullify successful orders array. If one order in manifest is incorrect, entire manifest fails.
+                    foreach ($success_orders as $order_id) {
+                        if ( empty($error_shipments) ) {
+                            $errors[$order_id][] = $this->l('Failed to create manifest');
+                            continue;
                         }
-                        $errors[] = $this->l('The manifest cannot be registered if there is an error in even one shipment. Please remove the indicated errors or unmark orders with errors.');
-                    } else {
-                        if (isset($status['error']['text'])) {
-                            $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $status['error']['text'];
-                        }
-                        elseif (is_array($status['error'])) {
-                            foreach ($status['error'] as $error)
-                            {
-                                $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $error['text'];
+                        /*foreach ( $error_shipments as $error_shipment ) {
+                            if ( empty($error_shipment['order_id']) ) {
+                                continue;
                             }
-                        }
-                        else {
-                           $errors[] = '<b>' . $this->l('API error') . ':</b> ' . $this->l('Unknown error'); 
-                        }
+                            if ( $order_id == $error_shipment['order_id'] ) {
+                                $errors[$order_id][] = $this->l('Order have error');
+                            }
+                        }*/
                     }
-                } else if(!$manifest_id) {
+                    $success_orders = [];
+
+                    if (!empty($error_shipments)) {
+                        foreach ( $error_shipments as $track_number => $error_shipment ) {
+                            $errors[$error_shipment['order_id']][] = $error_shipments_txt[$track_number];
+                        }
+                        $errors['other'][] = $this->l('The manifest cannot be registered if there is an error in even one shipment. Please remove the indicated errors or unmark orders with errors.');
+                    }
+                    if (isset($status['error']['text'])) {
+                            $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $status['error']['text'];
+                    } elseif (is_array($status['error'])) {
+                        foreach ($status['error'] as $error) {
+                            $errors['other'][] = '<b>' . $this->l('Order API error') . ':</b> ' . $error['text'];
+                        }
+                    } else {
+                        $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
+                    }
+                } elseif(!$manifest_id) {
                     Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
                 }
             }
         } catch (Exception $e) {
-            $errors[] = $this->l('Order') . $error_order_no. '. ' . $e->getMessage();
+            $errors['other'][] = $this->l('Error in manifest generation') . ': ' . $e->getMessage();
         }
 
         if (!$found) {
-            $errors[] = $this->l('None of the selected orders have a Venipak shipping method');
+            $errors['other'][] = $this->l('None of the selected orders have a Venipak shipping method');
         } else if (!empty($notfound_ids)) {
-            $errors[] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
+            $errors['other'][] = sprintf($this->l('Shipping method for orders %s is not Venipak.'), implode(', ', $notfound_ids));
         }
 
-        if(version_compare(_PS_VERSION_, '1.7.7', '<') ||
-            (isset($this->context->controller->module) && $this->context->controller->module))
-        {
-            if (empty($errors))
-            {
-                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the manifest #%s.', $manifest_title));
+        $prepared_errors = array();
+        foreach ($errors as $order_id => $order_errors) {
+            if ($order_id != 'other') {
+                $this->changeOrderStatus((int)$order_id, Configuration::get(self::$_order_states['order_state_error']['key']));
             }
-            else
-            {
-                $this->showErrors($errors);
+            foreach ($order_errors as $error_msg) {
+                $prepared_error_msg = $error_msg;
+                if ($order_id != 'other') {
+                    $prepared_error_msg = '<b>' . $this->l('Order') . ' #' . $order_id . ':</b> ' . $error_msg;
+                }
+                // Avoid dublicate error messages
+                if (!in_array($prepared_error_msg, $prepared_errors)) {
+                    $prepared_errors[] = $prepared_error_msg;
+                }
+            }
+        }
+
+        if(version_compare(_PS_VERSION_, '1.7.7', '<') || (isset($this->context->controller->module) && $this->context->controller->module)) {
+            if (empty($errors)) {
+                $this->context->controller->confirmations[] = $this->l(sprintf('Successfully created label(s) for the manifest #%s.', $manifest_title));
+            } else {
+                $this->showErrors($prepared_errors);
                 if (!empty($success_orders)) {
                     $this->context->controller->confirmations[] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders) . '.';
                 }
             }
             return true;
-        }
-        // for symfony controller
-        else
-        {
-            if (empty($errors))
-            {
+        } else { // for symfony controller
+            if (empty($errors)) {
                 return  ['success' => $this->l(sprintf('Successfully created label(s) for the manifest #%s.', $manifest_title))];
-            }
-            else
-            {
-                $return = ['errors' => $errors];
+            } else {
+                $return = ['errors' => $prepared_errors];
                 if (!empty($success_orders)) {
                     $return['success'] = $this->l('Successfully included orders in manifest') . ': ' . implode(', ', $success_orders);
                 }
                 return $return;
             }
         }
+
+        return false;
     }
 
     private function getApiErrorShipments( $response )

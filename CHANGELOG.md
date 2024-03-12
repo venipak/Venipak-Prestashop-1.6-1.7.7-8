@@ -6,6 +6,7 @@
 
 ### Improved
 - improved that the error message show the ID of the order that contains the error
+- reworked the working of the shipments registration bulk action on the order list
 
 ## [1.1.4] - 2024-02-05
 ### Fixed
