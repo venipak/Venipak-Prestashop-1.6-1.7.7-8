@@ -105,6 +105,13 @@ function mjvp_registerSelection(selected_field_id) {
         dataType: "json",
     })
     .always(function (jqXHR, status) {
+        /* onepagecheckoutps v5 - v4.2.3 - presteamshop */
+        if (typeof OPC !== typeof undefined) {
+            if (status === 'success' && $('#btn-placer_order').is(':disabled')) {
+                prestashop.emit('opc-payment-getPaymentList');
+            }
+        }
+
         if (typeof jqXHR === 'object' && jqXHR !== null && 'msg' in jqXHR) {
             console.log(jqXHR.msg);
         } else {
