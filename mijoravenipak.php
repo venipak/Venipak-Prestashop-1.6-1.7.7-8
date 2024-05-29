@@ -2033,6 +2033,12 @@ class MijoraVenipak extends CarrierModule
                     $packages = $order_info['packages'];
                     $order_packages_mapping[$order_id] = $packages;
                     $shipment_pack = [];
+                    $volume_unit = Configuration::get('PS_DIMENSION_UNIT');
+                    $volume_unit_divisors = array( //Volume divisors to m3
+                        'm' => 1,
+                        'cm' => 1000000,
+                        'mm' => 1000000000
+                    );
                     for($i = 1; $i <= $packages; $i++) {
                         $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
                         $shipment_pack[$i] = array(
@@ -2043,10 +2049,10 @@ class MijoraVenipak extends CarrierModule
                         );
                         foreach ($order_products as $key => $product) {
                             // Calculate volume in m3
-                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm') {
-                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                            } elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm') {
-                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
+                            if (isset($volume_unit_divisors[$volume_unit])) {
+                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / $volume_unit_divisors[$volume_unit];
+                            } else {
+                                $product_volume = 0;
                             }
                             $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
                         }

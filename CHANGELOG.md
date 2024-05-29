@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed a error in logs, when in the shipment volume calculation function none of the conditions are met
+
 ## [1.1.5] - 2024-03-20
 ### Fixed
 - fixed that the status of orders that do not have errors would not be changed during bulk shipment registration
