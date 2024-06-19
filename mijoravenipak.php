@@ -1531,6 +1531,13 @@ class MijoraVenipak extends CarrierModule
         if(!$order_warehouse)
             $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
 
+        $venipak_error = ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false);
+        if (! is_array($pickup_points)) {
+            $error_txt = (is_string($pickup_points)) ? $pickup_points : $this->l('Failed to get terminals list');
+            $venipak_error = $this->displayError($error_txt);
+            $pickup_points = [];
+        }
+
         $cModuleConfig = $this->getModuleService('MjvpModuleConfig');
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
@@ -1541,7 +1548,7 @@ class MijoraVenipak extends CarrierModule
             'order_id' => $order->id,
             'order_terminal_id' => $order_terminal_id,
             'venipak_pickup_points' => $pickup_points,
-            'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
+            'venipak_error' => $venipak_error,
             'label_tracking_numbers' => json_decode($tracking_numbers),
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
@@ -2404,6 +2411,9 @@ class MijoraVenipak extends CarrierModule
     {
         if($entity instanceof OrderCore || $entity instanceof CartCore)
         {
+            if (! is_array($terminals)) {
+                return [];
+            }
             $weight = $entity->getTotalWeight();
             foreach ($terminals as $key => $terminal)
             {
