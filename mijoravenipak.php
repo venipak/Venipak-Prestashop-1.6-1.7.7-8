@@ -254,7 +254,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.5';
+        $this->version = '1.1.6';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1531,6 +1531,13 @@ class MijoraVenipak extends CarrierModule
         if(!$order_warehouse)
             $order_warehouse = MjvpWarehouse::getDefaultWarehouse();
 
+        $venipak_error = ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false);
+        if (! is_array($pickup_points)) {
+            $error_txt = (is_string($pickup_points)) ? $pickup_points : $this->l('Failed to get terminals list');
+            $venipak_error = $this->displayError($error_txt);
+            $pickup_points = [];
+        }
+
         $cModuleConfig = $this->getModuleService('MjvpModuleConfig');
         $this->context->smarty->assign(array(
             'block_title' => $this->displayName,
@@ -1541,7 +1548,7 @@ class MijoraVenipak extends CarrierModule
             'order_id' => $order->id,
             'order_terminal_id' => $order_terminal_id,
             'venipak_pickup_points' => $pickup_points,
-            'venipak_error' => ($venipak_cart_info['error'] != '' ? $this->displayError($venipak_cart_info['error']) : false),
+            'venipak_error' => $venipak_error,
             'label_tracking_numbers' => json_decode($tracking_numbers),
             'orderVenipakCartInfo' => $venipak_cart_info,
             'venipak_carriers' => $venipak_carriers,
@@ -2033,6 +2040,12 @@ class MijoraVenipak extends CarrierModule
                     $packages = $order_info['packages'];
                     $order_packages_mapping[$order_id] = $packages;
                     $shipment_pack = [];
+                    $volume_unit = Configuration::get('PS_DIMENSION_UNIT');
+                    $volume_unit_divisors = array( //Volume divisors to m3
+                        'm' => 1,
+                        'cm' => 1000000,
+                        'mm' => 1000000000
+                    );
                     for($i = 1; $i <= $packages; $i++) {
                         $pack_no = (int)Configuration::get($this->_configKeysOther['counter_packs']['key']) + 1;
                         $shipment_pack[$i] = array(
@@ -2043,10 +2056,10 @@ class MijoraVenipak extends CarrierModule
                         );
                         foreach ($order_products as $key => $product) {
                             // Calculate volume in m3
-                            if(Configuration::get('PS_DIMENSION_UNIT') == 'm') {
-                                $product_volume = $product['width'] * $product['height'] * $product['depth'];
-                            } elseif(Configuration::get('PS_DIMENSION_UNIT') == 'cm') {
-                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / 1000000;
+                            if (isset($volume_unit_divisors[$volume_unit])) {
+                                $product_volume = ($product['width'] * $product['height'] * $product['depth']) / $volume_unit_divisors[$volume_unit];
+                            } else {
+                                $product_volume = 0;
                             }
                             $shipment_pack[$i]['volume'] += Tools::ps_round((float)$product_volume / $packages);
                         }
@@ -2398,6 +2411,9 @@ class MijoraVenipak extends CarrierModule
     {
         if($entity instanceof OrderCore || $entity instanceof CartCore)
         {
+            if (! is_array($terminals)) {
+                return [];
+            }
             $weight = $entity->getTotalWeight();
             foreach ($terminals as $key => $terminal)
             {
