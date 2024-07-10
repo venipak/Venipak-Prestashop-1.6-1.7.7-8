@@ -1,9 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.6] - 2024-07-10
 ### Fixed
 - fixed a error in logs, when in the shipment volume calculation function none of the conditions are met
 - fixed errors being received when an error message is received instead of the terminals list
+
+### Improved
+- added compatibility with One Page Checkout PS (onepagecheckoutps) module
 
 ## [1.1.5] - 2024-03-20
 ### Fixed
