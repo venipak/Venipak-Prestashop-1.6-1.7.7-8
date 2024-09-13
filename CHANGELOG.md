@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- changed the event used to initialize the map to be executed only when the page is fully loaded (this avoids the error when JS files are cached at the end of the body element and the map function is tried to be called earlier)
+
 ## [1.1.6] - 2024-07-10
 ### Fixed
 - fixed a error in logs, when in the shipment volume calculation function none of the conditions are met
