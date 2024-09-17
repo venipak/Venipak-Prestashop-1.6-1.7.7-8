@@ -164,7 +164,12 @@ class MjvpFiles extends MjvpBase
                 $file_dir = $this->getFileDir($this->_terminalsList['directory'], str_replace('%s', strtoupper($country_code), $this->_terminalsList['file_name']));
 
                 $country_terminals = $cApi->getTerminals($country_code);
-                $this->generateFile($file_dir, json_encode($country_terminals));
+                if ( ! is_array($country_terminals) && ! $this->checkFile($file_dir) ) {
+                    $country_terminals = array();
+                }
+                if ( is_array($country_terminals) ) {
+                    $this->generateFile($file_dir, json_encode($country_terminals));
+                }
             }
 
             Configuration::updateGlobalValue(MijoraVenipak::$_globalConstants['last_upd_terminals'], time());
