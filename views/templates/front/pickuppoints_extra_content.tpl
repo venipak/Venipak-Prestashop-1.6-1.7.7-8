@@ -11,7 +11,7 @@
             var mjvp_country_code = "{$country_code}";
             var mjvp_postal_code = "{$postcode}";
             var mjvp_city = "{$city}";
-            document.addEventListener("DOMContentLoaded", function(event) {
+            window.addEventListener("load", function(event) {
                 venipak_custom_modal();
             });
         </script>
