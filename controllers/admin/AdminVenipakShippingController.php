@@ -251,12 +251,17 @@ class AdminVenipakShippingController extends ModuleAdminController
             {
                 foreach ($warehouse_groups as $warehouse_id => $orders)
                 {
-                    $this->module->bulkActionSendLabels(
+                    $result = $this->module->bulkActionSendLabels(
                         [
                             'warehouse_id' => $warehouse_id,
                             'orders' => $orders
                         ]
                     );
+                    if ( ! empty($result['errors']) ) {
+                        foreach ( $result['errors'] as $error ) {
+                            $this->errors[] = $error;
+                        }
+                    }
                 }
             }
         }
