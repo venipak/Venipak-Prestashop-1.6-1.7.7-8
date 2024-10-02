@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Improved
 - added display of error messages when executing mass action
+- added possibility to register shipments from/to Poland and Finland.
 
 ## [1.1.7] - 2024-09-23
 ### Fixed
