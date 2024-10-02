@@ -261,7 +261,7 @@ class MjvpApi extends MjvpBase
 
     private function getConsigneePostcode($postcode, $country)
     {
-        if ($country == 'LV') {
+        if ($country == 'LV' || $country == 'PL') {
             return preg_replace('/[^0-9]/', '', $postcode);
         }
 
