@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.8] - 2024-10-08
 ### Improved
 - added display of error messages when executing mass action
 - added possibility to register shipments from/to Poland and Finland.
