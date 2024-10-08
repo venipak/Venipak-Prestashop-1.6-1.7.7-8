@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.8] - 2024-10-08
+### Improved
+- added display of error messages when executing mass action
+- added possibility to register shipments from/to Poland and Finland.
+- added an additional error message if an error is received when registering a shipment due to the Warehouse not was created
+
 ## [1.1.7] - 2024-09-23
 ### Fixed
 - changed the event used to initialize the map to be executed only when the page is fully loaded (this avoids the error when JS files are cached at the end of the body element and the map function is tried to be called earlier)

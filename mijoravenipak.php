@@ -254,7 +254,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.7';
+        $this->version = '1.1.8';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1859,17 +1859,18 @@ class MijoraVenipak extends CarrierModule
         $notfound_ids = [];
         $manifest_errors = [];
 
-        if (!$warehouse_id) {
-            return array('errors' => array(
-                $this->l('Orders are not assigned a warehouse or their delivery method is not Venipak') . ': #' . implode(', #', $orders_ids)
-            ));
-        }
-
         if ( ! $warehouse_id ) {
             $default_warehouse_id = $cDb->getValue('mjvp_warehouse', 'id', array('default_on' => 1));
             if ( $default_warehouse_id ) {
                 $warehouse_id = $default_warehouse_id;
             }
+        }
+
+        if ( ! $warehouse_id ) {
+            return array('errors' => array(
+                $this->l('Orders are not assigned a warehouse or their delivery method is not Venipak') . ': #' . implode(', #', $orders_ids),
+                sprintf($this->l('Please check that you have created a Warehouse and marked it as default in %s page'), '<a href="' . $this->context->link->getAdminLink('AdminVenipakWarehouse') . '">' . $this->l('Venipak Warehouses') . '</a>')
+            ));
         }
 
         /* Determine the manifest ID. If there exist manifest, which:

@@ -113,6 +113,14 @@ class AdminVenipakWarehouseController extends ModuleAdminController
                 'id' => 'EE',
                 'name' => $this->module->l('Estonia'),
             ),
+            array(
+                'id' => 'PL',
+                'name' => $this->module->l('Poland'),
+            ),
+            array(
+                'id' => 'FI',
+                'name' => $this->module->l('Finland'),
+            ),
         );
 
 
