@@ -43,6 +43,11 @@ class AdminVenipakManifestsController extends ModuleAdminController
         parent::init();
     }
 
+    public function viewAccess($disable = false)
+    {
+        return true;        
+    }
+
     /**
      * @throws PrestaShopException
      * @throws SmartyException
