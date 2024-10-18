@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed that the Venipak Manifests page could also be viewed by administrators with lower rights
+
+### Improved
+- added compatibility with The Checkout (thecheckout) module
+
 ## [1.1.8] - 2024-10-08
 ### Improved
 - added display of error messages when executing mass action

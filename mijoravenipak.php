@@ -1652,6 +1652,10 @@ class MijoraVenipak extends CarrierModule
     // Separate method, as methods of gettign a checkout step on 1.7 are inconsistent among minor versions.
     public function check17PaymentStep($cart)
     {
+        if ($this->isActivedOnepageCheckoutModule()) {
+            return false;
+        }
+
         if(version_compare(_PS_VERSION_, '1.7', '>'))
         {
             $rawData = Db::getInstance()->getValue(
@@ -1669,6 +1673,20 @@ class MijoraVenipak extends CarrierModule
                 return true;
             }
         }
+        return false;
+    }
+
+    public function isActivedOnepageCheckoutModule()
+    {
+        $onepage_modules = array('thecheckout');
+        
+        foreach ( $onepage_modules as $module_name ) {
+            $module = Module::getInstanceByName($module_name);
+            if ($module instanceof Module && $module->active) {
+                return true;
+            }
+        }
+
         return false;
     }
 
