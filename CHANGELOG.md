@@ -6,6 +6,9 @@
 - fixed saving of Venipak order data
 - fixed error when Carrier object not valid when uninstalling module
 
+### Improved
+- adapted working on the "SuperCheckout by Knowband" Checkout page
+
 ## [1.1.9] - 2024-11-20
 ### Fixed
 - fixed that the Venipak Manifests page could also be viewed by administrators with lower rights

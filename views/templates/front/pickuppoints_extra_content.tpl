@@ -11,9 +11,13 @@
             var mjvp_country_code = "{$country_code}";
             var mjvp_postal_code = "{$postcode}";
             var mjvp_city = "{$city}";
-            window.addEventListener("load", function(event) {
+            if (document.readyState === "complete") { //Execute immediately if the "load" event has already passed
                 venipak_custom_modal();
-            });
+            } else {
+                window.addEventListener("load", function(event) {
+                    venipak_custom_modal();
+                });
+            }
         </script>
         <input type="hidden" id="mjvp-selected-terminal" name="mjvp-selected-terminal" value="{$selected_terminal}"/>
         <div id="mjvp-pickup-select-modal">
