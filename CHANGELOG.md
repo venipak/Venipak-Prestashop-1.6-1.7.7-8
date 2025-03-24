@@ -8,6 +8,7 @@
 
 ### Improved
 - adapted working on the "SuperCheckout by Knowband" Checkout page
+- added additional check just before saving Venipak data to avoid a error where an order is opened twice at the same time
 
 ## [1.1.9] - 2024-11-20
 ### Fixed
