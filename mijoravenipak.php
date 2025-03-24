@@ -2753,39 +2753,55 @@ class MijoraVenipak extends CarrierModule
         // Fix issue if customer selected Venipak carrier/terminal, but order data was not registered.
         // As that functionality is handled by JavaScript, the problem is possible due to browser's cache.
         $cDb = $this->getModuleService('MjvpDb');
-        $cHelper = new MjvpHelper();
-        $venipak_cart_info = $cDb->getOrderInfo($order->id);
+        $venipak_cart_info = $cDb->getOrderInfoByCartId($order->id_cart);
+
+        $carrier = new Carrier($order->id_carrier);
+        $address = new Address($order->id_address_delivery);
+        $country = new Country();
+        $country_code = $country->getIsoById($address->id_country);
+        $order_weight = $order->getTotalWeight();
+        // Convert to kg, if weight is in grams.
+        if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
+            $order_weight *= 0.001;
+
+        $is_cod = 0;
+        if(in_array($order->module, MijoraVenipak::$_codModules))
+            $is_cod = 1;
+
         if(!$venipak_cart_info)
         {
-            $order_weight = $order->getTotalWeight();
-
-            // Convert to kg, if weight is in grams.
-            if(Configuration::get('PS_WEIGHT_UNIT') == 'g')
-                $order_weight *= 0.001;
-            
-            $is_cod = 0;
-            if(in_array($order->module, MijoraVenipak::$_codModules))
-                $is_cod = 1;
-
-            $carrier = new Carrier($order->id_carrier);
-            $address = new Address($order->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
             $newOrderData = [
                 'id_order' => $order->id,
                 'id_cart' => $order->id_cart,
-                'id_carrier_ref' => ($cHelper->itIsThisModuleCarrier($carrier->id_reference)) ? $carrier->id_reference : 0,
+                'id_carrier_ref' => Validate::isLoadedObject($carrier) ? $carrier->id_reference : NULL,
                 'order_weight' => $order_weight,
                 'is_cod' => $is_cod,
                 'cod_amount' => $order->total_paid_tax_incl,
                 'country_code' => $country_code,
                 'last_select' => date('Y-m-d H:i:s'),
-                'warehouse_id' => $this->getCorrectWarehouseId(false)
             ];
-            if (!$cDb->getOrderInfo($order->id)) { //Additional check before save
-                $res = $cDb->saveOrderInfo($newOrderData);
-                return $res;
+            $res = $cDb->saveOrderInfo($newOrderData);
+            return $res;
+        } else if (empty($venipak_cart_info['id_order'])) {
+            $update_values = array('id_order' => $order->id);
+            if (empty($venipak_cart_info['country_code']))
+                $update_values['country_code'] = $country_code;
+            if (empty($venipak_cart_info['order_weight']) && !empty($order_weight))
+                $update_values['order_weight'] = $order_weight;
+            if (empty($venipak_cart_info['is_cod']) && !empty($is_cod)) {
+                $update_values['is_cod'] = $is_cod;
             }
+            if (empty($venipak_cart_info['cod_amount'])) {
+                $update_values['cod_amount'] = $order->total_paid_tax_incl;
+            }
+            if (empty($venipak_cart_info['id_carrier_ref']) && Validate::isLoadedObject($carrier)) {
+                $update_values['id_carrier_ref'] = $carrier->id_reference;
+            }
+            if (empty($venipak_cart_info['warehouse_id'])) {
+                $update_values['warehouse_id'] = MjvpWarehouse::getDefaultWarehouse();
+            }
+
+            $cDb->updateOrderInfo($order->id_cart, $update_values);
         }
         return true;
     }
