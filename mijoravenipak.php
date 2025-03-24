@@ -2782,8 +2782,10 @@ class MijoraVenipak extends CarrierModule
                 'last_select' => date('Y-m-d H:i:s'),
                 'warehouse_id' => $this->getCorrectWarehouseId(false)
             ];
-            $res = $cDb->saveOrderInfo($newOrderData);
-            return $res;
+            if (!$cDb->getOrderInfo($order->id)) { //Additional check before save
+                $res = $cDb->saveOrderInfo($newOrderData);
+                return $res;
+            }
         }
         return true;
     }
