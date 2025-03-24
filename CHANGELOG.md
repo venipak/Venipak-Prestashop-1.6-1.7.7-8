@@ -5,6 +5,7 @@
 - fixed the "Set as default warehouse" parameter in Warehouse edit page
 - fixed saving of Venipak order data
 - fixed error when Carrier object not valid when uninstalling module
+- fixed updating of order data if cart data already exists
 
 ### Improved
 - adapted working on the "SuperCheckout by Knowband" Checkout page
