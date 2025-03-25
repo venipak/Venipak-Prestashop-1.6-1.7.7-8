@@ -12,9 +12,11 @@
             var mjvp_postal_code = "{$postcode}";
             var mjvp_city = "{$city}";
             if (document.readyState === "complete") { //Execute immediately if the "load" event has already passed
+                mjvp_removeMap();
                 venipak_custom_modal();
             } else {
                 window.addEventListener("load", function(event) {
+                    mjvp_removeMap();
                     venipak_custom_modal();
                 });
             }

@@ -229,7 +229,8 @@
   position: absolute;
   font-size: 10px;
   left: -15px;
-  bottom: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   cursor: pointer;
   border: 0.5px solid #373737;
   background-color: white;
@@ -239,13 +240,13 @@
   background-image: url('../images/checkbox.svg');
   background-repeat: no-repeat;
   background-position: center center;
-  vertical-align: middle;
   background-color: #EEAB00;
 }
 
 #filter-container label {
   vertical-align: bottom;
   font-size: 13px;
+  position: relative;
 }
 
 #filter-container input {
