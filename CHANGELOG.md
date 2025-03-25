@@ -6,6 +6,7 @@
 - fixed saving of Venipak order data
 - fixed error when Carrier object not valid when uninstalling module
 - fixed updating of order data if cart data already exists
+- fixed map load on Prestashop 1.6
 
 ### Improved
 - adapted working on the "SuperCheckout by Knowband" Checkout page

@@ -33,7 +33,32 @@ var venipak_custom_modal = function() {
             tmjs.publish('close-map-modal');
             document.querySelector('.tmjs-selected-terminal').innerHTML = '<span class="mjvp-tmjs-terminal-name">' + data.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + data.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + data.city + '.</span>';
         });
+
+        window['venipak_custom_modal'].tmjs = tmjs;
+        return true;
     }
 
-    window['venipak_custom_modal'].tmjs = tmjs;
+    return false;
+}
+
+function mjvp_removeMap() {
+    if ( ! window['venipak_custom_modal'] ) {
+        return false;
+    }
+    if ( typeof window['venipak_custom_modal'].tmjs === 'undefined' ) {
+        return false;
+    }
+
+    let container_id = window['venipak_custom_modal'].tmjs.containerId;
+    let container = document.getElementById(container_id);
+    if ( document.body.contains(container) ) {
+        container.remove();
+    }
+    let modal = document.getElementById(container_id + "_modal");
+    if ( document.body.contains(modal) ) {
+        modal.remove();
+    }
+    delete window['venipak_custom_modal'].tmjs;
+
+    return true;
 }
