@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.10] - 2025-04-09
 ### Fixed
 - fixed the "Set as default warehouse" parameter in Warehouse edit page
 - fixed saving of Venipak order data
