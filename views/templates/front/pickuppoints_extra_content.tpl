@@ -6,6 +6,11 @@
     {/if}
     {if $terminals}
         <input type="hidden" id="mjvp-pickup-country" name="mjvp-pickup-country" value="{$country_code}"/>
+        {if $is_16}
+            <script>
+                mjvp_terminals = {$terminals|@json_encode nofilter};
+            </script>
+        {/if}
         <script>
             var mjvp_imgs_url = "{$images_url}";
             var mjvp_country_code = "{$country_code}";

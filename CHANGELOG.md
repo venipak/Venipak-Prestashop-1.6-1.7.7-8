@@ -7,6 +7,7 @@
 - fixed error when Carrier object not valid when uninstalling module
 - fixed updating of order data if cart data already exists
 - fixed map load on Prestashop 1.6
+- fixed terminals load on Prestashop 1.6
 - fixed manifest download
 
 ### Improved
