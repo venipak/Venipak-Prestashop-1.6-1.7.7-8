@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.10] - 2025-04-09
+### Fixed
+- fixed the "Set as default warehouse" parameter in Warehouse edit page
+- fixed saving of Venipak order data
+- fixed error when Carrier object not valid when uninstalling module
+- fixed updating of order data if cart data already exists
+- fixed map load on Prestashop 1.6
+- fixed terminals load on Prestashop 1.6
+- fixed manifest download
+
+### Improved
+- adapted working on the "SuperCheckout by Knowband" Checkout page
+- added additional check just before saving Venipak data to avoid a error where an order is opened twice at the same time
+
 ## [1.1.9] - 2024-11-20
 ### Fixed
 - fixed that the Venipak Manifests page could also be viewed by administrators with lower rights

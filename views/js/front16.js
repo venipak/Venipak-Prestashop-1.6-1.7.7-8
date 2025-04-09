@@ -51,6 +51,7 @@ function loadCarrierContent() {
             {
                 mjvp_map_template = res.mjvp_map_template;
                 contentHolder.append(`<div class="venipak-service-content">${res.carrier_content}</div>`);
+                mjvp_removeMap();
                 venipak_custom_modal();
                 filterEventListener();
                 addExtraCarrierInfoEventListener();

@@ -271,11 +271,19 @@ class MjvpDb
     }
 
     /**
-     * Update row in module 'orders' table
+     * Get row from module 'orders' table
      */
     public function getOrderInfo($order_id, $sql_values = '*')
     {
         return $this->getRow($this->_table_orders, $sql_values, array('id_order' => $order_id));
+    }
+
+    /**
+     * Get row from module 'orders' table
+     */
+    public function getOrderInfoByCartId($cart_id, $sql_values = '*')
+    {
+        return $this->getRow($this->_table_orders, $sql_values, array('id_cart' => $cart_id));
     }
 
     /**

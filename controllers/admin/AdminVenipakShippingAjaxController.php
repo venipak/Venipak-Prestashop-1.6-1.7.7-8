@@ -38,8 +38,20 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
     protected function saveCart()
     {
         $cDb = $this->module->getModuleService('MjvpDb');
-        $selected_carrier_reference = (int) Tools::getValue('is_pickup');
         $id_order = Tools::getValue('id_order');
+        $selected_carrier_reference = (int) Tools::getValue('is_pickup');
+        
+        $data = [
+            'packages' => Tools::getValue('packs', 1),
+            'order_weight' => Tools::getValue('weight', 0),
+            'is_cod' => Tools::getValue('is_cod', 0),
+            'terminal_id' => 0,
+            'warehouse_id' => $this->module->getCorrectWarehouseId((int) Tools::getValue('warehouse'))
+        ];
+        if(Tools::isSubmit('cod_amount')) {
+            $data['cod_amount'] = Tools::getValue('cod_amount', 0);
+        }
+
         if(Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']) == $selected_carrier_reference)
         {
             // Check if terminal was selected
@@ -68,39 +80,10 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                     ];
                 }
 
-                $data = [
-                    'packages' => Tools::getValue('packs', 1),
-                    'order_weight' => Tools::getValue('weight', 0),
-                    'is_cod' => Tools::getValue('is_cod', 0),
-                    'id_carrier_ref' => Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name'])),
-                    'terminal_id' => Tools::getValue('id_pickup_point'),
-                    'terminal_info' => json_encode($terminal_info),
-                    'last_select' => date('Y-m-d H:i:s'),
-                ];
-
-                // If cod is disabled, cod ammount will not be submitted at all.
-                if(Tools::isSubmit('cod_amount'))
-                {
-                    $data['cod_amount'] = Tools::getValue('cod_amount', 0);
-                }
-
-                // Order warehouse
-                if(empty(MjvpWarehouse::getWarehouses()))
-                {
-                    $data['warehouse_id'] = 0;
-                }
-                else
-                {
-                    $order_warehouse = (int) Tools::getValue('warehouse');
-                    $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
-                    if(!Validate::isLoadedObject($warehouse))
-                    {
-                        // If order was not assigned warehouse (i.e none were created at that moment), then assign the default warehouse.
-                        $data['warehouse_id'] = MjvpWarehouse::getDefaultWarehouse();
-                    }
-                    else
-                        $data['warehouse_id'] = $order_warehouse;
-                }
+                $data['id_carrier_ref'] = Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['pickup']['reference_name']));
+                $data['terminal_id'] = Tools::getValue('id_pickup_point');
+                $data['terminal_info'] = json_encode($terminal_info);
+                $data['last_select'] = date('Y-m-d H:i:s');
 
                 $return_service = 0;
                 if(Tools::isSubmit('mjvp_return_service'))
@@ -124,17 +107,8 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
         }
         elseif (Configuration::get(MijoraVenipak::$_carriers['courier']['reference_name']) == $selected_carrier_reference)
         {
-            $data = [
-                'packages' => Tools::getValue('packs', 1),
-                'order_weight' => Tools::getValue('weight', 0),
-                'is_cod' => Tools::getValue('is_cod', 0),
-                'id_carrier_ref' => Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['courier']['reference_name'])),
-                'terminal_id' => 0,
-            ];
-            if(Tools::isSubmit('cod_amount'))
-            {
-                $data['cod_amount'] = Tools::getValue('cod_amount', 0);
-            }
+            $data['id_carrier_ref'] = Tools::getValue('is_pickup', Configuration::get(MijoraVenipak::$_carriers['courier']['reference_name']));
+
             // Validate extra fields
             $extra_fields = Tools::getValue('venipak_extra');
             if($extra_fields && is_array($extra_fields))
@@ -169,24 +143,6 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
                 $order_extra_info['carrier_call'] = $field_carrier_call;
                 $order_extra_info['return_doc'] = $field_return_doc;
                 $data['other_info'] = json_encode($order_extra_info);
-            }
-
-            // Order warehouse
-            if(empty(MjvpWarehouse::getWarehouses()))
-            {
-                $data['warehouse_id'] = 0;
-            }
-            else
-            {
-                $order_warehouse = (int) Tools::getValue('warehouse');
-                $warehouse = $this->module->getModuleService('MjvpWarehouse', $order_warehouse);
-                if(!Validate::isLoadedObject($warehouse))
-                {
-                    // If order was not assigned warehouse (i.e none were created at that moment), then assign the default warehouse.
-                    $data['warehouse_id'] = MjvpWarehouse::getDefaultWarehouse();
-                }
-                else
-                    $data['warehouse_id'] = $order_warehouse;
             }
 
             if (!isset($result['errors'])) {

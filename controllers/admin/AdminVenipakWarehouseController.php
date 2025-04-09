@@ -252,6 +252,19 @@ class AdminVenipakWarehouseController extends ModuleAdminController
         return $result;
     }
 
+    public function postProcess()
+    {
+        if (Tools::isSubmit('submitAddmjvp_warehouse')) {
+            $default_on_value = Tools::getValue('default_on');
+
+            if ($default_on_value === 'on') {
+                $_POST['default_on'] = 1;
+            }
+        }
+
+        parent::postProcess();
+    }
+
     public function beforeAdd($object)
     {
         // If new warehouse will be default, reset the current default.
