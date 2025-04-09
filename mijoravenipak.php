@@ -1779,6 +1779,7 @@ class MijoraVenipak extends CarrierModule
                     'selected_terminal' => $sql_terminal_id,
                     'cart_quantity' => $quantity,
                     'images_url' => $this->_path . 'views/images/',
+                    'is_16' => (version_compare(_PS_VERSION_, '1.7', '<'))
                 )
             );
 
