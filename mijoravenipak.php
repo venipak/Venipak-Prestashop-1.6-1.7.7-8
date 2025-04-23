@@ -1599,13 +1599,17 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
-        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (Tools::isSubmit('mjvp_door_code') || Tools::isSubmit('mjvp_cabinet_number')
-            || Tools::isSubmit('mjvp_warehouse_number') || Tools::isSubmit('mjvp_delivery_time') || Tools::isSubmit('mjvp_door_code')))
-        {
+        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (
+            Tools::isSubmit('mjvp_door_code') ||
+            Tools::isSubmit('mjvp_cabinet_number') ||
+            Tools::isSubmit('mjvp_warehouse_number') ||
+            Tools::isSubmit('mjvp_delivery_time') ||
+            Tools::isSubmit('mjvp_carrier_call')
+        )) {
             // Validate extra fields
-            $field_door_code = Tools::getValue('mjvp_door_code', 0);
-            $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
-            $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
+            $field_door_code = Tools::getValue('mjvp_door_code', '');
+            $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', '');
+            $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', '');
             $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
             $field_carrier_call = 0;
             if(Tools::isSubmit('mjvp_carrier_call'))
