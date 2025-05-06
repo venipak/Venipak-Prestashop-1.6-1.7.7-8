@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed the "call before delivery" checkbox selection when it's the only parameter on the Checkout page
+
 ## [1.1.10] - 2025-04-09
 ### Fixed
 - fixed the "Set as default warehouse" parameter in Warehouse edit page
