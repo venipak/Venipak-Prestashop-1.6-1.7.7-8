@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - fixed the "call before delivery" checkbox selection when it's the only parameter on the Checkout page
+- fixed the validation function of the selected parcel locker in the PS 1.6 system when using the Paysera payment method
 
 ## [1.1.10] - 2025-04-09
 ### Fixed
