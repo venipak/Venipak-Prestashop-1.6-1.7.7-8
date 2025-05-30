@@ -133,14 +133,21 @@ function filterEventListener()
 function addTerminalValidateListener()
 {
     $('#HOOK_PAYMENT').on('click', (e) => {
-        if($('#mjvp-selected-terminal').length != 0 && !$(e.target).hasClass('venipakcod'))
-        {
+        const btn = $(e.target);
+        const haveTerminalSelectField = $('#mjvp-selected-terminal').length > 0;
+        const isVenipakCod = btn.hasClass('venipakcod');
+        
+        if (haveTerminalSelectField && !isVenipakCod) {
             e.preventDefault();
+            
+            const link = btn.closest('a');
+            const href = link.length ? link.attr('href') : '';
+            
             mjvp_registerSelection('mjvp-selected-terminal', {
-                'update-data-opc' : 1
+                'update-data-opc': 1
             }, {
-                'href' : $(e.target).attr('href'),
-                'scrollToError' : 1,
+                'href': href,
+                'scrollToError': 1,
             });
         }
     });
@@ -191,11 +198,15 @@ function mjvp_registerSelection(selected_field_id, ajaxData = {}, params = {}) {
     .always(function (jqXHR, status) {
         if(typeof jqXHR.errors != 'undefined')
         {
-            $('[id^="delivery_option"]:checked').parents('.delivery_option ').prepend(jqXHR.errors);
+            const method = $('[id^="delivery_option"]:checked').closest('.delivery_option');
+            method.find('.alert.alert-danger').remove();
+            method.prepend(jqXHR.errors);
             if(typeof params.scrollToError != "undefined")
             {
+                const error = method.find('.alert.alert-danger').first();
+                $([document.documentElement, document.body]).stop(true, true);
                 $([document.documentElement, document.body]).animate({
-                    scrollTop: $(".alert.alert-danger").offset().top - 100
+                    scrollTop: error.offset().top - 100
                 }, 800);
             }
         }
