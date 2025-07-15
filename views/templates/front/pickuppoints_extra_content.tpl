@@ -6,7 +6,7 @@
     {/if}
     {if $terminals}
         <input type="hidden" id="mjvp-pickup-country" name="mjvp-pickup-country" value="{$country_code}"/>
-        {if $is_16}
+        {if $is_16 || $terminals_overwrite}
             <script>
                 mjvp_terminals = {$terminals|@json_encode nofilter};
             </script>

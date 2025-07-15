@@ -1752,6 +1752,13 @@ class MijoraVenipak extends CarrierModule
                 return '';
             }
 
+            /* Always overwrite terminals list in JS for some OnePage Checkout pages */
+            $controller_name = $this->getControllerNameFromContext();
+            $terminals_overwrite = false;
+            if ($controller_name == 'supercheckout') {
+                $terminals_overwrite = true;
+            }
+
             try {
                 $cFiles = new MjvpFiles();
                 $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
@@ -1783,12 +1790,26 @@ class MijoraVenipak extends CarrierModule
                     'selected_terminal' => $sql_terminal_id,
                     'cart_quantity' => $quantity,
                     'images_url' => $this->_path . 'views/images/',
-                    'is_16' => (version_compare(_PS_VERSION_, '1.7', '<'))
+                    'is_16' => (version_compare(_PS_VERSION_, '1.7', '<')),
+                    'terminals_overwrite' => $terminals_overwrite
                 )
             );
 
             return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
         }
+    }
+
+    private function getControllerNameFromContext()
+    {
+        if (isset($this->context) && isset($this->context->controller)) {
+            if (isset($this->context->controller->name)) {
+                return $this->context->controller->name;
+            } elseif (isset($this->context->controller->php_self)) {
+                return $this->context->controller->php_self;
+            }
+        }
+
+        return null;
     }
 
     /**
