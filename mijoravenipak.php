@@ -254,7 +254,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.10';
+        $this->version = '1.1.11';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1599,13 +1599,17 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
-        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (Tools::isSubmit('mjvp_door_code') || Tools::isSubmit('mjvp_cabinet_number')
-            || Tools::isSubmit('mjvp_warehouse_number') || Tools::isSubmit('mjvp_delivery_time') || Tools::isSubmit('mjvp_door_code')))
-        {
+        elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (
+            Tools::isSubmit('mjvp_door_code') ||
+            Tools::isSubmit('mjvp_cabinet_number') ||
+            Tools::isSubmit('mjvp_warehouse_number') ||
+            Tools::isSubmit('mjvp_delivery_time') ||
+            Tools::isSubmit('mjvp_carrier_call')
+        )) {
             // Validate extra fields
-            $field_door_code = Tools::getValue('mjvp_door_code', 0);
-            $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', 0);
-            $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', 0);
+            $field_door_code = Tools::getValue('mjvp_door_code', '');
+            $field_cabinet_number = Tools::getValue('mjvp_cabinet_number', '');
+            $field_warehouse_number = Tools::getValue('mjvp_warehouse_number', '');
             $field_delivery_time = Tools::getValue('mjvp_delivery_time', 'nwd');
             $field_carrier_call = 0;
             if(Tools::isSubmit('mjvp_carrier_call'))
@@ -1748,6 +1752,13 @@ class MijoraVenipak extends CarrierModule
                 return '';
             }
 
+            /* Always overwrite terminals list in JS for some OnePage Checkout pages */
+            $controller_name = $this->getControllerNameFromContext();
+            $terminals_overwrite = false;
+            if ($controller_name == 'supercheckout') {
+                $terminals_overwrite = true;
+            }
+
             try {
                 $cFiles = new MjvpFiles();
                 $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
@@ -1779,12 +1790,26 @@ class MijoraVenipak extends CarrierModule
                     'selected_terminal' => $sql_terminal_id,
                     'cart_quantity' => $quantity,
                     'images_url' => $this->_path . 'views/images/',
-                    'is_16' => (version_compare(_PS_VERSION_, '1.7', '<'))
+                    'is_16' => (version_compare(_PS_VERSION_, '1.7', '<')),
+                    'terminals_overwrite' => $terminals_overwrite
                 )
             );
 
             return $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/pickuppoints_extra_content.tpl');
         }
+    }
+
+    private function getControllerNameFromContext()
+    {
+        if (isset($this->context) && isset($this->context->controller)) {
+            if (isset($this->context->controller->name)) {
+                return $this->context->controller->name;
+            } elseif (isset($this->context->controller->php_self)) {
+                return $this->context->controller->php_self;
+            }
+        }
+
+        return null;
     }
 
     /**

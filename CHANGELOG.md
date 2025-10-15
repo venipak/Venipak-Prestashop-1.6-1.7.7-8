@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.11] - 2025-10-15
+### Fixed
+- fixed the "call before delivery" checkbox selection when it's the only parameter on the Checkout page
+- fixed the validation function of the selected parcel locker in the PS 1.6 system when using the Paysera payment method
+- fixed bulk action controller loading in Prestashop 8.2
+
+### Improved
+- adapted working on the "SuperCheckout by Knowband" Onepage Checkout page
+
 ## [1.1.10] - 2025-04-09
 ### Fixed
 - fixed the "Set as default warehouse" parameter in Warehouse edit page
