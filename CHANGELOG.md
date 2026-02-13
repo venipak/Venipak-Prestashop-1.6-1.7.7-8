@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- pickup points template file removed new line from modal element
+
 ## [1.1.11] - 2025-10-15
 ### Fixed
 - fixed the "call before delivery" checkbox selection when it's the only parameter on the Checkout page

@@ -27,7 +27,6 @@
             }
         </script>
         <input type="hidden" id="mjvp-selected-terminal" name="mjvp-selected-terminal" value="{$selected_terminal}"/>
-        <div id="mjvp-pickup-select-modal">
-        </div>
+        <div id="mjvp-pickup-select-modal"></div>
     {/if}
 </div>
