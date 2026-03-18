@@ -4,16 +4,21 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitabcfb4d03ca903e77cc9b247f8d2ad9c
+class ComposerStaticInit7b99d5ab6a7704797e64c42a48aab6b5
 {
     public static $prefixLengthsPsr4 = array (
         'M' => 
         array (
+            'Mijora\\BoxCalculator\\' => 21,
             'MijoraVenipak\\' => 14,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
+        'Mijora\\BoxCalculator\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/mijora/box-calculator/src',
+        ),
         'MijoraVenipak\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src',
@@ -22,14 +27,23 @@ class ComposerStaticInitabcfb4d03ca903e77cc9b247f8d2ad9c
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'MijoraVenipak\\Controller\\Admin\\VenipakBulkActionController' => __DIR__ . '/../..' . '/src/Controller/Admin/VenipakBulkActionController.php',
+        'Mijora\\BoxCalculator\\CalculateBox' => __DIR__ . '/..' . '/mijora/box-calculator/src/CalculateBox.php',
+        'Mijora\\BoxCalculator\\Debug' => __DIR__ . '/..' . '/mijora/box-calculator/src/Debug.php',
+        'Mijora\\BoxCalculator\\Elements\\Box' => __DIR__ . '/..' . '/mijora/box-calculator/src/Elements/Box.php',
+        'Mijora\\BoxCalculator\\Elements\\Item' => __DIR__ . '/..' . '/mijora/box-calculator/src/Elements/Item.php',
+        'Mijora\\BoxCalculator\\Helper' => __DIR__ . '/..' . '/mijora/box-calculator/src/Helper.php',
+        'Mijora\\BoxCalculator\\Methods\\AddToEdge' => __DIR__ . '/..' . '/mijora/box-calculator/src/Methods/AddToEdge.php',
+        'Mijora\\BoxCalculator\\Methods\\Core' => __DIR__ . '/..' . '/mijora/box-calculator/src/Methods/Core.php',
+        'Mijora\\BoxCalculator\\Methods\\Heuristic3D' => __DIR__ . '/..' . '/mijora/box-calculator/src/Methods/Heuristic3D.php',
     );
 
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitabcfb4d03ca903e77cc9b247f8d2ad9c::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitabcfb4d03ca903e77cc9b247f8d2ad9c::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInitabcfb4d03ca903e77cc9b247f8d2ad9c::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit7b99d5ab6a7704797e64c42a48aab6b5::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit7b99d5ab6a7704797e64c42a48aab6b5::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit7b99d5ab6a7704797e64c42a48aab6b5::$classMap;
 
         }, null, ClassLoader::class);
     }

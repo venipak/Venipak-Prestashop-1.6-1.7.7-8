@@ -4,15 +4,59 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d751713988987e9331980363e24189ce",
-    "packages": [],
+    "content-hash": "7b99d5ab6a7704797e64c42a48aab6b5",
+    "packages": [
+        {
+            "name": "mijora/box-calculator",
+            "version": "1.1.1",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:mijora/box-calculator.git",
+                "reference": "1ff8adbd8feaaac973f2b84288b7f3d7db639fca"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mijora/box-calculator/zipball/1ff8adbd8feaaac973f2b84288b7f3d7db639fca",
+                "reference": "1ff8adbd8feaaac973f2b84288b7f3d7db639fca",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Mijora\\BoxCalculator\\": "src/"
+                }
+            },
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Marijus K.",
+                    "email": "info@markak.lt",
+                    "homepage": "https://markak.lt",
+                    "role": "Developer"
+                },
+                {
+                    "name": "UAB Mijora",
+                    "email": "info@mijora.lt",
+                    "homepage": "https://mijora.dev"
+                }
+            ],
+            "description": "Trying to find the closest possible box size to reality",
+            "support": {
+                "source": "https://github.com/mijora/box-calculator/tree/v1.1.1",
+                "issues": "https://github.com/mijora/box-calculator/issues"
+            },
+            "time": "2026-03-18T09:33:37+00:00"
+        }
+    ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": [],
-    "platform-dev": [],
-    "plugin-api-version": "2.1.0"
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
 }

@@ -512,7 +512,10 @@ class MijoraVenipak extends CarrierModule
                 return false;
 
             // Check pickup carrier, if there are any terminals for cart weight.
-            if(empty($this->terminal_count))
+            // Only run terminal filtering on checkout page, not on cart page.
+            $is_checkout = isset($this->context->controller->php_self)
+                && in_array($this->context->controller->php_self, ['order', 'order-opc']);
+            if($is_checkout && empty($this->terminal_count))
             {
                 $order = null;
                 if(method_exists(Order::class, 'getByCartId'))
@@ -538,7 +541,7 @@ class MijoraVenipak extends CarrierModule
 
                 $this->terminal_count = count($filtered_terminals);
             }
-            if($this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
+            if($is_checkout && $this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
                 return false; 
         }
         return $shipping_cost;
@@ -2486,33 +2489,29 @@ class MijoraVenipak extends CarrierModule
     {
         if($entity instanceof Order || $entity instanceof Cart)
         {
-            $cartDimensions = $this->getProductsDimensionsCombinations($entity->getProducts());
+            $items = $this->getBoxCalculatorItems($entity->getProducts());
+            if(empty($items))
+                return $terminals;
+
             foreach ($terminals as $key => $terminal)
             {
                 // Zero means no limit
                 if($terminal->max_height == 0 || $terminal->max_width == 0 || $terminal->max_length == 0)
                     continue;
-                $someArrangmentFits = false;
-                foreach($cartDimensions as $cartDimension)
-                {
-                    // if any arrangment fits, terminal is good and we can stop checking other arrangements
-                    // width and depth are considered invariablly, because it is assumed that shipment can be rotated
-                    if( ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['depth'])
-                     || ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['width'])
-                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['depth']) 
-                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['height'])
-                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['width'])
-                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['height'])
-                    )
-                    {
-                        $someArrangmentFits = true;
-                        break;
-                    }
 
-                    if(!$someArrangmentFits)
-                    {
-                        unset($terminals[$key]);
-                    }
+                $boxCalculator = new Mijora\BoxCalculator\CalculateBox($items);
+                $boxCalculator->setBoxWallThickness(0);
+                $boxCalculator->setMethod('Heuristic3D');
+                $boxCalculator->setMaxBoxSize(
+                    !empty($terminal->max_width) ? $terminal->max_width : 999999,
+                    !empty($terminal->max_height) ? $terminal->max_height : 999999,
+                    !empty($terminal->max_length) ? $terminal->max_length : 999999
+                );
+                $boxSize = $boxCalculator->findBoxSizeUntilMaxSize();
+
+                if($boxSize === false)
+                {
+                    unset($terminals[$key]);
                 }
             }
             return $terminals;
@@ -2521,38 +2520,27 @@ class MijoraVenipak extends CarrierModule
         return $terminals;
     }
 
-    // Simplest variant. Returns 3 combinations to put products in, each time changing the stacking dimension.
-    private function getProductsDimensionsCombinations($products)
+    private function getBoxCalculatorItems($products)
     {
-        $emptyDimensions = [
-            'height' => 0,
-            'width' => 0,
-            'depth' => 0
-        ];
-        $dimensionsCombinations = [$emptyDimensions, $emptyDimensions, $emptyDimensions];
-
         $divisor = Configuration::get('PS_DIMENSION_UNIT') == 'cm' ? 100 : 1;
+        $items = [];
 
         foreach($products as $product)
         {
-            $height = ((float) $product['height'] / $divisor) * $product['quantity'];
-            $width = ((float) $product['width'] / $divisor) * $product['quantity'];
-            $depth = ((float) $product['depth'] / $divisor) * $product['quantity'];
+            $width = (float) $product['width'] / $divisor;
+            $height = (float) $product['height'] / $divisor;
+            $depth = (float) $product['depth'] / $divisor;
 
-            $dimensionsCombinations[0]['height'] += $height;
-            $dimensionsCombinations[0]['width'] += $width;
-            $dimensionsCombinations[0]['depth'] += $depth;
+            if($width <= 0 || $height <= 0 || $depth <= 0)
+                continue;
 
-            $dimensionsCombinations[1]['height'] += $width;
-            $dimensionsCombinations[1]['width'] += $height;
-            $dimensionsCombinations[1]['depth'] += $depth;
-
-            $dimensionsCombinations[2]['height'] += $depth;
-            $dimensionsCombinations[2]['width'] += $width;
-            $dimensionsCombinations[2]['depth'] += $height;
+            for($i = 0; $i < (int) $product['quantity']; $i++)
+            {
+                $items[] = new Mijora\BoxCalculator\Elements\Item($width, $height, $depth);
+            }
         }
 
-        return $dimensionsCombinations;
+        return $items;
     }
 
     public function getFilteredTerminals($filters = [], $entity = null)
