@@ -3,5 +3,14 @@
     "psr-4": {
       "MijoraVenipak\\": "src/"
     }
-  }
+  },
+  "require": {
+    "mijora/box-calculator": "^1.1.0"
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:mijora/box-calculator.git"
+    }
+  ]
 }
