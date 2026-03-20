@@ -2,6 +2,18 @@ var venipak_custom_modal = function() {
     let mjvp_map_container =  document.getElementById('mjvp-pickup-select-modal');
     let tmjs = null;
 
+    // Filter out terminals without name or id
+    if (typeof mjvp_terminals !== 'undefined' && Array.isArray(mjvp_terminals)) {
+        mjvp_terminals = mjvp_terminals.filter(function(terminal) {
+            return terminal.id && terminal.name;
+        });
+        if (mjvp_terminals.length === 0) {
+            console.warn('Venipak: pickup carrier has no valid terminals (all filtered out due to missing name or ID).');
+        }
+    } else {
+        console.warn('Venipak: pickup carrier terminal list is not a valid array. Delivery method may be unavailable.');
+    }
+
     if (typeof(mjvp_map_container) != 'undefined' && mjvp_map_container != null) {
         tmjs = new TerminalMappingMjvp('https://venipak.uat.megodata.com/ws');
         tmjs.setImagesPath(mjvp_imgs_url);

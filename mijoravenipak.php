@@ -1404,6 +1404,18 @@ class MijoraVenipak extends CarrierModule
 
             $address = new Address($params['cart']->id_address_delivery);
             $filtered_terminals = $this->getFilteredTerminals();
+
+            if (!is_array($filtered_terminals) || empty($filtered_terminals)) {
+                $cHelper = new MjvpHelper();
+                $cHelper->writeToLog(
+                    'Pickup carrier hidden on checkout: terminal list is '
+                    . (is_array($filtered_terminals) ? 'empty after filtering invalid entries' : 'not a valid array')
+                    . '. Cart ID: ' . $params['cart']->id,
+                    'terminals'
+                );
+                $filtered_terminals = [];
+            }
+
             $this->terminal_count = count($filtered_terminals);
 
             $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
@@ -1766,7 +1778,18 @@ class MijoraVenipak extends CarrierModule
                 $cFiles = new MjvpFiles();
                 $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
 
-                if (!$all_terminals_info || empty($all_terminals_info)) {
+                if (!is_array($all_terminals_info)) {
+                    $all_terminals_info = [];
+                }
+
+                $all_terminals_info = $this->filterTerminalsWithoutIdentification($all_terminals_info);
+
+                if (empty($all_terminals_info)) {
+                    $cHelper->writeToLog(
+                        'Pickup carrier extra content hidden: terminal list is empty after filtering entries without name/ID.'
+                        . ' Country: ' . $country_code . ', Cart ID: ' . $params['cart']->id,
+                        'terminals'
+                    );
                     return '';
                 }
             } catch (Exception $e) {
@@ -2555,8 +2578,9 @@ class MijoraVenipak extends CarrierModule
 
             $cFiles = new MjvpFiles();
             $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false, $filters);
-            if(!$all_terminals_info)
+            if(!is_array($all_terminals_info))
                 $all_terminals_info = [];
+            $all_terminals_info = $this->filterTerminalsWithoutIdentification($all_terminals_info);
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = $this->filterTerminalsByDimensions($filtered_terminals, $entity);
             $filtered_terminals = array_values($filtered_terminals);
@@ -2566,6 +2590,23 @@ class MijoraVenipak extends CarrierModule
         {
             return [];
         }
+    }
+
+    /**
+     * Remove terminals that do not have a name or ID
+     */
+    private function filterTerminalsWithoutIdentification($terminals)
+    {
+        if (!is_array($terminals)) {
+            return [];
+        }
+
+        return array_filter($terminals, function($terminal) {
+            $id = is_object($terminal) ? ($terminal->id ?? null) : ($terminal['id'] ?? null);
+            $name = is_object($terminal) ? ($terminal->name ?? null) : ($terminal['name'] ?? null);
+
+            return !empty($id) && !empty($name);
+        });
     }
 
     public function getTerminalById($terminals, $terminal_id)
