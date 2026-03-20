@@ -3,11 +3,14 @@
 ## [Unreleased]
 ### Fixed
 - pickup points template file removed new line from modal element
+- fixed a routes error that could occur in certain situations
 
 ### Improved
 - added box-calculator library
 - improved cart size calculation functionality using the box-calculator library
 - optimized so that terminals are not loaded on the Cart page
+- added filtering of the list of pickup points from bad values or when a list of the wrong type is received
+- improved so that the delivery method is not displayed on the Checkout page if the list of pickup points is empty
 
 ## [1.1.11] - 2025-10-15
 ### Fixed

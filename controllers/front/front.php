@@ -102,6 +102,9 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
         {
             $filter_keys = Tools::getValue('filter_keys');
             $filtered_terminals = $this->module->getFilteredTerminals($filter_keys);
+            if (!is_array($filtered_terminals)) {
+                $filtered_terminals = [];
+            }
             die(json_encode(['mjvp_terminals' => $filtered_terminals]));
         }
     }
