@@ -23,14 +23,9 @@ class VenipakBulkActionController extends FrameworkBundleAdminController
         $warehouse_groups = $module_legacy->formatWarehousesOrderGroups($orders);
         if(!empty($warehouse_groups))
         {
-            foreach ($warehouse_groups as $warehouse_id => $orders)
+            foreach ($warehouse_groups as $group)
             {
-                $response = $module_legacy->bulkActionSendLabels(
-                    [
-                        'warehouse_id' => $warehouse_id,
-                        'orders' => $orders
-                    ]
-                );
+                $response = $module_legacy->bulkActionSendLabels($group);
                 if(isset($response['errors']))
                 {
                     $this->flashErrors($response['errors']);
