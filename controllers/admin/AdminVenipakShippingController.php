@@ -249,14 +249,9 @@ class AdminVenipakShippingController extends ModuleAdminController
             $warehouse_groups = $this->module->formatWarehousesOrderGroups($orders);
             if(!empty($warehouse_groups))
             {
-                foreach ($warehouse_groups as $warehouse_id => $orders)
+                foreach ($warehouse_groups as $group)
                 {
-                    $result = $this->module->bulkActionSendLabels(
-                        [
-                            'warehouse_id' => $warehouse_id,
-                            'orders' => $orders
-                        ]
-                    );
+                    $result = $this->module->bulkActionSendLabels($group);
                     if ( ! empty($result['errors']) ) {
                         foreach ( $result['errors'] as $error ) {
                             $this->errors[] = $error;

@@ -75,7 +75,16 @@ class MjvpApi extends MjvpBase
         $xml_code = '<manifest title="' . $params['manifest_title'] . '" name="' . $params['manifest_name'] . '">';
         foreach ($params['shipments'] as $shipment) {
             $shipment['api_id'] = $api_id;
+
+            // Switch to order's shop context for correct per-store Configuration values
+            $prevShopCtx = null;
+            if (!empty($shipment['id_shop'])) {
+                $prevShopCtx = $this->module->switchShopContext($shipment['id_shop']);
+            }
+
             $xml_code .= $this->buildShipmentXml($shipment);
+
+            $this->module->restoreShopContext($prevShopCtx);
         }
         $xml_code .= '</manifest>';
 

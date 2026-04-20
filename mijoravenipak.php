@@ -181,6 +181,31 @@ class MijoraVenipak extends CarrierModule
     );
 
     /**
+     * List of configuration keys that support per-store values in multistore mode.
+     * Keys not listed here will always be saved/loaded globally.
+     * If a store-specific key has no value for a particular store, the global value is used as fallback.
+     */
+    public static $_multistoreKeys = array(
+        'MJVP_SENDER_NAME',
+        'MJVP_SHOP_COMPANY_CODE',
+        'MJVP_SHOP_ADDRESS',
+        'MJVP_SHOP_CITY',
+        'MJVP_SHOP_COUNTRY_CODE',
+        'MJVP_SHOP_POSTCODE',
+        'MJVP_SHOP_CONTACT',
+        'MJVP_SHOP_PHONE',
+        'MJVP_SHOP_EMAIL',
+        'MJVP_COURIER_DOOR_CODE',
+        'MJVP_COURIER_CABINET_NUMBER',
+        'MJVP_COURIER_WAREHOUSE_NUMBER',
+        'MJVP_COURIER_CALL_BEFORE_DELIVERY',
+        'MJVP_RETURN_SERVICE',
+        'MJVP_COURIER_DELIVERY_TIME',
+        'MJVP_COUNTER_PACKS',
+        'MJVP_CARRIER_DISABLE_PASSPHRASE',
+    );
+
+    /**
      * Fields names and required
      */
     private function getConfigField($section_id, $config_key)
@@ -1251,7 +1276,12 @@ class MijoraVenipak extends CarrierModule
                 if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $prefix = '_ON';
 
-                $value = Configuration::get($key);
+                // For multistore: global-only keys always load from global scope
+                if (Shop::isFeatureActive() && !in_array($key, self::$_multistoreKeys)) {
+                    $value = Configuration::getGlobalValue($key);
+                } else {
+                    $value = Configuration::get($key);
+                }
                 if($key == $this->_configKeys['COURIER']['return_days'] && !$value)
                     $value = self::RETURN_DAYS_DEFAULT;
                 $helper->fields_value[$key . $prefix] = $value;
@@ -1282,7 +1312,13 @@ class MijoraVenipak extends CarrierModule
                 if (is_array($value)) {
                     $value = implode(';', $value);
                 }
-                Configuration::updateValue($key, strval($value));
+
+                // For multistore: global-only keys always save to global scope
+                if (Shop::isFeatureActive() && !in_array($key, self::$_multistoreKeys)) {
+                    Configuration::updateGlobalValue($key, strval($value));
+                } else {
+                    Configuration::updateValue($key, strval($value));
+                }
             }
             $success_message = (!empty($success_message)) ? $success_message : $this->l('Settings updated');
             $output .= $this->displayConfirmation($success_message);
@@ -1860,14 +1896,9 @@ class MijoraVenipak extends CarrierModule
                         $warehouse_groups = $this->formatWarehousesOrderGroups($orders);
                         if(!empty($warehouse_groups))
                         {
-                            foreach ($warehouse_groups as $warehouse_id => $orders)
+                            foreach ($warehouse_groups as $group)
                             {
-                                $this->bulkActionSendLabels(
-                                    [
-                                        'warehouse_id' => $warehouse_id,
-                                        'orders' => $orders
-                                    ]
-                                );
+                                $this->bulkActionSendLabels($group);
                             }
                         }
                     }
@@ -1912,16 +1943,55 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
+     * Temporarily switch shop context to a specific shop.
+     * Returns previous context info for restoring later.
+     */
+    public function switchShopContext($id_shop)
+    {
+        if (!Shop::isFeatureActive() || !$id_shop) {
+            return null;
+        }
+        $prev = [
+            'context' => Shop::getContext(),
+            'id_shop' => Shop::getContextShopID(false),
+            'id_shop_group' => Shop::getContextShopGroupID(false),
+        ];
+        Shop::setContext(Shop::CONTEXT_SHOP, (int) $id_shop);
+        return $prev;
+    }
+
+    /**
+     * Restore previous shop context after switchShopContext().
+     */
+    public function restoreShopContext($prev)
+    {
+        if ($prev === null) {
+            return;
+        }
+        if ($prev['context'] === Shop::CONTEXT_ALL) {
+            Shop::setContext(Shop::CONTEXT_ALL);
+        } elseif ($prev['context'] === Shop::CONTEXT_GROUP) {
+            Shop::setContext(Shop::CONTEXT_GROUP, $prev['id_shop_group']);
+        } else {
+            Shop::setContext(Shop::CONTEXT_SHOP, $prev['id_shop']);
+        }
+    }
+
+    /**
      * Hook to send labels when launch bulk action
      */
     public function bulkActionSendLabels($warehouse_group)
     {
         $warehouse_id = isset($warehouse_group['warehouse_id']) ? $warehouse_group['warehouse_id'] : 0;
+        $id_shop = isset($warehouse_group['id_shop']) ? (int) $warehouse_group['id_shop'] : 0;
         $orders_ids = $warehouse_group['orders'];
         $cApi = new MjvpApi();
         $cHelper = new MjvpHelper();
         $cDb = new MjvpDb();
         $cModuleConfig = new MjvpModuleConfig();
+
+        // Switch to the target shop context for this batch
+        $prevShopCtx = $this->switchShopContext($id_shop);
 
         $errors = [];
         $success_orders = [];
@@ -1937,6 +2007,7 @@ class MijoraVenipak extends CarrierModule
         }
 
         if ( ! $warehouse_id ) {
+            $this->restoreShopContext($prevShopCtx);
             return array('errors' => array(
                 $this->l('Orders are not assigned a warehouse or their delivery method is not Venipak') . ': #' . implode(', #', $orders_ids),
                 sprintf($this->l('Please check that you have created a Warehouse and marked it as default in %s page'), '<a href="' . $this->context->link->getAdminLink('AdminVenipakWarehouse') . '">' . $this->l('Venipak Warehouses') . '</a>')
@@ -1947,18 +2018,22 @@ class MijoraVenipak extends CarrierModule
                 1. Was generated today;
                 2. Is assigned to a warehouse @$warehouse_id;
                 3. Is not closed;
+                4. Belongs to the same shop;
             we include @$orders_ids in that manifest. */
-        $manifest_data = Db::getInstance()->getRow((new DbQuery())
+        $manifest_query = (new DbQuery())
             ->select('id, manifest_id')
             ->from('mjvp_manifest')
-            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())')
-        );
+            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())');
+        if ($id_shop) {
+            $manifest_query->where('id_shop = ' . $id_shop);
+        }
+        $manifest_data = Db::getInstance()->getRow($manifest_query);
 
         $manifest_title = '';
         $manifest_id = 0;
     
         // In case client changed credentials, we cannot use the old. manifest title and id
-        $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
+        $api_id = Configuration::getGlobalValue($cModuleConfig->getConfigKey('id', 'API'));
         if($manifest_data)
         {
             if(substr($manifest_data['manifest_id'], 0, 5) == $api_id)
@@ -1971,13 +2046,13 @@ class MijoraVenipak extends CarrierModule
         // If not found, build new one.
         if(!$manifest_title)
         {
-            $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
+            $prev_manifest = json_decode(Configuration::getGlobalValue($this->_configKeysOther['counter_manifest']['key']));
             $current_date = date('ymd');
             $manifest_counter = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
             $manifest_title = $cApi->buildManifestNumber($api_id, $manifest_counter);
         }
 
-        Configuration::updateValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
+        Configuration::updateGlobalValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
         $manifest = array(
             'manifest_name' => Configuration::get('PS_SHOP_NAME'),
             'shipments' => array(),
@@ -1994,6 +2069,7 @@ class MijoraVenipak extends CarrierModule
             $error_order_no = ' #' . $order_id;
             try {
                 $order = new Order((int)$order_id);
+
                 $address = new Address($order->id_address_delivery);
                 $carrier = new Carrier($order->id_carrier);
                 $customer = new Customer($order->id_customer);
@@ -2142,6 +2218,7 @@ class MijoraVenipak extends CarrierModule
                         'order_code' => $order->reference,
                         'consignee' => $consignee,
                         'packs' => $shipment_pack,
+                        'id_shop' => (int) $order->id_shop,
                     );
 
                     $success_orders[] = $order_id;
@@ -2159,11 +2236,16 @@ class MijoraVenipak extends CarrierModule
             if ($cHelper->isXMLContentValid($manifest_xml) && $found) {
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text']) {
+                    // Update manifest counter immediately on success so subsequent calls get a new number
+                    if (!$manifest_id && isset($manifest_counter)) {
+                        Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    }
+
                     $mjvp_manifest = ($manifest_id) ? new MjvpManifest($manifest_id) : new MjvpManifest();
 
                     $mjvp_manifest->manifest_id = $manifest_title;
                     $mjvp_manifest->id_warehouse = $warehouse_id;
-                    $mjvp_manifest->id_shop = $this->context->shop->id;
+                    $mjvp_manifest->id_shop = $id_shop ? $id_shop : $this->context->shop->id;
                     $mjvp_manifest->arrival_date_from = null;
                     $mjvp_manifest->arrival_date_to = null;
                     $mjvp_manifest->closed = 0;
@@ -2256,7 +2338,11 @@ class MijoraVenipak extends CarrierModule
                         $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
                 } elseif(!$manifest_id) {
-                    Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    // Counter already updated in success path above; this handles edge case
+                    // where API returns neither error nor text
+                    if (isset($manifest_counter)) {
+                        Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -2290,6 +2376,9 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
+
+        // Restore original shop context
+        $this->restoreShopContext($prevShopCtx);
 
         if(version_compare(_PS_VERSION_, '1.7.7', '<') || (isset($this->context->controller->module) && $this->context->controller->module)) {
             if (empty($errors)) {
@@ -2636,13 +2725,20 @@ class MijoraVenipak extends CarrierModule
     {
         $cDb = new MjvpDb();
         $warehouse_groups = [];
-        foreach ($orders as $order)
+        foreach ($orders as $order_id)
         {
-            $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
-            if(!$warehouse_id)
-                $warehouse_groups[0][] = $order;
-            else
-                $warehouse_groups[$warehouse_id][] = $order;
+            $warehouse_id = (int) $cDb->getOrderValue('warehouse_id', array('id_order' => $order_id));
+            $order = new Order((int) $order_id);
+            $id_shop = (int) $order->id_shop;
+            $group_key = $warehouse_id . '_' . $id_shop;
+            if (!isset($warehouse_groups[$group_key])) {
+                $warehouse_groups[$group_key] = [
+                    'warehouse_id' => $warehouse_id,
+                    'id_shop' => $id_shop,
+                    'orders' => [],
+                ];
+            }
+            $warehouse_groups[$group_key]['orders'][] = $order_id;
         }
         return $warehouse_groups;
     }
