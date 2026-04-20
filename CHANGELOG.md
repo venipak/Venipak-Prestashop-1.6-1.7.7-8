@@ -11,6 +11,7 @@
 - optimized so that terminals are not loaded on the Cart page
 - added filtering of the list of pickup points from bad values or when a list of the wrong type is received
 - improved so that the delivery method is not displayed on the Checkout page if the list of pickup points is empty
+- the module is adapted to work in multistore mode
 
 ## [1.1.11] - 2025-10-15
 ### Fixed
