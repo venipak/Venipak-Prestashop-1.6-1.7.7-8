@@ -181,6 +181,31 @@ class MijoraVenipak extends CarrierModule
     );
 
     /**
+     * List of configuration keys that support per-store values in multistore mode.
+     * Keys not listed here will always be saved/loaded globally.
+     * If a store-specific key has no value for a particular store, the global value is used as fallback.
+     */
+    public static $_multistoreKeys = array(
+        'MJVP_SENDER_NAME',
+        'MJVP_SHOP_COMPANY_CODE',
+        'MJVP_SHOP_ADDRESS',
+        'MJVP_SHOP_CITY',
+        'MJVP_SHOP_COUNTRY_CODE',
+        'MJVP_SHOP_POSTCODE',
+        'MJVP_SHOP_CONTACT',
+        'MJVP_SHOP_PHONE',
+        'MJVP_SHOP_EMAIL',
+        'MJVP_COURIER_DOOR_CODE',
+        'MJVP_COURIER_CABINET_NUMBER',
+        'MJVP_COURIER_WAREHOUSE_NUMBER',
+        'MJVP_COURIER_CALL_BEFORE_DELIVERY',
+        'MJVP_RETURN_SERVICE',
+        'MJVP_COURIER_DELIVERY_TIME',
+        'MJVP_COUNTER_PACKS',
+        'MJVP_CARRIER_DISABLE_PASSPHRASE',
+    );
+
+    /**
      * Fields names and required
      */
     private function getConfigField($section_id, $config_key)
@@ -254,7 +279,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.1.11';
+        $this->version = '1.2.0';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -512,7 +537,10 @@ class MijoraVenipak extends CarrierModule
                 return false;
 
             // Check pickup carrier, if there are any terminals for cart weight.
-            if(empty($this->terminal_count))
+            // Only run terminal filtering on checkout page, not on cart page.
+            $is_checkout = isset($this->context->controller->php_self)
+                && in_array($this->context->controller->php_self, ['order', 'order-opc']);
+            if($is_checkout && empty($this->terminal_count))
             {
                 $order = null;
                 if(method_exists(Order::class, 'getByCartId'))
@@ -538,7 +566,7 @@ class MijoraVenipak extends CarrierModule
 
                 $this->terminal_count = count($filtered_terminals);
             }
-            if($this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
+            if($is_checkout && $this->id_carrier == $pickupCarrier->id && $this->terminal_count == 0)
                 return false; 
         }
         return $shipping_cost;
@@ -1248,7 +1276,12 @@ class MijoraVenipak extends CarrierModule
                 if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $prefix = '_ON';
 
-                $value = Configuration::get($key);
+                // For multistore: global-only keys always load from global scope
+                if (Shop::isFeatureActive() && !in_array($key, self::$_multistoreKeys)) {
+                    $value = Configuration::getGlobalValue($key);
+                } else {
+                    $value = Configuration::get($key);
+                }
                 if($key == $this->_configKeys['COURIER']['return_days'] && !$value)
                     $value = self::RETURN_DAYS_DEFAULT;
                 $helper->fields_value[$key . $prefix] = $value;
@@ -1279,7 +1312,13 @@ class MijoraVenipak extends CarrierModule
                 if (is_array($value)) {
                     $value = implode(';', $value);
                 }
-                Configuration::updateValue($key, strval($value));
+
+                // For multistore: global-only keys always save to global scope
+                if (Shop::isFeatureActive() && !in_array($key, self::$_multistoreKeys)) {
+                    Configuration::updateGlobalValue($key, strval($value));
+                } else {
+                    Configuration::updateValue($key, strval($value));
+                }
             }
             $success_message = (!empty($success_message)) ? $success_message : $this->l('Settings updated');
             $output .= $this->displayConfirmation($success_message);
@@ -1401,6 +1440,18 @@ class MijoraVenipak extends CarrierModule
 
             $address = new Address($params['cart']->id_address_delivery);
             $filtered_terminals = $this->getFilteredTerminals();
+
+            if (!is_array($filtered_terminals) || empty($filtered_terminals)) {
+                $cHelper = new MjvpHelper();
+                $cHelper->writeToLog(
+                    'Pickup carrier hidden on checkout: terminal list is '
+                    . (is_array($filtered_terminals) ? 'empty after filtering invalid entries' : 'not a valid array')
+                    . '. Cart ID: ' . $params['cart']->id,
+                    'terminals'
+                );
+                $filtered_terminals = [];
+            }
+
             $this->terminal_count = count($filtered_terminals);
 
             $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
@@ -1745,8 +1796,7 @@ class MijoraVenipak extends CarrierModule
         {
 
             $address = new Address($params['cart']->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
+            $country_code = $this->getCountryCodeFromAddress($address);
 
             if (empty($country_code)) {
                 return '';
@@ -1763,7 +1813,18 @@ class MijoraVenipak extends CarrierModule
                 $cFiles = new MjvpFiles();
                 $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code);
 
-                if (!$all_terminals_info || empty($all_terminals_info)) {
+                if (!is_array($all_terminals_info)) {
+                    $all_terminals_info = [];
+                }
+
+                $all_terminals_info = $this->filterTerminalsWithoutIdentification($all_terminals_info);
+
+                if (empty($all_terminals_info)) {
+                    $cHelper->writeToLog(
+                        'Pickup carrier extra content hidden: terminal list is empty after filtering entries without name/ID.'
+                        . ' Country: ' . $country_code . ', Cart ID: ' . $params['cart']->id,
+                        'terminals'
+                    );
                     return '';
                 }
             } catch (Exception $e) {
@@ -1834,14 +1895,9 @@ class MijoraVenipak extends CarrierModule
                         $warehouse_groups = $this->formatWarehousesOrderGroups($orders);
                         if(!empty($warehouse_groups))
                         {
-                            foreach ($warehouse_groups as $warehouse_id => $orders)
+                            foreach ($warehouse_groups as $group)
                             {
-                                $this->bulkActionSendLabels(
-                                    [
-                                        'warehouse_id' => $warehouse_id,
-                                        'orders' => $orders
-                                    ]
-                                );
+                                $this->bulkActionSendLabels($group);
                             }
                         }
                     }
@@ -1860,7 +1916,7 @@ class MijoraVenipak extends CarrierModule
     {
         $cApi = new MjvpApi();
 
-        $country_iso = Country::getIsoById($address->id_country);
+        $country_iso = $this->getCountryCodeFromAddress($address, false);
         $postcode = $address->postcode;
         try {
             $response = $cApi->executeRequest('ws/get_route', 'GET', [
@@ -1886,16 +1942,55 @@ class MijoraVenipak extends CarrierModule
     }
 
     /**
+     * Temporarily switch shop context to a specific shop.
+     * Returns previous context info for restoring later.
+     */
+    public function switchShopContext($id_shop)
+    {
+        if (!Shop::isFeatureActive() || !$id_shop) {
+            return null;
+        }
+        $prev = [
+            'context' => Shop::getContext(),
+            'id_shop' => Shop::getContextShopID(false),
+            'id_shop_group' => Shop::getContextShopGroupID(false),
+        ];
+        Shop::setContext(Shop::CONTEXT_SHOP, (int) $id_shop);
+        return $prev;
+    }
+
+    /**
+     * Restore previous shop context after switchShopContext().
+     */
+    public function restoreShopContext($prev)
+    {
+        if ($prev === null) {
+            return;
+        }
+        if ($prev['context'] === Shop::CONTEXT_ALL) {
+            Shop::setContext(Shop::CONTEXT_ALL);
+        } elseif ($prev['context'] === Shop::CONTEXT_GROUP) {
+            Shop::setContext(Shop::CONTEXT_GROUP, $prev['id_shop_group']);
+        } else {
+            Shop::setContext(Shop::CONTEXT_SHOP, $prev['id_shop']);
+        }
+    }
+
+    /**
      * Hook to send labels when launch bulk action
      */
     public function bulkActionSendLabels($warehouse_group)
     {
         $warehouse_id = isset($warehouse_group['warehouse_id']) ? $warehouse_group['warehouse_id'] : 0;
+        $id_shop = isset($warehouse_group['id_shop']) ? (int) $warehouse_group['id_shop'] : 0;
         $orders_ids = $warehouse_group['orders'];
         $cApi = new MjvpApi();
         $cHelper = new MjvpHelper();
         $cDb = new MjvpDb();
         $cModuleConfig = new MjvpModuleConfig();
+
+        // Switch to the target shop context for this batch
+        $prevShopCtx = $this->switchShopContext($id_shop);
 
         $errors = [];
         $success_orders = [];
@@ -1911,6 +2006,7 @@ class MijoraVenipak extends CarrierModule
         }
 
         if ( ! $warehouse_id ) {
+            $this->restoreShopContext($prevShopCtx);
             return array('errors' => array(
                 $this->l('Orders are not assigned a warehouse or their delivery method is not Venipak') . ': #' . implode(', #', $orders_ids),
                 sprintf($this->l('Please check that you have created a Warehouse and marked it as default in %s page'), '<a href="' . $this->context->link->getAdminLink('AdminVenipakWarehouse') . '">' . $this->l('Venipak Warehouses') . '</a>')
@@ -1921,18 +2017,22 @@ class MijoraVenipak extends CarrierModule
                 1. Was generated today;
                 2. Is assigned to a warehouse @$warehouse_id;
                 3. Is not closed;
+                4. Belongs to the same shop;
             we include @$orders_ids in that manifest. */
-        $manifest_data = Db::getInstance()->getRow((new DbQuery())
+        $manifest_query = (new DbQuery())
             ->select('id, manifest_id')
             ->from('mjvp_manifest')
-            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())')
-        );
+            ->where('id_warehouse = ' . $warehouse_id . ' AND (closed IS NULL OR closed = 0) AND DATE(date_add) = DATE(NOW())');
+        if ($id_shop) {
+            $manifest_query->where('id_shop = ' . $id_shop);
+        }
+        $manifest_data = Db::getInstance()->getRow($manifest_query);
 
         $manifest_title = '';
         $manifest_id = 0;
     
         // In case client changed credentials, we cannot use the old. manifest title and id
-        $api_id = Configuration::get($cModuleConfig->getConfigKey('id', 'API'));
+        $api_id = Configuration::getGlobalValue($cModuleConfig->getConfigKey('id', 'API'));
         if($manifest_data)
         {
             if(substr($manifest_data['manifest_id'], 0, 5) == $api_id)
@@ -1945,13 +2045,13 @@ class MijoraVenipak extends CarrierModule
         // If not found, build new one.
         if(!$manifest_title)
         {
-            $prev_manifest = json_decode(Configuration::get($this->_configKeysOther['counter_manifest']['key']));
+            $prev_manifest = json_decode(Configuration::getGlobalValue($this->_configKeysOther['counter_manifest']['key']));
             $current_date = date('ymd');
             $manifest_counter = ($current_date != $prev_manifest->date) ? 1 : (int)$prev_manifest->counter + 1;
             $manifest_title = $cApi->buildManifestNumber($api_id, $manifest_counter);
         }
 
-        Configuration::updateValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
+        Configuration::updateGlobalValue($cModuleConfig->getConfigKeyOther('last_manifest_id'), $manifest_title);
         $manifest = array(
             'manifest_name' => Configuration::get('PS_SHOP_NAME'),
             'shipments' => array(),
@@ -1968,13 +2068,14 @@ class MijoraVenipak extends CarrierModule
             $error_order_no = ' #' . $order_id;
             try {
                 $order = new Order((int)$order_id);
+
                 $address = new Address($order->id_address_delivery);
                 $carrier = new Carrier($order->id_carrier);
                 $customer = new Customer($order->id_customer);
                 if (!empty($order->id_carrier) && $cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
                     $found = true;
                     $order_products = $order->getProducts();
-                    $country_iso = Country::getIsoById($address->id_country);
+                    $country_iso = $this->getCountryCodeFromAddress($address, false);
                     $consignee_name = $address->firstname . ' ' . $address->lastname;
                     $consignee_code = '';
                     if (!in_array($country_iso, $this->available_countries)) {
@@ -2116,6 +2217,7 @@ class MijoraVenipak extends CarrierModule
                         'order_code' => $order->reference,
                         'consignee' => $consignee,
                         'packs' => $shipment_pack,
+                        'id_shop' => (int) $order->id_shop,
                     );
 
                     $success_orders[] = $order_id;
@@ -2133,11 +2235,16 @@ class MijoraVenipak extends CarrierModule
             if ($cHelper->isXMLContentValid($manifest_xml) && $found) {
                 $status = $cApi->sendXml($manifest_xml);
                 if(!isset($status['error']) && $status['text']) {
+                    // Update manifest counter immediately on success so subsequent calls get a new number
+                    if (!$manifest_id && isset($manifest_counter)) {
+                        Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    }
+
                     $mjvp_manifest = ($manifest_id) ? new MjvpManifest($manifest_id) : new MjvpManifest();
 
                     $mjvp_manifest->manifest_id = $manifest_title;
                     $mjvp_manifest->id_warehouse = $warehouse_id;
-                    $mjvp_manifest->id_shop = $this->context->shop->id;
+                    $mjvp_manifest->id_shop = $id_shop ? $id_shop : $this->context->shop->id;
                     $mjvp_manifest->arrival_date_from = null;
                     $mjvp_manifest->arrival_date_to = null;
                     $mjvp_manifest->closed = 0;
@@ -2230,7 +2337,11 @@ class MijoraVenipak extends CarrierModule
                         $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
                 } elseif(!$manifest_id) {
-                    Configuration::updateValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    // Counter already updated in success path above; this handles edge case
+                    // where API returns neither error nor text
+                    if (isset($manifest_counter)) {
+                        Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
+                    }
                 }
             }
         } catch (Exception $e) {
@@ -2264,6 +2375,9 @@ class MijoraVenipak extends CarrierModule
                 }
             }
         }
+
+        // Restore original shop context
+        $this->restoreShopContext($prevShopCtx);
 
         if(version_compare(_PS_VERSION_, '1.7.7', '<') || (isset($this->context->controller->module) && $this->context->controller->module)) {
             if (empty($errors)) {
@@ -2486,33 +2600,29 @@ class MijoraVenipak extends CarrierModule
     {
         if($entity instanceof Order || $entity instanceof Cart)
         {
-            $cartDimensions = $this->getProductsDimensionsCombinations($entity->getProducts());
+            $items = $this->getBoxCalculatorItems($entity->getProducts());
+            if(empty($items))
+                return $terminals;
+
             foreach ($terminals as $key => $terminal)
             {
                 // Zero means no limit
                 if($terminal->max_height == 0 || $terminal->max_width == 0 || $terminal->max_length == 0)
                     continue;
-                $someArrangmentFits = false;
-                foreach($cartDimensions as $cartDimension)
-                {
-                    // if any arrangment fits, terminal is good and we can stop checking other arrangements
-                    // width and depth are considered invariablly, because it is assumed that shipment can be rotated
-                    if( ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['depth'])
-                     || ($terminal->max_height >= $cartDimension['height'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['width'])
-                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['depth']) 
-                     || ($terminal->max_height >= $cartDimension['width'] && $terminal->max_width >= $cartDimension['depth'] && $terminal->max_length >= $cartDimension['height'])
-                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['height'] && $terminal->max_length >= $cartDimension['width'])
-                     || ($terminal->max_height >= $cartDimension['depth'] && $terminal->max_width >= $cartDimension['width'] && $terminal->max_length >= $cartDimension['height'])
-                    )
-                    {
-                        $someArrangmentFits = true;
-                        break;
-                    }
 
-                    if(!$someArrangmentFits)
-                    {
-                        unset($terminals[$key]);
-                    }
+                $boxCalculator = new Mijora\BoxCalculator\CalculateBox($items);
+                $boxCalculator->setBoxWallThickness(0);
+                $boxCalculator->setMethod('Heuristic3D');
+                $boxCalculator->setMaxBoxSize(
+                    !empty($terminal->max_width) ? $terminal->max_width : 999999,
+                    !empty($terminal->max_height) ? $terminal->max_height : 999999,
+                    !empty($terminal->max_length) ? $terminal->max_length : 999999
+                );
+                $boxSize = $boxCalculator->findBoxSizeUntilMaxSize();
+
+                if($boxSize === false)
+                {
+                    unset($terminals[$key]);
                 }
             }
             return $terminals;
@@ -2521,38 +2631,52 @@ class MijoraVenipak extends CarrierModule
         return $terminals;
     }
 
-    // Simplest variant. Returns 3 combinations to put products in, each time changing the stacking dimension.
-    private function getProductsDimensionsCombinations($products)
+    private function getBoxCalculatorItems($products)
     {
-        $emptyDimensions = [
-            'height' => 0,
-            'width' => 0,
-            'depth' => 0
-        ];
-        $dimensionsCombinations = [$emptyDimensions, $emptyDimensions, $emptyDimensions];
-
         $divisor = Configuration::get('PS_DIMENSION_UNIT') == 'cm' ? 100 : 1;
+        $items = [];
 
         foreach($products as $product)
         {
-            $height = ((float) $product['height'] / $divisor) * $product['quantity'];
-            $width = ((float) $product['width'] / $divisor) * $product['quantity'];
-            $depth = ((float) $product['depth'] / $divisor) * $product['quantity'];
+            $width = (float) $product['width'] / $divisor;
+            $height = (float) $product['height'] / $divisor;
+            $depth = (float) $product['depth'] / $divisor;
 
-            $dimensionsCombinations[0]['height'] += $height;
-            $dimensionsCombinations[0]['width'] += $width;
-            $dimensionsCombinations[0]['depth'] += $depth;
+            if($width <= 0 || $height <= 0 || $depth <= 0)
+                continue;
 
-            $dimensionsCombinations[1]['height'] += $width;
-            $dimensionsCombinations[1]['width'] += $height;
-            $dimensionsCombinations[1]['depth'] += $depth;
-
-            $dimensionsCombinations[2]['height'] += $depth;
-            $dimensionsCombinations[2]['width'] += $width;
-            $dimensionsCombinations[2]['depth'] += $height;
+            for($i = 0; $i < (int) $product['quantity']; $i++)
+            {
+                $items[] = new Mijora\BoxCalculator\Elements\Item($width, $height, $depth);
+            }
         }
 
-        return $dimensionsCombinations;
+        return $items;
+    }
+
+    public function getCountryCodeFromAddress($address = null, $use_default_country = true)
+    {
+        $country_id = 0;
+
+        if (is_numeric($address) && (int) $address > 0) {
+            $address = new Address((int) $address);
+        }
+
+        if ($address instanceof AddressCore && Validate::isLoadedObject($address) && !empty($address->id_country)) {
+            $country_id = (int) $address->id_country;
+        }
+
+        if (!$country_id && $use_default_country) {
+            $country_id = (int) Configuration::get('PS_COUNTRY_DEFAULT');
+        }
+
+        if (!$country_id) {
+            return '';
+        }
+
+        $country_code = Country::getIsoById($country_id);
+
+        return !empty($country_code) ? (string) $country_code : '';
     }
 
     public function getFilteredTerminals($filters = [], $entity = null)
@@ -2561,14 +2685,17 @@ class MijoraVenipak extends CarrierModule
             $entity = $this->context->cart;
 
         if($entity instanceof OrderCore || $entity instanceof CartCore) {
-            $address = new Address($entity->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
+            $country_code = $this->getCountryCodeFromAddress($entity->id_address_delivery);
+
+            if (empty($country_code)) {
+                return [];
+            }
 
             $cFiles = new MjvpFiles();
             $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false, $filters);
-            if(!$all_terminals_info)
+            if(!is_array($all_terminals_info))
                 $all_terminals_info = [];
+            $all_terminals_info = $this->filterTerminalsWithoutIdentification($all_terminals_info);
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = $this->filterTerminalsByDimensions($filtered_terminals, $entity);
             $filtered_terminals = array_values($filtered_terminals);
@@ -2578,6 +2705,23 @@ class MijoraVenipak extends CarrierModule
         {
             return [];
         }
+    }
+
+    /**
+     * Remove terminals that do not have a name or ID
+     */
+    private function filterTerminalsWithoutIdentification($terminals)
+    {
+        if (!is_array($terminals)) {
+            return [];
+        }
+
+        return array_filter($terminals, function($terminal) {
+            $id = is_object($terminal) ? ($terminal->id ?? null) : ($terminal['id'] ?? null);
+            $name = is_object($terminal) ? ($terminal->name ?? null) : ($terminal['name'] ?? null);
+
+            return !empty($id) && !empty($name);
+        });
     }
 
     public function getTerminalById($terminals, $terminal_id)
@@ -2607,13 +2751,20 @@ class MijoraVenipak extends CarrierModule
     {
         $cDb = new MjvpDb();
         $warehouse_groups = [];
-        foreach ($orders as $order)
+        foreach ($orders as $order_id)
         {
-            $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
-            if(!$warehouse_id)
-                $warehouse_groups[0][] = $order;
-            else
-                $warehouse_groups[$warehouse_id][] = $order;
+            $warehouse_id = (int) $cDb->getOrderValue('warehouse_id', array('id_order' => $order_id));
+            $order = new Order((int) $order_id);
+            $id_shop = (int) $order->id_shop;
+            $group_key = $warehouse_id . '_' . $id_shop;
+            if (!isset($warehouse_groups[$group_key])) {
+                $warehouse_groups[$group_key] = [
+                    'warehouse_id' => $warehouse_id,
+                    'id_shop' => $id_shop,
+                    'orders' => [],
+                ];
+            }
+            $warehouse_groups[$group_key]['orders'][] = $order_id;
         }
         return $warehouse_groups;
     }
@@ -2783,8 +2934,7 @@ class MijoraVenipak extends CarrierModule
 
         $carrier = new Carrier($order->id_carrier);
         $address = new Address($order->id_address_delivery);
-        $country = new Country();
-        $country_code = $country->getIsoById($address->id_country);
+        $country_code = $this->getCountryCodeFromAddress($address);
         $order_weight = $order->getTotalWeight();
         // Convert to kg, if weight is in grams.
         if(Configuration::get('PS_WEIGHT_UNIT') == 'g')

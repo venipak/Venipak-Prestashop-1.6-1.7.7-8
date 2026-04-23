@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0] - 2026-04-23
+### Fixed
+- pickup points template file removed new line from modal element
+- fixed a routes error that could occur in certain situations
+- fixed country code resolution when delivery address is not yet set, falling back to default shop country
+- fixed a bug in the controller calling the translation function
+- fixed "Please select a terminal" error message not disappearing after selecting a terminal
+- fixed deprecated implicit `window.event` usage in delivery option change handler (caused issues in Firefox)
+- fixed misleading indentation in document ready handler
+
+### Improved
+- added box-calculator library
+- improved cart size calculation functionality using the box-calculator library
+- optimized so that terminals are not loaded on the Cart page
+- added filtering of the list of pickup points from bad values or when a list of the wrong type is received
+- improved so that the delivery method is not displayed on the Checkout page if the list of pickup points is empty
+- the module is adapted to work in multistore mode
+
 ## [1.1.11] - 2025-10-15
 ### Fixed
 - fixed the "call before delivery" checkbox selection when it's the only parameter on the Checkout page

@@ -5,4 +5,5 @@ services:
     autoconfigure: true
 
   MijoraVenipak\Controller\Admin\VenipakBulkActionController:
+    class: MijoraVenipak\Controller\Admin\VenipakBulkActionController
     public: true

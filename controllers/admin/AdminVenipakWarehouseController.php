@@ -33,7 +33,7 @@ class AdminVenipakWarehouseController extends ModuleAdminController
     {
         $this->fields_list = array(
             'id' => array(
-                'title' => $this->l('ID'),
+                'title' => $this->module->l('ID'),
                 'align' => 'text-center',
                 'class' => 'fixed-width-xs',
             ),

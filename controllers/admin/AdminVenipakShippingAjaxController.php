@@ -181,13 +181,15 @@ class AdminVenipakshippingAjaxController extends ModuleAdminController
 
     public function generateLabel()
     {
-        $order = (int) Tools::getValue('id_order');
+        $order_id = (int) Tools::getValue('id_order');
         $cDb = $this->module->getModuleService('MjvpDb');
-        $warehouse_id = $cDb->getOrderValue('warehouse_id', array('id_order' => $order));
+        $warehouse_id = (int) $cDb->getOrderValue('warehouse_id', array('id_order' => $order_id));
+        $order_obj = new Order($order_id);
         $response = $this->module->bulkActionSendLabels(
             [
                 'warehouse_id' => $warehouse_id,
-                'orders' => (array) $order,
+                'id_shop' => (int) $order_obj->id_shop,
+                'orders' => (array) $order_id,
             ]
         );
 
