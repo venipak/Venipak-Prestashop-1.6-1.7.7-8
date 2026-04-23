@@ -20,8 +20,7 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
 
             if(!$country_code)
             {
-                $address = new Address($this->context->cart->id_address_delivery);
-                $country_code = Country::getIsoById($address->id_country);
+                $country_code = $this->module->getCountryCodeFromAddress($this->context->cart->id_address_delivery);
             }
 
             $ps_carrier = new Carrier((int)$carrierId);

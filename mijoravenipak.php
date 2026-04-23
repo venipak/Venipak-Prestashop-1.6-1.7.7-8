@@ -1796,8 +1796,7 @@ class MijoraVenipak extends CarrierModule
         {
 
             $address = new Address($params['cart']->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
+            $country_code = $this->getCountryCodeFromAddress($address);
 
             if (empty($country_code)) {
                 return '';
@@ -1917,7 +1916,7 @@ class MijoraVenipak extends CarrierModule
     {
         $cApi = new MjvpApi();
 
-        $country_iso = Country::getIsoById($address->id_country);
+        $country_iso = $this->getCountryCodeFromAddress($address, false);
         $postcode = $address->postcode;
         try {
             $response = $cApi->executeRequest('ws/get_route', 'GET', [
@@ -2076,7 +2075,7 @@ class MijoraVenipak extends CarrierModule
                 if (!empty($order->id_carrier) && $cHelper->itIsThisModuleCarrier($carrier->id_reference)) {
                     $found = true;
                     $order_products = $order->getProducts();
-                    $country_iso = Country::getIsoById($address->id_country);
+                    $country_iso = $this->getCountryCodeFromAddress($address, false);
                     $consignee_name = $address->firstname . ' ' . $address->lastname;
                     $consignee_code = '';
                     if (!in_array($country_iso, $this->available_countries)) {
@@ -2655,15 +2654,42 @@ class MijoraVenipak extends CarrierModule
         return $items;
     }
 
+    public function getCountryCodeFromAddress($address = null, $use_default_country = true)
+    {
+        $country_id = 0;
+
+        if (is_numeric($address) && (int) $address > 0) {
+            $address = new Address((int) $address);
+        }
+
+        if ($address instanceof AddressCore && Validate::isLoadedObject($address) && !empty($address->id_country)) {
+            $country_id = (int) $address->id_country;
+        }
+
+        if (!$country_id && $use_default_country) {
+            $country_id = (int) Configuration::get('PS_COUNTRY_DEFAULT');
+        }
+
+        if (!$country_id) {
+            return '';
+        }
+
+        $country_code = Country::getIsoById($country_id);
+
+        return !empty($country_code) ? (string) $country_code : '';
+    }
+
     public function getFilteredTerminals($filters = [], $entity = null)
     {
         if(!$entity && isset($this->context->cart))
             $entity = $this->context->cart;
 
         if($entity instanceof OrderCore || $entity instanceof CartCore) {
-            $address = new Address($entity->id_address_delivery);
-            $country = new Country();
-            $country_code = $country->getIsoById($address->id_country);
+            $country_code = $this->getCountryCodeFromAddress($entity->id_address_delivery);
+
+            if (empty($country_code)) {
+                return [];
+            }
 
             $cFiles = new MjvpFiles();
             $all_terminals_info = $cFiles->getTerminalsListForCountry($country_code, false, $filters);
@@ -2908,8 +2934,7 @@ class MijoraVenipak extends CarrierModule
 
         $carrier = new Carrier($order->id_carrier);
         $address = new Address($order->id_address_delivery);
-        $country = new Country();
-        $country_code = $country->getIsoById($address->id_country);
+        $country_code = $this->getCountryCodeFromAddress($address);
         $order_weight = $order->getTotalWeight();
         // Convert to kg, if weight is in grams.
         if(Configuration::get('PS_WEIGHT_UNIT') == 'g')

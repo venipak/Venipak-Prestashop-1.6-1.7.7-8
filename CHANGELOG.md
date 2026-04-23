@@ -4,6 +4,7 @@
 ### Fixed
 - pickup points template file removed new line from modal element
 - fixed a routes error that could occur in certain situations
+- fixed country code resolution when delivery address is not yet set, falling back to default shop country
 
 ### Improved
 - added box-calculator library
