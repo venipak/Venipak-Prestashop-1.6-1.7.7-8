@@ -1,9 +1,9 @@
 $( document ).ready(function() {
-  if (typeof(mjvp_country_code) != 'undefined' && mjvp_country_code != null) {
-    mjvp_registerSelection('mjvp-selected-terminal');
-  }
-  if($('#mjvp-courier-extra-fields .alert-danger').length != 0 || $('.mjvp-pp-container .alert-danger').length != 0)
-    $('#notifications .alert-danger').hide();
+    if (typeof(mjvp_country_code) != 'undefined' && mjvp_country_code != null) {
+        mjvp_registerSelection('mjvp-selected-terminal');
+    }
+    if($('#mjvp-courier-extra-fields .alert-danger').length != 0 || $('.mjvp-pp-container .alert-danger').length != 0)
+        $('#notifications .alert-danger').hide();
 
     $(".mjvp-pickup-filter").on('click', e => {
         venipak_custom_modal.tmjs.dom.addOverlay();
@@ -70,8 +70,8 @@ $( document ).ready(function() {
     });
 });
 
-$(document).on("change", "input[name^='delivery_option[']", function() {
-    if(typeof event.target.value !== "undefined" && typeof venipakCarrierID !== "undefined" && parseInt(event.target.value) == parseInt(venipakCarrierID))
+$(document).on("change", "input[name^='delivery_option[']", function(e) {
+    if(typeof e.target.value !== "undefined" && typeof venipakCarrierID !== "undefined" && parseInt(e.target.value) == parseInt(venipakCarrierID))
         mjvp_registerSelection('mjvp-selected-terminal');
 });
 
@@ -85,6 +85,11 @@ function mjvp_registerSelection(selected_field_id) {
     ajaxData.carrier_id = $("input[name^='delivery_option[']:checked").val().split(',')[0];
     ajaxData.selected_terminal = $(`#${selected_field_id}`).length != 0 ? $(`#${selected_field_id}`).val() : 0;
     ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").val() : 0;
+
+    if (ajaxData.selected_terminal != 0) {
+        $('.mjvp-pp-container .alert-danger').remove();
+        $('#notifications .alert-danger').hide();
+    }
 
     var terminal = null;
     if(ajaxData.selected_terminal != 0 && typeof(mjvp_terminals) !== 'undefined' && mjvp_terminals.length != 0)

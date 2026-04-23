@@ -6,6 +6,9 @@
 - fixed a routes error that could occur in certain situations
 - fixed country code resolution when delivery address is not yet set, falling back to default shop country
 - fixed a bug in the controller calling the translation function
+- fixed "Please select a terminal" error message not disappearing after selecting a terminal
+- fixed deprecated implicit `window.event` usage in delivery option change handler (caused issues in Firefox)
+- fixed misleading indentation in document ready handler
 
 ### Improved
 - added box-calculator library
