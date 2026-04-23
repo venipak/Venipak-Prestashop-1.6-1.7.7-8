@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0] - 2026-04-23
 ### Fixed
 - pickup points template file removed new line from modal element
 - fixed a routes error that could occur in certain situations
