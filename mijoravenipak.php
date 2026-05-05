@@ -158,6 +158,7 @@ class MijoraVenipak extends CarrierModule
         ),
         'ADVANCED' => array(
             'carrier_disable_passphrase' => 'MJVP_CARRIER_DISABLE_PASSPHRASE',
+            'pickup_point_types' => 'MJVP_PICKUP_POINT_TYPES',
         ),
     );
 
@@ -279,7 +280,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.2.0';
+        $this->version = '1.2.1';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1157,12 +1158,34 @@ class MijoraVenipak extends CarrierModule
 
         $section_id = 'ADVANCED';
 
+        $pickup_point_types = array(
+            array(
+                'id' => '1',
+                'name' => $this->l('Pickups'),
+            ),
+            array(
+                'id' => '3',
+                'name' => $this->l('Lockers'),
+            ),
+        );
+
         $form_fields = array(
             array(
                 'type' => 'text',
                 'label' => $this->l('Carrier disable passphrase'),
                 'name' => $cModuleConfig->getConfigKey('carrier_disable_passphrase', $section_id),
                 'desc' => $this->l('Carriers will not be used for the cart, if cart contains any product, whose description contains this passphrase.'),
+            ),
+            array(
+                'type' => 'checkbox',
+                'label' => $this->l('Pickup point types on checkout'),
+                'name' => $cModuleConfig->getConfigKey('pickup_point_types', $section_id),
+                'desc' => $this->l('Select which pickup point types to show on checkout page.'),
+                'values' => array(
+                    'query' => $pickup_point_types,
+                    'id' => 'id',
+                    'name' => 'name',
+                ),
             ),
         );
 
@@ -1276,6 +1299,19 @@ class MijoraVenipak extends CarrierModule
                 if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $prefix = '_ON';
 
+                // Handle checkbox type (pickup point types)
+                if ($key == 'MJVP_PICKUP_POINT_TYPES') {
+                    $saved_types = Configuration::get($key);
+                    if ($saved_types === false) {
+                        $saved_types = '1,3'; // default: all types enabled
+                    }
+                    $enabled_types = explode(',', $saved_types);
+                    foreach ($enabled_types as $type_id) {
+                        $helper->fields_value[$key . '_' . $type_id] = true;
+                    }
+                    continue;
+                }
+
                 // For multistore: global-only keys always load from global scope
                 if (Shop::isFeatureActive() && !in_array($key, self::$_multistoreKeys)) {
                     $value = Configuration::getGlobalValue($key);
@@ -1303,6 +1339,18 @@ class MijoraVenipak extends CarrierModule
             $output .= $this->displayError($errors);
         } else {
             foreach ($this->_configKeys[strtoupper($section_id)] as $key) {
+
+                // Handle checkbox type (pickup point types)
+                if ($key == 'MJVP_PICKUP_POINT_TYPES') {
+                    $selected_types = array();
+                    foreach ($_POST as $post_key => $post_value) {
+                        if (strpos($post_key, 'MJVP_PICKUP_POINT_TYPES_') === 0) {
+                            $selected_types[] = str_replace('MJVP_PICKUP_POINT_TYPES_', '', $post_key);
+                        }
+                    }
+                    Configuration::updateValue($key, implode(',', $selected_types));
+                    continue;
+                }
 
                 if(strpos($key, 'MJVP_COURIER_DELIVERY_TIME_') !== false)
                     $value = Tools::getValue($key . '_ON');
@@ -1483,14 +1531,16 @@ class MijoraVenipak extends CarrierModule
                     'back_to_list_btn' => $this->l('reset search'),
                     'no_information' => $this->l('No information'),
                     ),
-                    'mjvp_terminals' => $filtered_terminals
+                    'mjvp_terminals' => $filtered_terminals,
+                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes()
                 )
             );
             // 1.7
             if(version_compare(_PS_VERSION_, '1.7', '>='))
             {
                 $this->context->smarty->assign(
-                    ['images_url' => $this->_path . 'views/images/']
+                    ['images_url' => $this->_path . 'views/images/',
+                     'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes()]
                 );
                 Media::addJsDef([
                         'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
@@ -1852,7 +1902,8 @@ class MijoraVenipak extends CarrierModule
                     'cart_quantity' => $quantity,
                     'images_url' => $this->_path . 'views/images/',
                     'is_16' => (version_compare(_PS_VERSION_, '1.7', '<')),
-                    'terminals_overwrite' => $terminals_overwrite
+                    'terminals_overwrite' => $terminals_overwrite,
+                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes()
                 )
             );
 
@@ -2698,6 +2749,7 @@ class MijoraVenipak extends CarrierModule
             $all_terminals_info = $this->filterTerminalsWithoutIdentification($all_terminals_info);
             $filtered_terminals = $this->filterTerminalsByWeight($all_terminals_info, $entity);
             $filtered_terminals = $this->filterTerminalsByDimensions($filtered_terminals, $entity);
+            $filtered_terminals = $this->filterTerminalsByConfigTypes($filtered_terminals);
             $filtered_terminals = array_values($filtered_terminals);
             return $filtered_terminals;
         }
@@ -2705,6 +2757,40 @@ class MijoraVenipak extends CarrierModule
         {
             return [];
         }
+    }
+
+    /**
+     * Filter terminals by allowed types from module configuration
+     */
+    private function filterTerminalsByConfigTypes($terminals)
+    {
+        $allowed_types = $this->getAllowedPickupTypes();
+
+        if (empty($allowed_types)) {
+            return [];
+        }
+
+        return array_filter($terminals, function($terminal) use ($allowed_types) {
+            $type = is_object($terminal) ? ($terminal->type ?? null) : ($terminal['type'] ?? null);
+            return in_array((int)$type, $allowed_types);
+        });
+    }
+
+    /**
+     * Get allowed pickup point types from configuration
+     * Returns array of allowed type integers (1 = Pickups, 3 = Lockers)
+     */
+    public function getAllowedPickupTypes()
+    {
+        $saved_types = Configuration::get('MJVP_PICKUP_POINT_TYPES');
+
+        // Default to all types enabled if not set
+        if ($saved_types === false || $saved_types === '') {
+            return [1, 3];
+        }
+
+        $types = explode(',', $saved_types);
+        return array_map('intval', array_filter($types, function($v) { return $v !== ''; }));
     }
 
     /**
