@@ -5,7 +5,7 @@ $( document ).ready(function() {
     if($('#mjvp-courier-extra-fields .alert-danger').length != 0 || $('.mjvp-pp-container .alert-danger').length != 0)
         $('#notifications .alert-danger').hide();
 
-    $(".mjvp-pickup-filter").on('click', e => {
+    $(document).on('click', '.mjvp-pickup-filter', function(e) {
         venipak_custom_modal.tmjs.dom.addOverlay();
         const clickTarget = $(e.target);
         if(clickTarget.hasClass('reset'))
@@ -58,11 +58,19 @@ $( document ).ready(function() {
                     if(terminals.length == 0)
                     {
                         venipak_custom_modal.tmjs.map._markerLayer.clearLayers();
+                        venipak_custom_modal.tmjs.dom.UI.terminalList.innerHTML = '';
                     }
                     else
                     {
                         venipak_custom_modal.tmjs.setTerminals(terminals);
-                        venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
+                        var refMarker = venipak_custom_modal.tmjs.map._referenceMarker;
+                        if (refMarker && refMarker._latlng) {
+                            venipak_custom_modal.tmjs.dom.renderTerminalList(
+                                venipak_custom_modal.tmjs.map.addDistance(refMarker._latlng), true
+                            );
+                        } else {
+                            venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
+                        }
                     }
                 }
             },

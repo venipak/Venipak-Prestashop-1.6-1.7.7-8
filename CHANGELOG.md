@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed scoped CSS selectors in global.css to avoid style conflicts with other modules using the terminal-mapping library
+- fixed minor bugs noticed on the map
+
+### Improved
+- added configurable pickup point type filter in Advanced settings (admin can select which terminal types — Pickups, Lockers — are shown on the checkout page)
+- updated map colors to match current Venipak logo
+
 ## [1.2.0] - 2026-04-23
 ### Fixed
 - pickup points template file removed new line from modal element
