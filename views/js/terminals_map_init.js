@@ -21,17 +21,10 @@ var venipak_custom_modal = function() {
 
         tmjs.dom.setContainerParent(document.getElementById('mjvp-pickup-select-modal'));
         // tmjs.terminals_cache = null;
-        tmjs.init({
-            country_code: mjvp_country_code,
-            identifier: '',
-            isModal: true,
-            hideContainer: false,
-            hideSelectBtn: false,
-            postal_code: mjvp_postal_code,
-            city: mjvp_city
-        });
 
         tmjs.sub('tmjs-ready', function(data) {
+            console.log('tmjs-ready event received');
+            tmjs.dom.UI.modal.classList.add('mjvp-map-modal');
             let selected_terminal = document.getElementById("mjvp-selected-terminal").value;
             let selected_location = tmjs.map.getLocationById(parseInt(selected_terminal));
             if (typeof(selected_location) != 'undefined' && selected_location != null) {
@@ -44,6 +37,16 @@ var venipak_custom_modal = function() {
             mjvp_registerSelection('mjvp-selected-terminal');
             tmjs.publish('close-map-modal');
             document.querySelector('.tmjs-selected-terminal').innerHTML = '<span class="mjvp-tmjs-terminal-name">' + data.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + data.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + data.city + '.</span>';
+        });
+
+        tmjs.init({
+            country_code: mjvp_country_code,
+            identifier: '',
+            isModal: true,
+            hideContainer: false,
+            hideSelectBtn: false,
+            postal_code: mjvp_postal_code,
+            city: mjvp_city
         });
 
         window['venipak_custom_modal'].tmjs = tmjs;

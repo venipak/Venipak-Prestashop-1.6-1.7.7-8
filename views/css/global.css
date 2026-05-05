@@ -1,33 +1,35 @@
 :root {
-  --mjvp-color: #fd981a;
+  --mjvp-color: #9339F2;
   --mjvp-dot-bricks-color: #fff;
 }
 
-.tmjs-container {
+#mjvp-pickup-select-modal .tmjs-container {
   padding-bottom: 15px;
 }
-.tmjs-container .tmjs-selected-terminal {
+#mjvp-pickup-select-modal .tmjs-container .tmjs-selected-terminal {
   font-size: 14px;
   font-weight: unset;
   padding-bottom: 5px;
 }
-.tmjs-container .tmjs-open-modal-btn {
+#mjvp-pickup-select-modal .tmjs-container .tmjs-open-modal-btn {
   padding: 5px 10px;
   font-size: 16px;
   border: 1px solid var(--mjvp-color);
-}
-.tmjs-container .tmjs-open-modal-btn:hover {
+  color: var(--mjvp-color);
   background: #fff;
+}
+#mjvp-pickup-select-modal .tmjs-container .tmjs-open-modal-btn:hover {
+  background: var(--mjvp-color);
+  color: #fff;
+}
+#mjvp-pickup-select-modal .tmjs-container .mjvp-tmjs-terminal-address {
   color: var(--mjvp-color);
 }
-.tmjs-container .mjvp-tmjs-terminal-address {
-  color: var(--mjvp-color);
-}
-.tmjs-container .mjvp-tmjs-terminal-comment {
+#mjvp-pickup-select-modal .tmjs-container .mjvp-tmjs-terminal-comment {
   display: block;
   color: #999;
 }
-.tmjs-container .tmjs-open-modal-btn .dot-bricks {
+#mjvp-pickup-select-modal .tmjs-container .tmjs-open-modal-btn .dot-bricks {
   display: inline-block;
   color: #fff;
   background-color: #fff;
@@ -131,14 +133,14 @@
   margin-bottom: 25px;
 }
 
-.mjvp-pickup-filter {
+.mjvp-map-modal .mjvp-pickup-filter {
   border-radius: 4px;
-  background: #fd981a !important;
+  background: var(--mjvp-color);
   border: none;
   color: #FFFFFF;
   text-align: center;
   font-size: 14px;
-  padding: 10px !important;
+  padding: 10px;
   /*width: 200px;*/
   transition: all 0.4s;
   cursor: pointer;
@@ -147,18 +149,19 @@
   position: relative;
 }
 
-.mjvp-pickup-filter.active {
-  background: linear-gradient(to right, #a87d33, #bd8028) !important;
+.mjvp-map-modal .mjvp-pickup-filter.active {
+  background: var(--mjvp-color);
+  filter: brightness(0.8);
   border: 2px solid black;
 }
 
-.mjvp-pickup-filter span {
+.mjvp-map-modal .mjvp-pickup-filter span {
   cursor: pointer;
   display: inline-block;
   position: relative;
   transition: 0.4s;
 }
-.mjvp-pickup-filter span:after {
+.mjvp-map-modal .mjvp-pickup-filter span:after {
   content: '\00bb';
   position: absolute;
   opacity: 0;
@@ -166,34 +169,34 @@
   right: -20px;
   transition: 0.5s;
 }
-.mjvp-pickup-filter:hover span {
+.mjvp-map-modal .mjvp-pickup-filter:hover span {
   padding-right: 25px;
 }
-.mjvp-pickup-filter:hover span:after {
+.mjvp-map-modal .mjvp-pickup-filter:hover span:after {
   opacity: 1;
   right: 0;
 }
 
-#filter-container {
+.mjvp-map-modal #filter-container {
   padding-left: 15px;
   display: flex;
   height: 29px;
   margin: 10px 0px;
   justify-content: space-between;
 }
-#filter-container > div {
+.mjvp-map-modal #filter-container > div {
   height: 35px;
   margin-left: 0;
 }
 
-.mjvp-pickup-filter.reset {
+.mjvp-map-modal .mjvp-pickup-filter.reset {
   border-radius: 3px;
-  background: #1F1058 !important;
-  border: none;
-  color: #FFFFFF !important;
+  background: var(--mjvp-color);
+  border: 1px solid var(--mjvp-color);
+  color: #FFFFFF;
   text-align: center;
   font-size: 14px;
-  padding: 6px 10px 7px!important;
+  padding: 6px 10px 7px;
   width: 200px;
   transition: all 0.4s;
   cursor: pointer;
@@ -202,8 +205,13 @@
   position: relative;
 }
 
-#filter-container input {
-  padding: 0!important;
+.mjvp-map-modal .mjvp-pickup-filter.reset:hover {
+  background: #fff;
+  color: var(--mjvp-color) !important;
+}
+
+.mjvp-map-modal #filter-container input {
+  padding: 0;
   /*height: 12px;*/
   /*width: 12px;*/
   -webkit-appearance: none;
@@ -214,11 +222,11 @@
   border-radius: 0px;
   outline: none;
   transition-duration: 0.3s;
-  background-color: #FFFFFF!important;
+  background-color: #FFFFFF;
   cursor: pointer;
 }
 
-#filter-container input + label::before {
+.mjvp-map-modal #filter-container input + label::before {
   vertical-align: middle;
   height: 12px;
   width: 12px;
@@ -236,20 +244,20 @@
   background-color: white;
 }
 
-#filter-container input[type="checkbox"]:checked + label::before {
+.mjvp-map-modal #filter-container input[type="checkbox"]:checked + label::before {
   background-image: url('../images/checkbox.svg');
   background-repeat: no-repeat;
   background-position: center center;
-  background-color: #EEAB00;
+  background-color: var(--mjvp-color);
 }
 
-#filter-container label {
+.mjvp-map-modal #filter-container label {
   vertical-align: bottom;
   font-size: 13px;
   position: relative;
 }
 
-#filter-container input {
+.mjvp-map-modal #filter-container input {
   /*z-index: 998;*/
 }
 
@@ -265,23 +273,25 @@
 /*  line-height: 25px;*/
 /*}*/
 
-.tmjs-terminal-sidebar h3 {
+.mjvp-map-modal .tmjs-terminal-sidebar h3 {
   font-size: 16px;
   line-height: 18px;
 }
 
-.tmjs-terminal-finder > h2 {
+.mjvp-map-modal .tmjs-terminal-finder > h2 {
   font-size: 19px;
   line-height: 22px;
 }
 
-a.tmjs-select-btn:hover, a:hover.tmjs-select-btn:hover, a:focus.tmjs-select-btn:hover {
-  color: #0a0a0a !important;
+.mjvp-map-modal a.tmjs-select-btn:hover,
+.mjvp-map-modal a:hover.tmjs-select-btn:hover,
+.mjvp-map-modal a:focus.tmjs-select-btn:hover {
+  color: #0a0a0a;
 }
 
 
-.tmjs-modal-body h1, .tmjs-modal-body h2, .tmjs-modal-body h3,
-.tmjs-modal-body h4, .tmjs-modal-body h5, .tmjs-modal-body h6 {
+.mjvp-map-modal .tmjs-modal-body h1, .mjvp-map-modal .tmjs-modal-body h2, .mjvp-map-modal .tmjs-modal-body h3,
+.mjvp-map-modal .tmjs-modal-body h4, .mjvp-map-modal .tmjs-modal-body h5, .mjvp-map-modal .tmjs-modal-body h6 {
   margin-bottom: .5rem;
   font-family: inherit;
   font-weight: 700;
@@ -289,6 +299,38 @@ a.tmjs-select-btn:hover, a:hover.tmjs-select-btn:hover, a:focus.tmjs-select-btn:
   color: #232323;
 }
 
-.tmjs-search-result {
+.mjvp-map-modal .tmjs-search-result {
   display: none;
+}
+
+.mjvp-map-modal .tmjs-search-btn,
+.mjvp-map-modal .tmjs-geolocation-btn {
+  color: var(--mjvp-color);
+  transition: all 0.4s;
+}
+
+.mjvp-map-modal .tmjs-search-btn:hover,
+.mjvp-map-modal .tmjs-geolocation-btn:hover {
+  color: #fff !important;
+  background-color: var(--mjvp-color);
+}
+
+.mjvp-map-modal .tmjs-close-modal-btn::before,
+.mjvp-map-modal .tmjs-close-modal-btn::after {
+  background-color: var(--mjvp-color);
+}
+
+.mjvp-map-modal .tmjs-active {
+  border: 1px solid var(--mjvp-color);
+}
+
+.mjvp-map-modal .tmjs-active .tmjs-select-btn {
+  border-color: var(--mjvp-color);
+  background-color: #fff;
+  color: var(--mjvp-color);
+}
+
+.mjvp-map-modal .tmjs-active .tmjs-select-btn:hover {
+  background-color: var(--mjvp-color);
+  color: #fff !important;
 }
