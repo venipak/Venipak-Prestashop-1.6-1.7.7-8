@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.1] - 2026-05-05
 ### Fixed
 - fixed scoped CSS selectors in global.css to avoid style conflicts with other modules using the terminal-mapping library
 - fixed minor bugs noticed on the map
