@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- fixed pickup point map initialization error on checkout when carrier is selected by default and JS files are loaded deferred
+
 ## [1.2.1] - 2026-05-05
 ### Fixed
 - fixed scoped CSS selectors in global.css to avoid style conflicts with other modules using the terminal-mapping library

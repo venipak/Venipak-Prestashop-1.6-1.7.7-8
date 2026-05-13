@@ -16,13 +16,23 @@
             var mjvp_country_code = "{$country_code}";
             var mjvp_postal_code = "{$postcode}";
             var mjvp_city = "{$city}";
-            if (document.readyState === "complete") { //Execute immediately if the "load" event has already passed
-                mjvp_removeMap();
-                venipak_custom_modal();
-            } else {
-                window.addEventListener("load", function(event) {
+            var mjvp_initAttempts = 0;
+            function mjvp_waitForInit() {
+                if (typeof mjvp_removeMap === 'function' && typeof venipak_custom_modal === 'function') {
                     mjvp_removeMap();
                     venipak_custom_modal();
+                } else if (mjvp_initAttempts < 30) {
+                    mjvp_initAttempts++;
+                    setTimeout(mjvp_waitForInit, 100);
+                } else {
+                    console.error('Venipak: failed to initialize pickup point map - required scripts did not load.');
+                }
+            }
+            if (document.readyState === "complete") {
+                mjvp_waitForInit();
+            } else {
+                window.addEventListener("load", function(event) {
+                    mjvp_waitForInit();
                 });
             }
         </script>
