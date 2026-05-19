@@ -1532,7 +1532,9 @@ class MijoraVenipak extends CarrierModule
                     'no_information' => $this->l('No information'),
                     ),
                     'mjvp_terminals' => $filtered_terminals,
-                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes()
+                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes(),
+                    'mjvp_pickup_carrier_id' => (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['pickup']['reference_name']))->id,
+                    'mjvp_courier_carrier_id' => (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['courier']['reference_name']))->id,
                 )
             );
             // 1.7
@@ -1687,17 +1689,14 @@ class MijoraVenipak extends CarrierModule
             $terminal_id = $cDb->getOrderValue('terminal_id', array('id_cart' => $cart->id));
             if(!$terminal_id)
             {
-                $errors['mjvp_terminal'] = $this->l('Please select a terminal.');
-                if(!empty($errors))
+                // Only show errors when user is actively submitting the delivery step
+                $is_user_action = Tools::isSubmit('confirmDeliveryOption') || !empty($params['is_submit']);
+                if($is_user_action)
                 {
-                    if(isset($params['ajax']) && $params['ajax'])
-                    {
-                        return ['errors' => $errors];
-                    }
-                    $this->showErrors($errors);
-                    $params['completed'] = false;
-                    return false;
+                    $this->context->controller->errors[] = $this->l('Please select a terminal.');
                 }
+                $params['completed'] = false;
+                return false;
             }
         }
         elseif (Configuration::get(self::$_carriers['courier']['reference_name']) == $carrier_reference && (
@@ -1726,11 +1725,15 @@ class MijoraVenipak extends CarrierModule
 
             if(!empty($errors))
             {
-                if(isset($params['ajax']) && $params['ajax'])
+                // Only show errors when user is actively submitting the delivery step
+                $is_user_action = Tools::isSubmit('confirmDeliveryOption') || !empty($params['is_submit']);
+                if($is_user_action)
                 {
-                    return ['errors' => $errors];
+                    foreach($errors as $error_msg)
+                    {
+                        $this->context->controller->errors[] = $error_msg;
+                    }
                 }
-                $this->showErrors($errors);
                 $params['completed'] = false;
                 return false;
             }
@@ -1903,7 +1906,7 @@ class MijoraVenipak extends CarrierModule
                     'images_url' => $this->_path . 'views/images/',
                     'is_16' => (version_compare(_PS_VERSION_, '1.7', '<')),
                     'terminals_overwrite' => $terminals_overwrite,
-                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes()
+                    'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes(),
                 )
             );
 
@@ -2924,11 +2927,22 @@ class MijoraVenipak extends CarrierModule
      */
     public function hookActionCarrierProcess($params)
     {
+        // This hook fires on PS 1.7+ too (during carrier processing), but validation
+        // there is handled by hookActionValidateStepComplete directly. Only act on PS 1.6.
+        if (version_compare(_PS_VERSION_, '1.7', '>=')) {
+            return;
+        }
+
         $data = [
             'step_name' => 'delivery',
-            'cart' => $params['cart']
+            'cart' => $params['cart'],
+            'is_submit' => true
         ];
         $this->hookActionValidateStepComplete($data);
+
+        if (!empty(self::$_checkout_errors)) {
+            $this->showErrors(self::$_checkout_errors);
+        }
     }
 
 

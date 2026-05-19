@@ -1,9 +1,4 @@
 <div class="mjvp-pp-container">
-   {if isset($notifications.error.mjvp_terminal)}
-        <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_terminal}
-        </div>
-    {/if}
     {if $terminals}
         <input type="hidden" id="mjvp-pickup-country" name="mjvp-pickup-country" value="{$country_code}"/>
         {if $is_16 || $terminals_overwrite}

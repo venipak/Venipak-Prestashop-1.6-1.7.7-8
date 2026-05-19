@@ -3,11 +3,6 @@
 </script>
 <div id="mjvp-courier-extra-fields" class="container-fluid mjvp-courier-extra-fields">
     {if isset($show_door_code) && $show_door_code}
-        {if isset($notifications.error.mjvp_door_code)}
-            <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_door_code}
-            </div>
-        {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 {l s='Door code' mod='mijoravenipak'} ({l s='optional' mod='mijoravenipak'})
@@ -18,11 +13,6 @@
         </div>
     {/if}
     {if isset($show_cabinet_number) && $show_cabinet_number}
-        {if isset($notifications.error.mjvp_cabinet_number)}
-            <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_cabinet_number}
-            </div>
-        {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 {l s='Cabinet number' mod='mijoravenipak'} ({l s='optional' mod='mijoravenipak'})
@@ -33,11 +23,6 @@
         </div>
     {/if}
     {if isset($show_warehouse_number) && $show_warehouse_number}
-        {if isset($notifications.error.mjvp_warehouse_number)}
-            <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_warehouse_number}
-            </div>
-        {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 {l s='Warehouse number' mod='mijoravenipak'} ({l s='optional' mod='mijoravenipak'})
@@ -48,11 +33,6 @@
         </div>
     {/if}
     {if isset($show_delivery_time) && $show_delivery_time && isset($delivery_times) && !empty($delivery_times)}
-        {if isset($notifications.error.mjvp_delivery_time)}
-            <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_delivery_time}
-            </div>
-        {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 {l s='Select a delivery time (optional)' mod='mijoravenipak'}
@@ -67,11 +47,6 @@
         </div>
     {/if}
     {if isset($show_carrier_call) && $show_carrier_call}
-        {if isset($notifications.error.mjvp_call_carrier)}
-            <div class="alert alert-danger" role="alert" data-alert="danger">
-                {$notifications.error.mjvp_call_carrier}
-            </div>
-        {/if}
         <div class="form-group row">
             <label class="col-xs-12 form-control-label">
                 <input name="mjvp_carrier_call" type="checkbox" class="not_uniform" {if isset($carrier_call) && $carrier_call}checked{/if}>
