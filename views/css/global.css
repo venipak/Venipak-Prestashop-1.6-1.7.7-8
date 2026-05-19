@@ -3,9 +3,6 @@
   --mjvp-dot-bricks-color: #fff;
 }
 
-#mjvp-pickup-select-modal .tmjs-container {
-  padding-bottom: 15px;
-}
 #mjvp-pickup-select-modal .tmjs-container .tmjs-selected-terminal {
   font-size: 14px;
   font-weight: unset;
@@ -333,4 +330,17 @@
 .mjvp-map-modal .tmjs-active .tmjs-select-btn:hover {
   background-color: var(--mjvp-color);
   color: #fff !important;
+}
+
+/* Error highlight on carrier section when terminal is not selected */
+.mjvp-pp-container.mjvp-has-error,
+#mjvp-courier-extra-fields.mjvp-has-error {
+  border: 1px solid #dc3545;
+  padding: 10px;
+  background-color: #fff5f5;
+}
+.mjvp-carrier-error-message {
+  color: #dc3545;
+  font-weight: 600;
+  margin-bottom: 8px;
 }

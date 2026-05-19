@@ -2,8 +2,16 @@ $( document ).ready(function() {
     if (typeof(mjvp_country_code) != 'undefined' && mjvp_country_code != null) {
         mjvp_registerSelection('mjvp-selected-terminal');
     }
-    if($('#mjvp-courier-extra-fields .alert-danger').length != 0 || $('.mjvp-pp-container .alert-danger').length != 0)
-        $('#notifications .alert-danger').hide();
+
+    // Highlight carrier section when there are validation errors at the top
+    mjvp_updateCarrierErrorState();
+    var notificationsEl = document.getElementById('notifications');
+    if (notificationsEl) {
+        var mjvpObserver = new MutationObserver(function() {
+            mjvp_updateCarrierErrorState();
+        });
+        mjvpObserver.observe(notificationsEl, { childList: true, subtree: true, attributes: true });
+    }
 
     $(document).on('click', '.mjvp-pickup-filter', function(e) {
         venipak_custom_modal.tmjs.dom.addOverlay();
@@ -79,8 +87,14 @@ $( document ).ready(function() {
 });
 
 $(document).on("change", "input[name^='delivery_option[']", function(e) {
-    if(typeof e.target.value !== "undefined" && typeof venipakCarrierID !== "undefined" && parseInt(e.target.value) == parseInt(venipakCarrierID))
+    if (typeof e.target.value === "undefined") return;
+    var selectedId = parseInt(e.target.value);
+    var isCourier = (typeof venipakCarrierID !== "undefined" && selectedId === parseInt(venipakCarrierID))
+        || (typeof mjvp_courier_carrier_id !== "undefined" && selectedId === parseInt(mjvp_courier_carrier_id));
+    var isPickup = (typeof mjvp_pickup_carrier_id !== "undefined" && selectedId === parseInt(mjvp_pickup_carrier_id));
+    if (isCourier || isPickup) {
         mjvp_registerSelection('mjvp-selected-terminal');
+    }
 });
 
 $(document).on("change", "#mjvp-terminal-select-field", function() {
@@ -95,8 +109,8 @@ function mjvp_registerSelection(selected_field_id) {
     ajaxData.country_code = $("#mjvp-pickup-country").length != 0 ? $("#mjvp-pickup-country").val() : 0;
 
     if (ajaxData.selected_terminal != 0) {
-        $('.mjvp-pp-container .alert-danger').remove();
         $('#notifications .alert-danger').hide();
+        mjvp_clearCarrierErrorState();
     }
 
     var terminal = null;
@@ -131,4 +145,41 @@ function mjvp_registerSelection(selected_field_id) {
             console.log(jqXHR);
         }
     });
+}
+
+function mjvp_updateCarrierErrorState() {
+    var hasTopError = $('#notifications .alert-danger:visible').length > 0;
+    var $ppContainer = $('.mjvp-pp-container');
+    var $courierContainer = $('#mjvp-courier-extra-fields');
+
+    if (!hasTopError) {
+        mjvp_clearCarrierErrorState();
+        return;
+    }
+
+    // Pickup: only mark if a terminal is not selected
+    if ($ppContainer.length > 0) {
+        var selected = $('#mjvp-selected-terminal').val();
+        if (!selected || selected == 0) {
+            mjvp_addErrorBlock($ppContainer);
+        }
+    }
+
+    // Courier extra fields: mark if section is visible
+    if ($courierContainer.length > 0 && $courierContainer.is(':visible')) {
+        mjvp_addErrorBlock($courierContainer);
+    }
+}
+
+function mjvp_addErrorBlock($container) {
+    if ($container.hasClass('mjvp-has-error')) {
+        return;
+    }
+    $container.addClass('mjvp-has-error');
+}
+
+function mjvp_clearCarrierErrorState() {
+    $('.mjvp-pp-container, #mjvp-courier-extra-fields')
+        .removeClass('mjvp-has-error')
+        .find('.mjvp-carrier-error-message').remove();
 }

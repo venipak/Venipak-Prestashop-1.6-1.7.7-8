@@ -2,8 +2,13 @@ $( document ).ready(function() {
     if (typeof(mjvp_country_code) != 'undefined' && mjvp_country_code != null) {
         mjvp_registerSelection('mjvp-selected-terminal');
     }
+
+    // Hide top notifications if Venipak errors are shown in the carrier section
     if($('#mjvp-courier-extra-fields .alert-danger').length != 0 || $('.mjvp-pp-container .alert-danger').length != 0)
         $('#notifications .alert-danger').hide();
+
+    // Highlight carrier section if there are validation errors at the top
+    mjvp_updateCarrierErrorState();
 
     loadCarrierContent();
 
@@ -220,4 +225,20 @@ function mjvp_registerSelection(selected_field_id, ajaxData = {}, params = {}) {
         console.log(jqXHR);
       }
     });
+}
+function mjvp_updateCarrierErrorState() {
+    var hasTopError = $('#notifications .alert-danger:visible').length > 0;
+    if (!hasTopError) return;
+    var $ppContainer = $('.mjvp-pp-container');
+    var $courierContainer = $('#mjvp-courier-extra-fields');
+
+    if ($ppContainer.length > 0) {
+        var selected = $('#mjvp-selected-terminal').val();
+        if (!selected || selected == 0) {
+            $ppContainer.addClass('mjvp-has-error');
+        }
+    }
+    if ($courierContainer.length > 0 && $courierContainer.is(':visible')) {
+        $courierContainer.addClass('mjvp-has-error');
+    }
 }
