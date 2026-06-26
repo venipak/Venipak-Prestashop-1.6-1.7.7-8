@@ -5,6 +5,9 @@
 - fixed pickup point map initialization error on checkout when carrier is selected by default and JS files are loaded deferred
 - fixed validation error message display at the top of the page before appearing in the carrier section on checkout
 
+### Improved
+- reduced the chance of errors during map loading and added more debug to make it easier to identify problems
+
 ## [1.2.1] - 2026-05-05
 ### Fixed
 - fixed scoped CSS selectors in global.css to avoid style conflicts with other modules using the terminal-mapping library
