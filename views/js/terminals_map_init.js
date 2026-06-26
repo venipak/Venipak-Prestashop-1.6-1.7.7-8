@@ -15,6 +15,7 @@ var venipak_custom_modal = function() {
     }
 
     if (typeof(mjvp_map_container) != 'undefined' && mjvp_map_container != null) {
+        console.log('[MJVP]', 'Building TMJS...');
         tmjs = new TerminalMappingMjvp('https://venipak.uat.megodata.com/ws');
         tmjs.setImagesPath(mjvp_imgs_url);
         tmjs.setTranslation(mjvp_terminal_select_translates);
@@ -23,23 +24,29 @@ var venipak_custom_modal = function() {
         // tmjs.terminals_cache = null;
 
         tmjs.sub('tmjs-ready', function(data) {
-            console.log('tmjs-ready event received');
+            console.log('[MJVP]', 'tmjs-ready event received');
             tmjs.dom.UI.modal.classList.add('mjvp-map-modal');
             let selected_terminal = document.getElementById("mjvp-selected-terminal").value;
-            let selected_location = tmjs.map.getLocationById(parseInt(selected_terminal));
-            if (typeof(selected_location) != 'undefined' && selected_location != null) {
-                tmjs.publish('terminal-selected', selected_location);
-                document.querySelector('.tmjs-selected-terminal').innerHTML = '<span class="mjvp-tmjs-terminal-name">' + selected_location.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + selected_location.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + selected_location.city + '.</span>';
+            let parced_terminal_value = parseInt(selected_terminal);
+            if (!isNaN(parced_terminal_value)) {
+                let selected_location = tmjs.map.getLocationById(parseInt(selected_terminal));
+                if (typeof(selected_location) != 'undefined' && selected_location != null) {
+                    tmjs.publish('terminal-selected', selected_location);
+                    document.querySelector('.tmjs-selected-terminal').innerHTML = '<span class="mjvp-tmjs-terminal-name">' + selected_location.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + selected_location.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + selected_location.city + '.</span>';
+                }
+            } else {
+                console.log('[MJVP]', 'Received bad selected terminal value:', selected_terminal);
             }
         });
         tmjs.sub('terminal-selected', function(data) {
+            console.log('[MJVP]', 'terminal-selected event received');
             document.getElementById("mjvp-selected-terminal").value = data.id;
             mjvp_registerSelection('mjvp-selected-terminal');
             tmjs.publish('close-map-modal');
             document.querySelector('.tmjs-selected-terminal').innerHTML = '<span class="mjvp-tmjs-terminal-name">' + data.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + data.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + data.city + '.</span>';
         });
 
-        tmjs.init({
+        let tmjsData = {
             country_code: mjvp_country_code,
             identifier: '',
             isModal: true,
@@ -47,9 +54,12 @@ var venipak_custom_modal = function() {
             hideSelectBtn: false,
             postal_code: mjvp_postal_code,
             city: mjvp_city
-        });
+        };
+        console.log('[MJVP]', 'Initiating TMJS with data', tmjsData);
+        tmjs.init(tmjsData);
 
         window['venipak_custom_modal'].tmjs = tmjs;
+        console.log('[MJVP]', 'TMJS initialization completed:', tmjs.containerId);
         return true;
     }
 
@@ -65,6 +75,7 @@ function mjvp_removeMap() {
     }
 
     let container_id = window['venipak_custom_modal'].tmjs.containerId;
+    console.log('[MJVP]', 'Removing TMJS:', container_id);
     let container = document.getElementById(container_id);
     if ( document.body.contains(container) ) {
         container.remove();
