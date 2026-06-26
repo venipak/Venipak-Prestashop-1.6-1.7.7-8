@@ -554,6 +554,21 @@ class MjvpApi extends MjvpBase
         return empty($errors);
     }
 
+    private function getRequestTimeout($url_suffix)
+    {
+        $slowEndpoints = array(
+            'ws/get_pickup_points',
+            'ws/get_route',
+            'import/send.php',
+        );
+
+        if (in_array($url_suffix, $slowEndpoints, true)) {
+            return 45;
+        }
+
+        return 20;
+    }
+
     public function executeRequest($url_suffix, $request_type, $params = array())
     {
         if (empty($url_suffix) || empty($request_type)) {
@@ -576,10 +591,24 @@ class MjvpApi extends MjvpBase
             unset($params['queryParams']);
         }
 
+        $timeout = isset($params['timeout']) ? (int) $params['timeout'] : $this->getRequestTimeout($url_suffix);
+        $connectTimeout = isset($params['connect_timeout']) ? (int) $params['connect_timeout'] : 5;
+        $useLiveEndpoint = isset($params['use_live_endpoint']) && $params['use_live_endpoint'];
+
+        if ($timeout < 1) {
+            $timeout = $this->getRequestTimeout($url_suffix);
+        }
+
+        if ($connectTimeout < 1) {
+            $connectTimeout = 5;
+        }
+
+        unset($params['timeout'], $params['connect_timeout'], $params['use_live_endpoint']);
+
         $curl = curl_init();
 
         $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
-        $endpoint = (isset($params['use_live_endpoint']) && $params['use_live_endpoint']) || Configuration::get($cModuleConfig->getConfigKey('live_mode', 'API')) ? $this->_liveCurlUrl : $this->_curlUrl;
+        $endpoint = $useLiveEndpoint || Configuration::get($cModuleConfig->getConfigKey('live_mode', 'API')) ? $this->_liveCurlUrl : $this->_curlUrl;
         $headers = array(
             "client-software-name: Prestashop",
             "client-software-version: " . _PS_VERSION_,
@@ -590,7 +619,8 @@ class MjvpApi extends MjvpBase
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => '',
             CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
+            CURLOPT_CONNECTTIMEOUT => $connectTimeout,
+            CURLOPT_TIMEOUT => $timeout,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => $request_type,
