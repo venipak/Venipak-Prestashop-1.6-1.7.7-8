@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.2] - 2026-07-01
 ### Fixed
 - fixed pickup point map initialization error on checkout when carrier is selected by default and JS files are loaded deferred
 - fixed validation error message display at the top of the page before appearing in the carrier section on checkout
