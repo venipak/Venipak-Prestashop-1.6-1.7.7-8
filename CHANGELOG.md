@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.2] - 2026-07-01
+### Fixed
+- fixed pickup point map initialization error on checkout when carrier is selected by default and JS files are loaded deferred
+- fixed validation error message display at the top of the page before appearing in the carrier section on checkout
+- fixed potential frontend hanging when Venipak API is temporarily unavailable by replacing unlimited cURL waiting time with safe timeout limits
+
+### Improved
+- reduced the chance of errors during map loading and added more debug to make it easier to identify problems
+- added endpoint-aware cURL timeout handling (including connection timeout), keeping longer limits for slower API requests such as pickup point list retrieval
+
 ## [1.2.1] - 2026-05-05
 ### Fixed
 - fixed scoped CSS selectors in global.css to avoid style conflicts with other modules using the terminal-mapping library

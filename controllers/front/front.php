@@ -77,7 +77,10 @@ class MijoraVenipakFrontModuleFrontController extends ModuleFrontController
             }
 
             if ($ps_carrier->id_reference == $courier_reference) {
-                $sql_values['terminal_id'] = NULL;
+                // Do not clear terminal_id when switching to courier.
+                // The previously selected terminal is preserved so that switching back to pickup
+                // keeps the user's selection. terminal_id is only consumed when the pickup carrier
+                // is the active one (see hookActionValidateStepComplete and bulkActionSendLabels).
             }
 
             try {
