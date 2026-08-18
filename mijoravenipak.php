@@ -2118,6 +2118,15 @@ class MijoraVenipak extends CarrierModule
         sort($orders_ids);
         $order_packages_mapping = [];
 
+        // Serialize pack number counter access to prevent duplicates from concurrent/duplicate requests.
+        $pack_counter_lock = 'mjvp_pack_counter_' . (int) $id_shop;
+        if (!Db::getInstance()->getValue('SELECT GET_LOCK("' . pSQL($pack_counter_lock) . '", 10)')) {
+            $this->restoreShopContext($prevShopCtx);
+            return array('errors' => array(
+                $this->l('Could not reserve pack numbers, another label generation is still in progress. Please try again') . ': #' . implode(', #', $orders_ids)
+            ));
+        }
+
         foreach ($orders_ids as $order_id) {
             $error_order_no = ' #' . $order_id;
             try {
@@ -2282,6 +2291,8 @@ class MijoraVenipak extends CarrierModule
                 $errors[$order_id][] = $e->getMessage();
             }
         }
+
+        Db::getInstance()->execute('SELECT RELEASE_LOCK("' . pSQL($pack_counter_lock) . '")');
 
         try {
             // Add to manifest
