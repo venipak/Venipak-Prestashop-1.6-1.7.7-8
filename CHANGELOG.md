@@ -4,6 +4,9 @@
 ### Fixed
 - fixed "Pack number is already in use" error caused by duplicate pack numbers when concurrent/duplicate requests generated labels at the same time
 
+### Changed
+- changed default Venipak test API server address to https://gouat.venipak.lt/ (existing installations are updated automatically only if the old default address was still used)
+
 ## [1.2.2] - 2026-07-01
 ### Fixed
 - fixed pickup point map initialization error on checkout when carrier is selected by default and JS files are loaded deferred

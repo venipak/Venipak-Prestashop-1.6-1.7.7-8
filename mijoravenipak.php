@@ -28,7 +28,7 @@ class MijoraVenipak extends CarrierModule
     const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
     const RETURN_DAYS_DEFAULT = 14;
     const DEFAULT_LIVE_API_SERVER = 'https://go.venipak.lt/';
-    const DEFAULT_TEST_API_SERVER = 'https://venipak.uat.megodata.com/';
+    const DEFAULT_TEST_API_SERVER = 'https://gouat.venipak.lt/';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -280,7 +280,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.2.2';
+        $this->version = '1.2.3';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
