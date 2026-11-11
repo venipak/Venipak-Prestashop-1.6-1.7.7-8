@@ -2401,12 +2401,16 @@ class MijoraVenipak extends CarrierModule
                     } else {
                         $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
-                } elseif(!$manifest_id) {
-                    // Counter already updated in success path above; this handles edge case
-                    // where API returns neither error nor text
-                    if (isset($manifest_counter)) {
+                } else {
+                    // API returned neither error nor label numbers, so labels were not created
+                    if (!$manifest_id && isset($manifest_counter)) {
                         Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
                     }
+                    foreach ($success_orders as $order_id) {
+                        $errors[$order_id][] = $this->l('Failed to create manifest');
+                    }
+                    $success_orders = [];
+                    $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('API did not return label numbers');
                 }
             }
         } catch (Exception $e) {
