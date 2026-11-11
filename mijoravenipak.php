@@ -28,7 +28,7 @@ class MijoraVenipak extends CarrierModule
     const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
     const RETURN_DAYS_DEFAULT = 14;
     const DEFAULT_LIVE_API_SERVER = 'https://go.venipak.lt/';
-    const DEFAULT_TEST_API_SERVER = 'https://venipak.uat.megodata.com/';
+    const DEFAULT_TEST_API_SERVER = 'https://gouat.venipak.lt/';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -280,7 +280,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.2.2';
+        $this->version = '1.2.3';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -2118,6 +2118,15 @@ class MijoraVenipak extends CarrierModule
         sort($orders_ids);
         $order_packages_mapping = [];
 
+        // Serialize pack number counter access to prevent duplicates from concurrent/duplicate requests.
+        $pack_counter_lock = 'mjvp_pack_counter_' . (int) $id_shop;
+        if (!Db::getInstance()->getValue('SELECT GET_LOCK("' . pSQL($pack_counter_lock) . '", 10)')) {
+            $this->restoreShopContext($prevShopCtx);
+            return array('errors' => array(
+                $this->l('Could not reserve pack numbers, another label generation is still in progress. Please try again') . ': #' . implode(', #', $orders_ids)
+            ));
+        }
+
         foreach ($orders_ids as $order_id) {
             $error_order_no = ' #' . $order_id;
             try {
@@ -2283,6 +2292,8 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
+        Db::getInstance()->execute('SELECT RELEASE_LOCK("' . pSQL($pack_counter_lock) . '")');
+
         try {
             // Add to manifest
             $manifest_xml = $cApi->buildManifestXml($manifest);
@@ -2390,12 +2401,16 @@ class MijoraVenipak extends CarrierModule
                     } else {
                         $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
-                } elseif(!$manifest_id) {
-                    // Counter already updated in success path above; this handles edge case
-                    // where API returns neither error nor text
-                    if (isset($manifest_counter)) {
+                } else {
+                    // API returned neither error nor label numbers, so labels were not created
+                    if (!$manifest_id && isset($manifest_counter)) {
                         Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
                     }
+                    foreach ($success_orders as $order_id) {
+                        $errors[$order_id][] = $this->l('Failed to create manifest');
+                    }
+                    $success_orders = [];
+                    $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('API did not return label numbers');
                 }
             }
         } catch (Exception $e) {
