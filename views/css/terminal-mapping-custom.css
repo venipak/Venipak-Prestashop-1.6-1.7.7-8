@@ -1,0 +1,145 @@
+/**
+ * Venipak styles for terminal-mapping library.
+ * Loaded after views/css/terminal-mapping.css (library file, can be replaced when library is updated).
+ * Map modal gets .mjvp-map-modal class in views/js/terminals_map_init.js.
+ */
+
+/* Library theme variables */
+.mjvp-map-modal.tmjs-default-theme {
+  --active-background: #fff;
+  --active-text-color: #000;
+  --search-btn-background: transparent;
+}
+
+/* Loading overlay inside pickup point block */
+#mjvp-pickup-select-modal.tmjs-overlay-parent {
+  min-height: 80px;
+}
+
+#mjvp-pickup-select-modal .mjvp-map-error {
+  margin: 5px 0 0;
+}
+
+.mjvp-map-modal .tmjs-close-modal-btn {
+  top: 18px;
+}
+
+/* Sidebar width is set by Bootstrap col-* classes in map-template.tpl */
+.mjvp-map-modal .tmjs-terminal-sidebar {
+  flex: 0 1 auto;
+  padding: 15px 12px 11px 15px;
+}
+
+.mjvp-map-modal .tmjs-terminal-finder {
+  margin-bottom: 0;
+}
+
+/* Search */
+.mjvp-map-modal .tmjs-search-input-container {
+  border: 1px solid #EDEDED;
+  border-radius: 3px;
+  margin-bottom: 13px;
+}
+
+.mjvp-map-modal .tmjs-search-input {
+  border: none;
+  font-size: 14px;
+}
+
+.mjvp-map-modal .tmjs-d-block {
+  margin-bottom: 13px;
+}
+
+.mjvp-map-modal a.tmjs-geolocation-btn {
+  display: block;
+  float: left;
+  height: 36px;
+  width: 36px;
+  padding-top: 10px;
+  border-left: 1px solid #EDEDED;
+  text-align: center;
+  font-weight: normal;
+}
+
+/* Terminal list */
+.mjvp-map-modal .tmjs-terminal-block {
+  margin-top: 10px;
+  padding: 16px 14px 13px;
+}
+
+.mjvp-map-modal .tmjs-terminal-list > li:not(.tmjs-city) {
+  padding: 11px;
+}
+
+.mjvp-map-modal .tmjs-city {
+  font-size: 14px;
+  color: #232323;
+}
+
+.mjvp-map-modal .tmjs-terminal-name {
+  font-size: 13px;
+  color: #232323;
+}
+
+.mjvp-map-modal .tmjs-active .tmjs-terminal-name {
+  font-weight: inherit;
+  font-size: 13px;
+  line-height: 15px;
+}
+
+.mjvp-map-modal .tmjs-terminal-distance img {
+  margin-right: 3px;
+}
+
+/* Address, from which distances are calculated */
+.mjvp-map-modal .tmjs-search-result {
+  display: block;
+  font-size: 12px;
+  color: #848080;
+}
+
+.mjvp-map-modal .tmjs-search-result .mjvp-search-address {
+  color: #232323;
+  font-weight: 700;
+}
+
+.mjvp-map-modal .tmjs-terminal-info {
+  text-align: left;
+}
+
+.mjvp-map-modal .tmjs-terminal-comment {
+  padding: 7px 0;
+}
+
+/* Colors of select button in active terminal are set in global.css */
+.mjvp-map-modal a.tmjs-select-btn {
+  color: #FFFFFF;
+  background-color: #EEAB00;
+  display: inline-block;
+  width: auto;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 14px;
+  line-height: 16px;
+}
+
+/* Pickup point type filter */
+.mjvp-map-modal #filter-container div:last-child {
+  text-align: right;
+}
+
+@media (max-width: 992px) and (min-width: 768px) {
+  .mjvp-map-modal #filter-container label {
+    width: 50%;
+  }
+
+  .mjvp-map-modal .tmjs-close-modal-btn {
+    right: -5px;
+  }
+}
+
+@media only screen and (max-width: 767px) {
+  .mjvp-map-modal .tmjs-terminal-sidebar {
+    flex: 3;
+  }
+}

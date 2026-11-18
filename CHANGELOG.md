@@ -4,9 +4,17 @@
 ### Fixed
 - fixed "Pack number is already in use" error caused by duplicate pack numbers when concurrent/duplicate requests generated labels at the same time
 - fixed success message being shown when shipment registration failed because Venipak API returned an invalid response (e.g. unreachable or wrong API server address), now an error with details is displayed
+- fixed checkout being blocked by pickup points map loading overlay when map scripts fail to load (#135), now a warning is shown instead of the map
+- fixed city missing in selected pickup point name
 
 ### Changed
 - changed default Venipak test API server address to https://gouat.venipak.lt/ (existing installations are updated automatically only if the old default address was still used)
+- pickup points map loading overlay covers only pickup point block instead of the whole page
+- pickup points list in map shows distance and the address it is calculated from
+- added comma between address and postcode in pickup points map search field
+
+### Updated
+- updated terminal-mapping library to v1.5.0
 
 ## [1.2.2] - 2026-07-01
 ### Fixed
