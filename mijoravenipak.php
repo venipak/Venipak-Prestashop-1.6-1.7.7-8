@@ -1502,7 +1502,7 @@ class MijoraVenipak extends CarrierModule
 
             $this->terminal_count = count($filtered_terminals);
 
-            $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
+            $address_query = $address->address1 . ', ' . $address->postcode . ', ' . $address->city;
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
                     'mjvp_carriers_controller_url' => $this->context->link->getModuleLink($this->name, 'carriers'),
