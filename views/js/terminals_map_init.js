@@ -235,7 +235,8 @@ function mjvp_showSelectedTerminal(location) {
     if (!el) {
         return;
     }
-    el.innerHTML = '<span class="mjvp-tmjs-terminal-name">' + location.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + location.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + location.city + '.</span>';
+    let name = location.display_name || location.name;
+    el.innerHTML = '<span class="mjvp-tmjs-terminal-name">' + name + '</span> <span class="mjvp-tmjs-terminal-address">(' + location.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + location.city + '.</span>';
 }
 
 function mjvp_showSearchAddress(tmjs, address) {
