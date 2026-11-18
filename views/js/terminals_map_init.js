@@ -69,9 +69,18 @@ var venipak_custom_modal = function() {
             return;
         }
         if (!tmjs.dom._lastSearchTerm || tmjs.dom._lastSearchTerm == address_query) {
+            // customer sees which address is searched
+            let input = tmjs.dom.UI.modal ? tmjs.dom.UI.modal.querySelector('.tmjs-search-input') : null;
+            if (input) {
+                input.value = address_query;
+            }
             tmjs.dom.resetSearch();
             tmjs.dom.searchNearest(address_query);
         }
+    });
+    tmjs.sub('search-result', function(data) {
+        // library shows found address only, add text explaining distances in list (runs after library subscriber)
+        mjvp_showSearchAddress(tmjs, data && data.address ? data.address : '');
     });
     tmjs.sub('tmjs-load-error', function(data) {
         console.error('[MJVP]', 'Pickup point map failed to load:', data.error);
@@ -227,6 +236,22 @@ function mjvp_showSelectedTerminal(location) {
         return;
     }
     el.innerHTML = '<span class="mjvp-tmjs-terminal-name">' + location.name + '</span> <span class="mjvp-tmjs-terminal-address">(' + location.address + ')</span> <span class="mjvp-tmjs-terminal-comment">' + location.city + '.</span>';
+}
+
+function mjvp_showSearchAddress(tmjs, address) {
+    let el = tmjs.dom.UI.modal ? tmjs.dom.UI.modal.querySelector('.tmjs-search-result') : null;
+    if (!el || !address) {
+        return;
+    }
+    let label = 'Distance calculated from this point';
+    if (typeof mjvp_terminal_select_translates !== 'undefined' && mjvp_terminal_select_translates.your_position) {
+        label = mjvp_terminal_select_translates.your_position;
+    }
+    let addressEl = document.createElement('span');
+    addressEl.className = 'mjvp-search-address';
+    addressEl.textContent = address;
+    el.textContent = label + ': ';
+    el.appendChild(addressEl);
 }
 
 function mjvp_showMapError(container) {

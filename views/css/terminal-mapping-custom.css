@@ -87,8 +87,20 @@
   line-height: 15px;
 }
 
-.mjvp-map-modal .tmjs-terminal-distance {
-  display: none;
+.mjvp-map-modal .tmjs-terminal-distance img {
+  margin-right: 3px;
+}
+
+/* Address, from which distances are calculated */
+.mjvp-map-modal .tmjs-search-result {
+  display: block;
+  font-size: 12px;
+  color: #848080;
+}
+
+.mjvp-map-modal .tmjs-search-result .mjvp-search-address {
+  color: #232323;
+  font-weight: 700;
 }
 
 .mjvp-map-modal .tmjs-terminal-info {
