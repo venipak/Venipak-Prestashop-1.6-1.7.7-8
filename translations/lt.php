@@ -70,6 +70,7 @@ $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_9dd0128c746de4661911546de510b
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_945813636f488ff4b4cafb97284a63fe'] = 'Užsakymai sėkmingai įtraukti į manifestą';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_4bddcc8e852eeb5b68e0e6224496caac'] = 'Generuoti „Venipak“ etiketes';
 $_MODULE['<{mijoravenipak}prestashop>mijoravenipak_7615a0e55a5af19c4cb3534cf2870afe'] = 'Spausdinti Venipak etiketes';
+$_MODULE['<{mijoravenipak}prestashop>mijoravenipak_8c6d8c09b5a1ed946b32cfff85e0e0c8'] = 'Nepavyko įkelti atsiėmimo punktų žemėlapio. Atnaujinkite puslapį arba pasirinkite kitą pristatymo būdą.';
 $_MODULE['<{mijoravenipak}prestashop>adminvenipakmanifestscontroller_c29869505dbcdbc8d8b8b3e9d91b2509'] = ' Pasirinkite parduotuvę';
 $_MODULE['<{mijoravenipak}prestashop>adminvenipakmanifestscontroller_929f83141e2ec6e2853f8a9fee838cb7'] = 'Nepasirinktas joks manifestas';
 $_MODULE['<{mijoravenipak}prestashop>adminvenipakmanifestscontroller_6f20d84886e22968d7c0e1a4fd1daac5'] = 'Pasirinkite operatoriaus atvykimo laiko intervalą.';

@@ -1530,6 +1530,7 @@ class MijoraVenipak extends CarrierModule
                     'select_btn' => $this->l('select'),
                     'back_to_list_btn' => $this->l('reset search'),
                     'no_information' => $this->l('No information'),
+                    'map_load_error' => $this->l('Pickup points map could not be loaded. Please refresh the page or choose another delivery method.'),
                     ),
                     'mjvp_terminals' => $filtered_terminals,
                     'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes(),
@@ -1548,6 +1549,8 @@ class MijoraVenipak extends CarrierModule
                         'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
                     ]
                 );
+                // terminal-mapping-name.js must be right before terminal-mapping.js
+                $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-name-js', 'modules/' . $this->name . '/views/js/terminal-mapping-name.js');
                 $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
                 $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front17.js');
                 $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
@@ -1556,6 +1559,8 @@ class MijoraVenipak extends CarrierModule
             else
             {
 
+                // terminal-mapping-name.js must be right before terminal-mapping.js
+                $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminal-mapping-name.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminal-mapping.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/front16.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminals_map_init.js');
@@ -1564,6 +1569,7 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->addCSS($this->_path . 'views/css/global.css');
             $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping-custom.css');
         }
     }
 

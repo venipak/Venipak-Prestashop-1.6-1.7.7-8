@@ -69,7 +69,6 @@ function loadCarrierContent() {
 function filterEventListener()
 {
     $(".mjvp-pickup-filter").on('click', e => {
-        venipak_custom_modal.tmjs.dom.addOverlay();
         const clickTarget = $(e.target);
         if(clickTarget.hasClass('reset'))
         {
@@ -93,45 +92,7 @@ function filterEventListener()
         else if(countChecked == 0)
             selectedFilters['type'] = 0;
         $('.mjvp-pickup-filter').removeClass('active');
-        $.ajax({
-            type: "POST",
-            url: mjvp_front_controller_url + "?ajax=1&submitFilterTerminals=1&action=filter",
-            dataType: "json",
-            data: {
-                'filter_keys' : selectedFilters
-            },
-            success: function (res) {
-                // $('.tmjs-search-input').val('');
-                // $('#terminal-search-radius').val('');
-                venipak_custom_modal.tmjs.dom.removeOverlay();
-                if(typeof res.mjvp_terminals != "undefined")
-                {
-                    var terminals = [];
-                    mjvp_terminals = res.mjvp_terminals;
-                    mjvp_terminals.forEach((terminal) => {
-                        if(terminal.lat != 0 && terminal.lng != 0 && terminal.terminal)
-                        {
-                            terminal['coords'] = {
-                                lat: terminal.lat,
-                                lng: terminal.lng
-                            };
-                            terminal['identifier'] = 'venipak';
-                            terminals.push(terminal);
-                        }
-                    });
-                    // venipak_custom_modal.tmjs.terminals_cache = terminals;
-                    if(terminals.length == 0)
-                    {
-                        venipak_custom_modal.tmjs.map._markerLayer.clearLayers();
-                    }
-                    else
-                    {
-                        venipak_custom_modal.tmjs.setTerminals(terminals);
-                        venipak_custom_modal.tmjs.dom.renderTerminalList(venipak_custom_modal.tmjs.map.locations);
-                    }
-                }
-            },
-        });
+        mjvp_filterTerminals(selectedFilters);
     });
 }
 
