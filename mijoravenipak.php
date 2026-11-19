@@ -28,7 +28,7 @@ class MijoraVenipak extends CarrierModule
     const CARRIER_CALL_MINIMUM_DIFFERENCE = 2; // hours
     const RETURN_DAYS_DEFAULT = 14;
     const DEFAULT_LIVE_API_SERVER = 'https://go.venipak.lt/';
-    const DEFAULT_TEST_API_SERVER = 'https://venipak.uat.megodata.com/';
+    const DEFAULT_TEST_API_SERVER = 'https://gouat.venipak.lt/';
 
     /**
      * Debug mode activation, which writes operations to log files
@@ -280,7 +280,7 @@ class MijoraVenipak extends CarrierModule
     {
         $this->name = 'mijoravenipak';
         $this->tab = 'shipping_logistics';
-        $this->version = '1.2.2';
+        $this->version = '1.2.3';
         $this->author = 'mijora.lt';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = array('min' => '1.6.0', 'max' => _PS_VERSION_);
@@ -1502,7 +1502,7 @@ class MijoraVenipak extends CarrierModule
 
             $this->terminal_count = count($filtered_terminals);
 
-            $address_query = $address->address1 . ' ' . $address->postcode . ', ' . $address->city;
+            $address_query = $address->address1 . ', ' . $address->postcode . ', ' . $address->city;
             Media::addJsDef(array(
                     'mjvp_front_controller_url' => $this->context->link->getModuleLink($this->name, 'front'),
                     'mjvp_carriers_controller_url' => $this->context->link->getModuleLink($this->name, 'carriers'),
@@ -1530,6 +1530,7 @@ class MijoraVenipak extends CarrierModule
                     'select_btn' => $this->l('select'),
                     'back_to_list_btn' => $this->l('reset search'),
                     'no_information' => $this->l('No information'),
+                    'map_load_error' => $this->l('Pickup points map could not be loaded. Please refresh the page or choose another delivery method.'),
                     ),
                     'mjvp_terminals' => $filtered_terminals,
                     'mjvp_allowed_pickup_types' => $this->getAllowedPickupTypes(),
@@ -1548,6 +1549,8 @@ class MijoraVenipak extends CarrierModule
                         'mjvp_map_template' => $this->context->smarty->fetch(self::$_moduleDir . 'views/templates/front/map-template.tpl'),
                     ]
                 );
+                // terminal-mapping-name.js must be right before terminal-mapping.js
+                $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-name-js', 'modules/' . $this->name . '/views/js/terminal-mapping-name.js');
                 $this->context->controller->registerJavascript('modules-mjvp-terminals-mapping-js', 'modules/' . $this->name . '/views/js/terminal-mapping.js');
                 $this->context->controller->registerJavascript('modules-mjvp-front-js', 'modules/' . $this->name . '/views/js/front17.js');
                 $this->context->controller->registerJavascript('modules-mjvp-terminals-mapinit-js', 'modules/' . $this->name . '/views/js/terminals_map_init.js');
@@ -1556,6 +1559,8 @@ class MijoraVenipak extends CarrierModule
             else
             {
 
+                // terminal-mapping-name.js must be right before terminal-mapping.js
+                $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminal-mapping-name.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminal-mapping.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/front16.js');
                 $this->context->controller->addJS('modules/' . $this->name . '/views/js/terminals_map_init.js');
@@ -1564,7 +1569,40 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->addCSS($this->_path . 'views/css/global.css');
             $this->context->controller->addCSS($this->_path . 'views/css/three-dots.min.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
+            $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping-custom.css');
         }
+        elseif (version_compare(_PS_VERSION_, '1.7', '>=') && $this->context->controller->php_self == 'order')
+        {
+            $this->addPaymentStepAssets();
+        }
+    }
+
+    /**
+     * On PS 1.7+ payment step carrier extra content is not rendered (to avoid conflicts with venipakcod),
+     * but customer can return to delivery step without page reload. Adds script, which reloads delivery step
+     * with carrier extra content when customer returns to it.
+     */
+    private function addPaymentStepAssets()
+    {
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $carrier_ids = array(
+            (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['pickup']['reference_name']))->id,
+        );
+
+        // Courier extra content has fields only when at least one of them is enabled
+        $courier_fields = array('door_code', 'cabinet_number', 'warehouse_number', 'delivery_time', 'call_before_delivery');
+        foreach ($courier_fields as $field) {
+            if (Configuration::get($cModuleConfig->getConfigKey($field, 'COURIER'))) {
+                $carrier_ids[] = (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['courier']['reference_name']))->id;
+                break;
+            }
+        }
+
+        Media::addJsDef(array(
+            'mjvp_payment_step_carrier_ids' => array_values(array_filter($carrier_ids)),
+        ));
+        $this->context->controller->registerJavascript('modules-mjvp-front-payment-step-js', 'modules/' . $this->name . '/views/js/front17-payment-step.js');
     }
 
     /**
@@ -2118,6 +2156,15 @@ class MijoraVenipak extends CarrierModule
         sort($orders_ids);
         $order_packages_mapping = [];
 
+        // Serialize pack number counter access to prevent duplicates from concurrent/duplicate requests.
+        $pack_counter_lock = 'mjvp_pack_counter_' . (int) $id_shop;
+        if (!Db::getInstance()->getValue('SELECT GET_LOCK("' . pSQL($pack_counter_lock) . '", 10)')) {
+            $this->restoreShopContext($prevShopCtx);
+            return array('errors' => array(
+                $this->l('Could not reserve pack numbers, another label generation is still in progress. Please try again') . ': #' . implode(', #', $orders_ids)
+            ));
+        }
+
         foreach ($orders_ids as $order_id) {
             $error_order_no = ' #' . $order_id;
             try {
@@ -2283,6 +2330,8 @@ class MijoraVenipak extends CarrierModule
             }
         }
 
+        Db::getInstance()->execute('SELECT RELEASE_LOCK("' . pSQL($pack_counter_lock) . '")');
+
         try {
             // Add to manifest
             $manifest_xml = $cApi->buildManifestXml($manifest);
@@ -2390,12 +2439,16 @@ class MijoraVenipak extends CarrierModule
                     } else {
                         $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('Unknown error'); 
                     }
-                } elseif(!$manifest_id) {
-                    // Counter already updated in success path above; this handles edge case
-                    // where API returns neither error nor text
-                    if (isset($manifest_counter)) {
+                } else {
+                    // API returned neither error nor label numbers, so labels were not created
+                    if (!$manifest_id && isset($manifest_counter)) {
                         Configuration::updateGlobalValue($this->_configKeysOther['counter_manifest']['key'], json_encode(array('counter' => $manifest_counter, 'date' => $current_date)));
                     }
+                    foreach ($success_orders as $order_id) {
+                        $errors[$order_id][] = $this->l('Failed to create manifest');
+                    }
+                    $success_orders = [];
+                    $errors['other'][] = '<b>' . $this->l('Manifest API error') . ':</b> ' . $this->l('API did not return label numbers');
                 }
             }
         } catch (Exception $e) {

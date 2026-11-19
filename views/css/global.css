@@ -296,10 +296,6 @@
   color: #232323;
 }
 
-.mjvp-map-modal .tmjs-search-result {
-  display: none;
-}
-
 .mjvp-map-modal .tmjs-search-btn,
 .mjvp-map-modal .tmjs-geolocation-btn {
   color: var(--mjvp-color);

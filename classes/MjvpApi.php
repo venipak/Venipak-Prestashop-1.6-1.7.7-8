@@ -307,8 +307,52 @@ class MjvpApi extends MjvpBase
             'xml_text' => $xml,
         ];
         $response = $this->executeRequest('import/send.php', 'POST', $params);
+        $result = (is_string($response)) ? $this->convertXmlToArray($response) : false;
 
-        return $this->convertXmlToArray($response);
+        // Venipak always answers with XML containing "text" (success) or "error" element.
+        // Anything else (cURL error, HTML page, empty response) means request failed, e.g. API server address is wrong.
+        if (!is_array($result) || (!isset($result['error']) && !isset($result['text']))) {
+            return array(
+                'error' => array(
+                    'text' => $this->getInvalidResponseMessage($response),
+                ),
+            );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Build error message for the case when API did not return a valid response
+     */
+    private function getInvalidResponseMessage($response)
+    {
+        $details = (is_string($response)) ? $response : (string) json_encode($response);
+        // Remove scripts and styles (e.g. when HTML page is received), so only readable text is left
+        $details = preg_replace('#<(script|style)\b[^>]*>.*?</\1>#is', ' ', $details);
+        $details = trim(preg_replace('/\s+/', ' ', strip_tags($details)));
+        if ($details === '' || $details === 'null') {
+            $details = $this->module->l('Empty response');
+        }
+        if (Tools::strlen($details) > 200) {
+            $details = Tools::substr($details, 0, 200) . '...';
+        }
+
+        return sprintf(
+            $this->module->l('Failed to get a valid response from Venipak API server %s. Please check the API server address in module settings. Details: %s'),
+            htmlspecialchars($this->getApiServerUrl(), ENT_QUOTES, 'UTF-8'),
+            htmlspecialchars($details, ENT_QUOTES, 'UTF-8')
+        );
+    }
+
+    /**
+     * Get API server address used for requests
+     */
+    private function getApiServerUrl($use_live_endpoint = false)
+    {
+        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
+
+        return ($use_live_endpoint || Configuration::get($cModuleConfig->getConfigKey('live_mode', 'API'))) ? $this->_liveCurlUrl : $this->_curlUrl;
     }
 
     /**
@@ -316,7 +360,13 @@ class MjvpApi extends MjvpBase
      */
     private function convertXmlToArray($xml_text)
     {
+        $use_internal_errors = libxml_use_internal_errors(true);
         $xml = simplexml_load_string($xml_text, "SimpleXMLElement", LIBXML_NOCDATA);
+        libxml_clear_errors();
+        libxml_use_internal_errors($use_internal_errors);
+        if ($xml === false) {
+            return false;
+        }
         $json = json_encode($xml);
         $array = json_decode($json,TRUE);
 
@@ -607,8 +657,7 @@ class MjvpApi extends MjvpBase
 
         $curl = curl_init();
 
-        $cModuleConfig = $this->module->getModuleService('MjvpModuleConfig');
-        $endpoint = $useLiveEndpoint || Configuration::get($cModuleConfig->getConfigKey('live_mode', 'API')) ? $this->_liveCurlUrl : $this->_curlUrl;
+        $endpoint = $this->getApiServerUrl($useLiveEndpoint);
         $headers = array(
             "client-software-name: Prestashop",
             "client-software-version: " . _PS_VERSION_,
