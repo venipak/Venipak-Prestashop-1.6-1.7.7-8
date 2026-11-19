@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.3] - 2026-11-19
 ### Fixed
 - fixed "Pack number is already in use" error caused by duplicate pack numbers when concurrent/duplicate requests generated labels at the same time
 - fixed success message being shown when shipment registration failed because Venipak API returned an invalid response (e.g. unreachable or wrong API server address), now an error with details is displayed
