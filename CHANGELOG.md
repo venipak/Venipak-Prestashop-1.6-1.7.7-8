@@ -6,6 +6,7 @@
 - fixed success message being shown when shipment registration failed because Venipak API returned an invalid response (e.g. unreachable or wrong API server address), now an error with details is displayed
 - fixed checkout being blocked by pickup points map loading overlay when map scripts fail to load (#135), now a warning is shown instead of the map
 - fixed city missing in selected pickup point name
+- fixed pickup point selection (and courier fields) missing when returning from payment step to shipping method step on PS 1.7+ checkout
 
 ### Changed
 - changed default Venipak test API server address to https://gouat.venipak.lt/ (existing installations are updated automatically only if the old default address was still used)

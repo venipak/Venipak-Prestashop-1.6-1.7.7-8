@@ -1571,6 +1571,38 @@ class MijoraVenipak extends CarrierModule
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping.css');
             $this->context->controller->addCSS($this->_path . 'views/css/terminal-mapping-custom.css');
         }
+        elseif (version_compare(_PS_VERSION_, '1.7', '>=') && $this->context->controller->php_self == 'order')
+        {
+            $this->addPaymentStepAssets();
+        }
+    }
+
+    /**
+     * On PS 1.7+ payment step carrier extra content is not rendered (to avoid conflicts with venipakcod),
+     * but customer can return to delivery step without page reload. Adds script, which reloads delivery step
+     * with carrier extra content when customer returns to it.
+     */
+    private function addPaymentStepAssets()
+    {
+        $cModuleConfig = new MjvpModuleConfig();
+
+        $carrier_ids = array(
+            (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['pickup']['reference_name']))->id,
+        );
+
+        // Courier extra content has fields only when at least one of them is enabled
+        $courier_fields = array('door_code', 'cabinet_number', 'warehouse_number', 'delivery_time', 'call_before_delivery');
+        foreach ($courier_fields as $field) {
+            if (Configuration::get($cModuleConfig->getConfigKey($field, 'COURIER'))) {
+                $carrier_ids[] = (int) Carrier::getCarrierByReference(Configuration::get(self::$_carriers['courier']['reference_name']))->id;
+                break;
+            }
+        }
+
+        Media::addJsDef(array(
+            'mjvp_payment_step_carrier_ids' => array_values(array_filter($carrier_ids)),
+        ));
+        $this->context->controller->registerJavascript('modules-mjvp-front-payment-step-js', 'modules/' . $this->name . '/views/js/front17-payment-step.js');
     }
 
     /**
